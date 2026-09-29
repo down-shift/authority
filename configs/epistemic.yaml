@@ -1,0 +1,9 @@
+experiment: epistemic
+seed: 20260929
+worlds_per_cell: 1
+templates: [reports, readings, records]
+roles: [system, user]
+evidence_strengths: [1, 2, 3, 5]
+trust_metadata: [ordinary, untrusted]
+include_controls: true
+max_new_tokens: 12

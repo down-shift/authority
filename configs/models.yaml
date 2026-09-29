@@ -1,0 +1,7 @@
+# Model IDs can also be passed directly to --model. Set revision to a commit for pinned runs.
+models:
+  qwen_3b_instruct:
+    name: Qwen/Qwen2.5-3B-Instruct
+    revision: null
+    family: qwen
+    tuning: instruction

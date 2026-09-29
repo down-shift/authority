@@ -1,0 +1,6 @@
+experiment: delegation
+seed: 20260929
+repeats_per_pair: 2
+templates: [direct, task, contract]
+scopes: [format, ordering, numeric_answer, filename]
+max_new_tokens: 96
