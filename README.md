@@ -23,20 +23,18 @@ Both tasks use invented labels or synthetic output contracts. Grading uses exact
 Use Python 3.10+ and an environment with enough RAM or accelerator memory for the selected model:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e '.[test]'
+uv sync --extra inference --extra test
 ```
 
-The package requires `torch` and `transformers` for model inference. Dataset generation and analysis require only the other listed packages. No external account or API is required. Pin the model revision in `configs/models.yaml` for a repeatable checkpoint.
+This creates a project environment. On first sync, `uv` resolves dependencies and writes `uv.lock`; later syncs use that pinned set. The `inference` extra adds `torch` and `transformers`; omit it when only generating data or analyzing saved predictions. No external account or API is required. Pin the model revision in `configs/models.yaml` for a repeatable checkpoint.
 
 ## Generate and inspect datasets
 
 ```bash
-python scripts/generate_dataset.py --config configs/epistemic.yaml --output outputs/epistemic.jsonl
-python scripts/generate_dataset.py --config configs/delegation.yaml --output outputs/delegation.jsonl
-python scripts/smoke_test.py
-pytest -q
+uv run python scripts/generate_dataset.py --config configs/epistemic.yaml --output outputs/epistemic.jsonl
+uv run python scripts/generate_dataset.py --config configs/delegation.yaml --output outputs/delegation.jsonl
+uv run python scripts/smoke_test.py
+uv run --extra test pytest -q
 ```
 
 The default epistemic config creates 48 role-swapped pairs plus controls. The delegation config creates all 12 ordered scope pairs with two repeats over three templates, plus controls. Increase `worlds_per_cell` or `repeats_per_pair` only after checking pilot gates. The seed controls objects, labels, source IDs, and instruction order. Each record stores an ID, `pair_id`, condition, exact messages, answer key, and structured metadata. Answer keys and scoring metadata are never passed to the model.
@@ -73,8 +71,8 @@ The valid response is XML with `numeric_answer` 42. JSON responses must contain 
 ## Run a model
 
 ```bash
-python scripts/run_experiment.py --experiment epistemic --model qwen_3b_instruct --config configs/epistemic.yaml
-python scripts/run_experiment.py --experiment delegation --model qwen_3b_instruct --config configs/delegation.yaml
+uv run --extra inference python scripts/run_experiment.py --experiment epistemic --model qwen_3b_instruct --config configs/epistemic.yaml
+uv run --extra inference python scripts/run_experiment.py --experiment delegation --model qwen_3b_instruct --config configs/delegation.yaml
 ```
 
 `--model` may also be a Hugging Face repository ID or local model path. Only models with an official tokenizer chat template are supported. The configured roles must be supported by that template. Decoding is greedy. Candidate scores sum the conditional log probability of **every** continuation token; multi-token labels are never reduced to the first token. `metadata.json` records token IDs, unequal-length pairs, prompt-length differences, model/tokenizer commits when exposed, software versions, seed, decoding settings, UTC timestamp, and Git commit when available.
@@ -98,9 +96,9 @@ outputs/<run_id>/
 ## Reanalyze without the model
 
 ```bash
-python scripts/analyze_results.py outputs/<run_id>
-python scripts/analyze_results.py outputs/<epistemic_run> outputs/<delegation_run> --combined-output outputs/combined
-python scripts/analyze_results.py outputs/<model1_run> outputs/<model2_run> --combined-output outputs/comparison
+uv run python scripts/analyze_results.py outputs/<run_id>
+uv run python scripts/analyze_results.py outputs/<epistemic_run> outputs/<delegation_run> --combined-output outputs/combined
+uv run python scripts/analyze_results.py outputs/<model1_run> outputs/<model2_run> --combined-output outputs/comparison
 ```
 
 This regenerates `metrics.json`, `pilot_report.txt`, the CI table, and figures using saved predictions only. Epistemic analysis uses paired bootstrap CIs and a paired sign permutation test. Delegation reports the full leakage matrix, compliance, selectivity, prespecified similarity groups, and paired comparisons against no delegation with Benjamini–Hochberg correction. Figures are written as PNGs.
