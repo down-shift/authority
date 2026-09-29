@@ -56,15 +56,15 @@ def plot_delegation(metrics: dict, figure_dir: Path, model_name: str) -> None:
     for a, i in enumerate(SCOPES):
         for b, j in enumerate(SCOPES):
             if i != j:
-                value = metrics["leakage_matrix"][f"{i}->{j}"]["rate"]
+                value = metrics["legacy_raw_unauthorized_follow_matrix"][f"{i}->{j}"]["rate"]
                 matrix[a, b] = value if value is not None else np.nan
     fig, ax = plt.subplots(figsize=(6, 5))
     image = ax.imshow(matrix, vmin=0, vmax=1, cmap="magma")
     ax.set(xticks=range(len(SCOPES)), yticks=range(len(SCOPES)), xticklabels=SCOPES,
-           yticklabels=SCOPES, xlabel="Attempted scope", ylabel="Authorized scope", title="Unauthorized-follow rate")
+           yticklabels=SCOPES, xlabel="Attempted scope", ylabel="Authorized scope", title="Legacy raw unauthorized-follow rate (not leakage)")
     plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
     fig.colorbar(image, ax=ax)
-    _save(fig, figure_dir / "delegation_leakage_matrix.png")
+    _save(fig, figure_dir / "legacy_raw_unauthorized_follow_matrix.png")
     fig, ax = plt.subplots(figsize=(6, 3.5))
     values = [metrics["legitimate_compliance"][i]["rate"] for i in SCOPES]
     ax.bar(SCOPES, [np.nan if v is None else v for v in values], color="#327c68")
@@ -100,6 +100,47 @@ def plot_unified(metrics: dict, figure_dir: Path) -> None:
 
 def make_figures(metrics: dict, figure_dir: Path, model_name: str) -> None:
     figure_dir.mkdir(parents=True, exist_ok=True)
+    if "effects" in metrics:
+        if metrics["experiment"] == "epistemic":
+            fig, ax = plt.subplots(figsize=(7, 3.5))
+            names=list(metrics["effects"])
+            for idx, name in enumerate(names):
+                vals=metrics["effects"][name]["paired_deltas"]
+                ax.scatter([idx]*len(vals), vals, alpha=.55, s=16)
+                if vals: ax.plot([idx-.18,idx+.18],[np.mean(vals)]*2,color="black")
+            ax.axhline(0,color="gray",linewidth=.8); ax.set(xticks=range(len(names)),xticklabels=names,
+                ylabel="Paired change in claim log-probability margin",title="Epistemic authority effects")
+            _save(fig,figure_dir/"epistemic_paired_effects.png")
+            fig,ax=plt.subplots(figsize=(6,3.5)); names=list(metrics["condition_margins"])
+            vals=[metrics["condition_margins"][k]["mean"] for k in names]
+            ax.bar(names,[np.nan if v is None else v for v in vals],color=["#777777","#436a92","#327c68"])
+            ax.axhline(0,color="black",linewidth=.8); ax.set(ylabel="Source-claim log-probability margin",title="Factual margins by authority condition")
+            _save(fig,figure_dir/"epistemic_condition_margins.png")
+            templates=list(metrics["by_template"]); names=list(metrics["effects"])
+            fig,ax=plt.subplots(figsize=(7,3.5))
+            for name in names:
+                ax.plot(templates,[metrics["by_template"][t][name]["mean"] for t in templates],marker="o",label=name)
+            ax.axhline(0,color="gray",linewidth=.8); ax.set(ylabel="Paired margin effect",title="Template heterogeneity"); ax.legend()
+            _save(fig,figure_dir/"epistemic_template_heterogeneity.png")
+        else:
+            keys=list(metrics["leakage_matrix"]); count=int(len(keys)**.5)
+            scopes=[x.split("->")[0] for x in keys[:count]]
+            matrix=np.array([metrics["leakage_matrix"][k]["mean"] or 0 for k in keys]).reshape(count,count)
+            fig,ax=plt.subplots(figsize=(7,5)); im=ax.imshow(matrix,cmap="coolwarm",vmin=-1,vmax=1)
+            ax.set(xticks=range(count),xticklabels=scopes,yticks=range(count),yticklabels=scopes,
+                   xlabel="Influenced target scope",ylabel="Granted authority scope",title="Paired leakage matrix")
+            fig.colorbar(im,ax=ax,label="Adoption change from no authority")
+            _save(fig,figure_dir/"leakage_matrix_heatmap.png")
+            fig,ax=plt.subplots(figsize=(7,3.5)); ax.bar(range(count),[matrix[i,i] for i in range(count)])
+            off=[matrix[i,j] for i in range(count) for j in range(count) if i!=j]
+            ax.axhline(float(np.mean(off)) if off else 0,color="#9a6d46",label="Mean off diagonal")
+            ax.set(xticks=range(count),xticklabels=scopes,ylabel="Adoption change",title="Diagonal and off-diagonal effects"); ax.legend()
+            _save(fig,figure_dir/"diagonal_vs_offdiagonal.png")
+            baseline=metrics["no_authority_source_adoption"]
+            fig,ax=plt.subplots(figsize=(7,3.5)); ax.bar(list(baseline),[baseline[k] for k in baseline],color="#9a6d46")
+            ax.set(ylim=(0,1),ylabel="Source adoption given valid parse",title="No-authority source adoption baseline")
+            plt.setp(ax.get_xticklabels(),rotation=25,ha="right"); _save(fig,figure_dir/"no_authority_adoption.png")
+        return
     if metrics["experiment"] == "epistemic":
         plot_epistemic(metrics, figure_dir, model_name)
     else:

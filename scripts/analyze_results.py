@@ -24,10 +24,20 @@ def analyze_run(run_dir: Path) -> dict:
         with (run_dir / "bootstrap_ci.csv").open("w", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(["stratum", "n", "mean", "ci95_low", "ci95_high"])
-            for kind in ("by_strength", "by_trust", "by_claim_truth", "by_template"):
-                for key, value in metrics[kind].items():
-                    writer.writerow([f"{kind}:{key}", value["n"], value["mean"], *value["ci95"]])
-            writer.writerow(["overall", metrics["paired"]["n"], metrics["paired"]["mean"], *metrics["paired"]["ci95"]])
+            if "effects" in metrics:
+                for key, value in metrics["effects"].items():
+                    writer.writerow([key, value["n_worlds"], value["mean"], *value["ci95"]])
+            else:
+                for kind in ("by_strength", "by_trust", "by_claim_truth", "by_template"):
+                    for key, value in metrics[kind].items():
+                        writer.writerow([f"{kind}:{key}", value["n"], value["mean"], *value["ci95"]])
+                writer.writerow(["overall", metrics["paired"]["n"], metrics["paired"]["mean"], *metrics["paired"]["ci95"]])
+    if metrics.get("experiment") == "scope" and "effects" in metrics:
+        with (run_dir / "leakage_matrix.csv").open("w", newline="") as handle:
+            writer=csv.writer(handle); writer.writerow(["granted_scope","target_scope","n_worlds","mean_effect","ci95_low","ci95_high"])
+            for cell,value in metrics["leakage_matrix"].items():
+                i,j=cell.split("->")
+                writer.writerow([i,j,value["n_worlds"],value["mean"],*value["ci95"]])
     return metrics
 
 

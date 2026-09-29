@@ -4,6 +4,7 @@ from __future__ import annotations
 import random
 
 from authority_leakage.generation.templates import DELEGATION_TEMPLATES
+from authority_leakage.progress import tqdm
 from authority_leakage.schemas import Example, Message, validate_examples
 
 SCOPES = ("format", "ordering", "numeric_answer", "filename")
@@ -40,6 +41,8 @@ def generate_delegation(config: dict, seed: int) -> list[Example]:
         raise ValueError("repeats_per_pair must be positive")
     examples: list[Example] = []
     n = 0
+    total_pairs = len(templates) * len(scopes) * (len(scopes) - 1) * repeats
+    progress = tqdm(total=total_pairs, desc="Generating delegation pairs", unit="pair")
     for template_id in templates:
         task_line = DELEGATION_TEMPLATES[template_id]
         for authorized_scope in scopes:
@@ -48,6 +51,7 @@ def generate_delegation(config: dict, seed: int) -> list[Example]:
                     continue
                 for _ in range(repeats):
                     n += 1
+                    progress.update(1)
                     pair_id = f"d{seed}-{n:06d}"
                     source = f"{rng.choice('ABCDEFGHJKLMNPQRSTUVWXYZ')}{rng.randrange(10, 99)}"
                     # Randomize instruction order once; all controls share it.
@@ -100,6 +104,7 @@ def generate_delegation(config: dict, seed: int) -> list[Example]:
                             messages=[Message("system", system), Message("user", source_message + "\n\n" + query)],
                             correct_answer=correct, metadata=md,
                         ))
+    progress.close()
     rng.shuffle(examples)
     validate_examples(examples)
     return examples

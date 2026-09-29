@@ -1,9 +1,8 @@
+design: matched_authority_v1
 experiment: epistemic
+phase: clean_epistemic_pilot
 seed: 20260929
-worlds_per_cell: 1
-templates: [reports, readings, records]
-roles: [system, user]
-evidence_strengths: [1, 2, 3, 5]
-trust_metadata: [ordinary, untrusted]
-include_controls: true
-max_new_tokens: 12
+worlds: 120
+templates: [direct, plain, question]
+evidence_strength: 3
+max_new_tokens: 8

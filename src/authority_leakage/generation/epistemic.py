@@ -4,6 +4,7 @@ from __future__ import annotations
 import random
 
 from authority_leakage.generation.templates import EPISTEMIC_TEMPLATES
+from authority_leakage.progress import tqdm
 from authority_leakage.schemas import Example, Message, validate_examples
 
 LABEL_PAIRS = [("dax", "wug"), ("mip", "norp"), ("tef", "zun"), ("blick", "sorn")]
@@ -25,6 +26,8 @@ def generate_epistemic(config: dict, seed: int) -> list[Example]:
         raise ValueError("Unknown trust_metadata condition")
     examples: list[Example] = []
     world_n = 0
+    total_worlds = len(templates) * len(strengths) * 2 * len(metadata_conditions) * repeats
+    progress = tqdm(total=total_worlds, desc="Generating epistemic worlds", unit="world")
     for template_index, template_id in enumerate(templates):
         claim_pattern, evidence_pattern, question_pattern = EPISTEMIC_TEMPLATES[template_id]
         for strength_index, strength in enumerate(strengths):
@@ -32,6 +35,7 @@ def generate_epistemic(config: dict, seed: int) -> list[Example]:
                 for trust_index, trust_metadata in enumerate(metadata_conditions):
                     for repeat_index in range(repeats):
                         world_n += 1
+                        progress.update(1)
                         world_id = f"e{seed}-{world_n:06d}"
                         pair_id = world_id
                         object_id = f"{rng.choice('ABCDEFGHJKLMNPQRSTUVWXYZ')}{rng.randrange(10000, 99999)}"
@@ -87,6 +91,7 @@ def generate_epistemic(config: dict, seed: int) -> list[Example]:
                             add("same_user_reverse", [Message("user", evidence + "\n" + claim + "\n\n" + question)], "order_only")
                             add("claim_absent", [Message("user", evidence + "\n\n" + question)], "evidence_only")
                             add("evidence_absent", [Message("user", claim + "\n\n" + question)], "claim_only")
+    progress.close()
     rng.shuffle(examples)
     validate_examples(examples)
     return examples

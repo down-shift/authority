@@ -11,10 +11,11 @@ import sys
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from authority_leakage.inference import run_inference, tokenization_audit, write_jsonl
+from authority_leakage.inference import run_inference, tokenization_audit, write_jsonl, write_run_status
 from authority_leakage.models.hf import HFAdapter
 from generate_dataset import build
 from analyze_results import analyze_run
+from authority_leakage.clean import dataset_sha256
 
 
 def git_commit() -> str | None:
@@ -24,7 +25,7 @@ def git_commit() -> str | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment", required=True, choices=["epistemic", "delegation"])
+    parser.add_argument("--experiment", required=True, choices=["epistemic", "scope", "delegation"])
     parser.add_argument("--model", required=True, help="models.yaml key or HF repository/path")
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--models-config", default=Path("configs/models.yaml"), type=Path)
@@ -32,7 +33,8 @@ def main() -> None:
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text())
-    if config.get("experiment") != args.experiment:
+    expected_experiment = "scope" if args.experiment == "delegation" and config.get("experiment") == "scope" else args.experiment
+    if config.get("experiment") != expected_experiment:
         parser.error("--experiment and config experiment differ")
     model_entries = yaml.safe_load(args.models_config.read_text()).get("models", {}) if args.models_config.exists() else {}
     model_spec = model_entries.get(args.model, {"name": args.model, "revision": None})
@@ -66,13 +68,49 @@ def main() -> None:
     metadata = {"run_id": run_dir.name, "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "git_commit": git_commit(), "model": adapter.provenance(),
                 "generation_config": full_config, "tokenization_audit": audit,
+                "dataset_sha256": dataset_sha256(examples),
                 "deterministic_algorithms_requested": True,
                 "candidate_scoring": "sum full continuation-token conditional log probabilities"}
     (run_dir / "metadata.json").write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")
     write_jsonl(run_dir / "dataset.jsonl", (e.to_dict() for e in examples))
-    predictions = run_inference(examples, adapter, int(config["max_new_tokens"]))
-    write_jsonl(run_dir / "predictions.jsonl", predictions)
-    metrics = analyze_run(run_dir)
+    (run_dir / "validation_report.json").write_text(json.dumps({
+        "design": config.get("design", "legacy"), "matched_variants_validated": True,
+        "world_count": len({e.pair_id for e in examples}), "example_count": len(examples),
+        "dataset_sha256": dataset_sha256(examples),
+        "note": "validate_matching checked answer/world invariance and authority-only prompt differences.",
+    }, indent=2, sort_keys=True) + "\n")
+    predictions_path = run_dir / "predictions.jsonl"
+    status_path = run_dir / "run_status.json"
+    completed = 0
+    write_run_status(status_path, "running", completed, len(examples))
+
+    def record_saved_prediction() -> None:
+        nonlocal completed
+        completed += 1
+        if completed % 10 == 0 or completed == len(examples):
+            write_run_status(status_path, "running", completed, len(examples))
+
+    try:
+        write_jsonl(predictions_path, run_inference(examples, adapter, int(config["max_new_tokens"])),
+                    on_row=record_saved_prediction)
+    except BaseException as exc:
+        status = "interrupted" if isinstance(exc, KeyboardInterrupt) else "failed"
+        write_run_status(status_path, status, completed, len(examples), repr(exc))
+        if completed and predictions_path.exists():
+            try:
+                analyze_run(run_dir)
+            except Exception as analysis_exc:
+                write_run_status(status_path, status, completed, len(examples),
+                                 f"{exc!r}; partial analysis failed: {analysis_exc!r}")
+        raise
+
+    write_run_status(status_path, "inference_complete", completed, len(examples))
+    try:
+        metrics = analyze_run(run_dir)
+    except BaseException as exc:
+        write_run_status(status_path, "analysis_failed", completed, len(examples), repr(exc))
+        raise
+    write_run_status(status_path, "complete", completed, len(examples))
     print(f"Run: {run_dir}")
     print((run_dir / "pilot_report.txt").read_text().strip())
     if args.experiment == "epistemic" and (metrics["controls"].get("claim_absent", {}).get("accuracy", {}).get("rate") or 0) <= 0.95:

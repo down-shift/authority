@@ -4,6 +4,7 @@ from __future__ import annotations
 from authority_leakage.models.base import Generation, ModelAdapter
 from authority_leakage.schemas import Message
 from authority_leakage.scoring import conditional_logprob
+import hashlib
 
 
 class HFAdapter(ModelAdapter):
@@ -126,6 +127,8 @@ class HFAdapter(ModelAdapter):
             "requested_revision": self.requested_revision,
             "model_commit": getattr(self.model.config, "_commit_hash", None),
             "tokenizer_commit": self.tokenizer.init_kwargs.get("_commit_hash"),
+            "tokenizer_revision": self.requested_revision,
+            "chat_template_sha256": hashlib.sha256((self.tokenizer.chat_template or "").encode()).hexdigest(),
             "device": self.device,
             "requested_device": self.requested_device,
             "quantization": self.quantization,

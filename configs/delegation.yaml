@@ -1,6 +1,8 @@
-experiment: delegation
+design: matched_authority_v1
+experiment: scope
+phase: scope_matrix_pilot
 seed: 20260929
-repeats_per_pair: 2
-templates: [direct, task, contract]
-scopes: [format, ordering, numeric_answer, filename]
+worlds: 120
+templates: [direct, plain, question]
+scopes: [output_format, ordering, filename, tool_choice, numeric_answer]
 max_new_tokens: 96

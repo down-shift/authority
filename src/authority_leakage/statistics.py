@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 import numpy as np
 from scipy.stats import binomtest
+from authority_leakage.progress import tqdm
 
 
 def bootstrap_ci(values: list[float], seed: int = 0, n_boot: int = 4000) -> list[float | None]:
@@ -34,7 +35,7 @@ def paired_sign_permutation(values: list[float], seed: int = 0, n_perm: int = 10
     observed = abs(x.mean())
     rng = np.random.default_rng(seed)
     extreme = 0
-    for _ in range(n_perm):
+    for _ in tqdm(range(n_perm), total=n_perm, desc="Paired permutation test", unit="shuffle", leave=False):
         extreme += abs((x * rng.choice([-1, 1], size=len(x))).mean()) >= observed - 1e-12
     return (extreme + 1) / (n_perm + 1)
 

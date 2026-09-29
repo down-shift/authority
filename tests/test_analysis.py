@@ -60,7 +60,7 @@ def test_delegation_saved_prediction_analysis_and_figures(tmp_path):
     assert metrics["controls"]["both"]["unauthorized_followed"]["rate"] == 0.
     assert all(value == 1. for value in metrics["selectivity"].values())
     make_figures(metrics, tmp_path / "figures", "fake")
-    assert (tmp_path / "figures" / "delegation_leakage_matrix.png").exists()
+    assert (tmp_path / "figures" / "legacy_raw_unauthorized_follow_matrix.png").exists()
 
 
 def test_combined_report_and_figure(tmp_path):
