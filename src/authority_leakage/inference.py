@@ -54,7 +54,8 @@ def read_jsonl(path: Path) -> list[dict]:
 
 def run_inference(examples: list[Example], adapter: ModelAdapter, max_new_tokens: int) -> Iterator[dict]:
     for example in tqdm(examples, total=len(examples), desc="Running inference", unit="example"):
-        candidates = example.metadata["labels"] if example.experiment == "epistemic" else []
+        candidates = (example.metadata["labels"] if example.experiment == "epistemic" else
+                      example.metadata.get("choice_candidates", []))
         candidate_scores = adapter.score_candidates(example.messages, candidates) if candidates else None
         if candidates and hasattr(adapter, "generate_choice"):
             generation = adapter.generate_choice(example.messages, candidates)

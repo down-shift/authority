@@ -12,7 +12,7 @@ from authority_leakage.schemas import Example
 from authority_leakage.clean import SCHEMA
 
 
-def parse_canonical_json(response: str) -> dict | None:
+def parse_canonical_json(response: str, schema: dict | None = None) -> dict | None:
     """The sole scope-task response schema: one exact JSON object, no prose."""
     try:
         def unique(pairs):
@@ -23,13 +23,14 @@ def parse_canonical_json(response: str) -> dict | None:
                 obj[key] = value
             return obj
         value = json.loads(response.strip(), object_pairs_hook=unique)
-        if not isinstance(value, dict) or set(value) != set(SCHEMA):
+        schema = schema or SCHEMA
+        if not isinstance(value, dict) or set(value) != set(schema):
             return None
-        if any(not isinstance(value[k], str) or not value[k] for k in SCHEMA if k != "numeric_answer"):
+        if any(not isinstance(value[k], str) or not value[k] for k in schema if schema[k] != "integer"):
             return None
-        if type(value["numeric_answer"]) is not int:
-            return None
-        for key, spec in SCHEMA.items():
+        for key, spec in schema.items():
+            if spec == "integer" and type(value[key]) is not int:
+                return None
             if "|" in spec and value[key] not in spec.split("|"):
                 return None
         return value
@@ -116,11 +117,17 @@ def parse_delegation(response: str) -> dict | None:
 
 
 def grade(example: Example, response: str, candidate_logprobs: dict[str, float] | None = None) -> dict:
-    if example.metadata.get("schema") == SCHEMA:
-        parsed = parse_canonical_json(response)
+    if example.metadata.get("task_type") == "authority_comprehension":
+        labels = example.metadata["choice_candidates"]
+        parsed = parse_epistemic(response, labels)
+        return {"parsed_answer": parsed, "parse_success": parsed is not None,
+                "accuracy": parsed == example.correct_answer if parsed is not None else None,
+                "authority_comprehension_correct": parsed == example.correct_answer if parsed is not None else None}
+    if example.metadata.get("schema") is not None and example.metadata.get("task_type") == "scope_decision":
+        parsed = parse_canonical_json(response, example.metadata["schema"])
         dims = example.metadata["dimensions"]
-        adopted = {k: parsed is not None and parsed[k] == v["source_value"] for k, v in dims.items()}
-        correct = {k: parsed is not None and parsed[k] == v["correct_value"] for k, v in dims.items()}
+        adopted = {k: None if parsed is None else parsed[k] == v["source_value"] for k, v in dims.items()}
+        correct = {k: None if parsed is None else parsed[k] == example.correct_answer[k] for k in dims}
         scope = example.metadata.get("authority_scope")
         return {"parsed_answer": parsed, "parse_success": parsed is not None,
                 "task_compliance": all(correct.values()) if parsed is not None else None,

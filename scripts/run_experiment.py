@@ -25,7 +25,7 @@ def git_commit() -> str | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment", required=True, choices=["epistemic", "scope", "delegation"])
+    parser.add_argument("--experiment", required=True, choices=["epistemic", "scope_pilot", "scope", "delegation"])
     parser.add_argument("--model", required=True, help="models.yaml key or HF repository/path")
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--models-config", default=Path("configs/models.yaml"), type=Path)

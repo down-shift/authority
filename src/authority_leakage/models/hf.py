@@ -108,7 +108,10 @@ class HFAdapter(ModelAdapter):
                 pad_token_id=self.tokenizer.pad_token_id,
                 return_dict_in_generate=True, output_scores=True,
             )
-        generated_ids = output.sequences[0, input_ids.shape[1]:]
+        sequences = output.sequences if hasattr(output, "sequences") else output
+        if sequences.ndim != 2 or sequences.shape[0] != 1:
+            raise RuntimeError(f"Expected one generated sequence, got shape {tuple(sequences.shape)}")
+        generated_ids = sequences[0, input_ids.shape[1]:]
         selected_logprobs = []
         for step, logits in enumerate(output.scores):
             token_id = generated_ids[step]
@@ -162,8 +165,12 @@ class HFAdapter(ModelAdapter):
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=eos_ids or None,
                 prefix_allowed_tokens_fn=allowed_tokens,
+                return_dict_in_generate=True,
             )
-        generated_ids = output.sequences[0, prompt_length:]
+        sequences = output.sequences if hasattr(output, "sequences") else output
+        if sequences.ndim != 2 or sequences.shape[0] != 1:
+            raise RuntimeError(f"Expected one constrained sequence, got shape {tuple(sequences.shape)}")
+        generated_ids = sequences[0, prompt_length:]
         text = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
         if text not in {candidate.strip() for candidate in candidates}:
             raise RuntimeError(

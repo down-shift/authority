@@ -10,7 +10,7 @@ The diagonal measures intended authority responsiveness. Off diagonal cells meas
 
 `epistemic` tests deontic `output_format` authority → influence on a factual claim. Every world is rendered with `NO_AUTHORITY`, `AUTHORITY_I` (format only), and an epistemic `AUTHORITY_J` positive control. Evidence-only, no-evidence, and explicit-denial controls diagnose competence and source following separately. Source claim, evidence, candidate values, query, and ordering remain fixed across the three primary authority variants. The source-claim log-probability margin is `log P(claim) − log P(other)`; the primary leakage is its paired change under format authority versus no authority. Claims are balanced true/false, candidate order is counterbalanced, and neutral templates are crossed. HF epistemic generation is constrained to the two candidate continuations; unconstrained candidate log-probability scoring remains the inferential outcome.
 
-`scope` tests a small authority leakage matrix over `output_format`, `ordering`, `filename`, `tool_choice`, and `numeric_answer`. Each world has independent task requirements and source proposals for every dimension, and is matched across no authority, each single-scope grant, and full authority. Its cell outcome is source adoption on the target dimension; each matrix cell is the paired adoption difference from no authority. Parse success, compliance, adoption, and joint valid-and-correct rates are distinct.
+`scope_pilot` is the required instrument-validation stage. Each dimension has a default; a fixed YES/NO authority table states which defaults S may override. The default config tests only `filename` over 60 worlds, with no-authority, target-authority, direct-authority, and separate authority-comprehension checks. Do not run the scope matrix until target responsiveness and comprehension are strong. The later `scope` matrix uses `output_format`, `ordering`, `filename`, `tool_choice`, and `numeric_answer`, matched across no authority, each individual grant, and full authority. Its cell outcome is source adoption on the target dimension; each matrix cell is the paired adoption difference from no authority. Parse success, compliance, adoption, and joint valid-and-correct rates are distinct.
 
 The output contract and parser share one canonical JSON key schema. Malformed output is counted as parse failure and excluded from conditional compliance/adoption denominators, while joint valid-and-correct is reported separately. Epistemic parse failures are excluded from accuracy/following denominators and representative unchanged raw responses are included in the metrics for diagnosis. There is no LLM-as-judge scoring.
 
@@ -30,7 +30,8 @@ This repository uses `uv` to select Python, resolve dependencies, run scripts, a
 uv lock
 uv sync --locked --extra inference --extra test
 uv run --locked python scripts/generate_dataset.py --config configs/epistemic.yaml --output outputs/epistemic-dataset.jsonl
-uv run --locked python scripts/generate_dataset.py --config configs/delegation.yaml --output outputs/scope-dataset.jsonl
+uv run --locked python scripts/generate_dataset.py --config configs/scope_instrument_pilot.yaml --output outputs/scope-instrument-pilot.jsonl
+uv run --locked python scripts/audit_scope_instrument.py outputs/scope-instrument-pilot.jsonl --worlds 5 --output outputs/scope-instrument-audit.md
 uv run --locked --extra test pytest -q
 ```
 
@@ -42,13 +43,13 @@ Clean epistemic pilot:
 uv run --locked --extra inference python scripts/run_experiment.py --experiment epistemic --model qwen3_4b --config configs/epistemic.yaml
 ```
 
-Scope-matrix pilot:
+One-scope authority-instrument pilot (required before the matrix):
 
 ```bash
-uv run --locked --extra inference python scripts/run_experiment.py --experiment scope --model qwen3_4b --config configs/delegation.yaml
+uv run --locked --extra inference python scripts/run_experiment.py --experiment scope_pilot --model qwen3_4b --config configs/scope_instrument_pilot.yaml
 ```
 
-Set `worlds` in either config for a small development run or a larger pilot. The epistemic default is 120 independent worlds; scope defaults to 120 worlds matched across the five single-scope grants, no authority, and full-authority control. `--model` accepts a `configs/models.yaml` key or a Hugging Face model ID/path. Model and tokenizer revisions are pinned through that config when supplied. Greedy decoding settings, software versions, checkpoint commits, tokenizer identity, seed, git commit, dataset hash, raw outputs, per-example scores, metrics, confidence intervals, validation information, and a human-readable pilot report are saved under each run directory.
+This scope config intentionally runs only the 60-world filename instrument. It includes comprehension checks, no-authority, target-authority, and direct positive control. Review its report; do not proceed to the 2×2 or five-scope matrix unless intended responsiveness is clearly present. `--model` accepts a `configs/models.yaml` key or a Hugging Face model ID/path. Model and tokenizer revisions are pinned through that config when supplied. Greedy decoding settings, software versions, checkpoint commits, tokenizer identity, seed, git commit, dataset hash, raw outputs, per-example scores, metrics, confidence intervals, validation information, and a human-readable pilot report are saved under each run directory.
 
 Each run stores `config.yaml`, `metadata.json`, `dataset.jsonl`, `predictions.jsonl`, `metrics.json`, `pilot_report.txt`, run status, and figures. `raw_response` is preserved unchanged. The output JSON and predictions are machine readable.
 

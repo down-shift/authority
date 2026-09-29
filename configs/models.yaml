@@ -2,7 +2,7 @@
 models:
   qwen3_4b:
     name: Qwen/Qwen3-4B
-    revision: null
+    revision: 1cfa9a7208912126459214e8b04321603b3df60c
     family: qwen3
     enable_thinking: false
     quantization: null
