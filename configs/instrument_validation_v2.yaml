@@ -1,0 +1,17 @@
+experiment: instrument_validation_v2
+phase: paired_candidate_mapping_validation
+design: frozen_instrument_C_mapping_reversal_v2
+seed: 20260930
+worlds: 120
+scope: filename
+instrument: C
+authority_conditions: [NO, YES]
+candidate_mappings: [source_is_A, source_is_B]
+max_new_tokens: 4
+# Prospective engineering gates; do not change after inference.
+criteria:
+  parse_scoring_success: 0.98
+  semantic_comprehension_each_condition: 0.95
+  no_authority_source_adoption_max: 0.10
+  yes_authority_source_adoption_min: 0.90
+  intended_responsiveness: mean > 0 and world-bootstrap 95% CI lower bound > 0

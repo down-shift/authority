@@ -36,5 +36,5 @@ def validate_examples(examples: list[Example]) -> None:
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate example_id")
     for e in examples:
-        if not e.messages or not e.pair_id or e.experiment not in {"epistemic", "delegation", "scope", "scope_pilot", "instrument_validation"}:
+        if not e.messages or not e.pair_id or e.experiment not in {"epistemic", "delegation", "scope", "scope_pilot", "instrument_validation", "instrument_validation_v2"}:
             raise ValueError(f"Invalid example {e.example_id}")
