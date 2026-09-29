@@ -1,0 +1,9 @@
+experiment: instrument_validation
+phase: authority_instrument_validation
+design: matched_single_scope_instrument_v1
+seed: 20260930
+worlds: 60
+scope: filename
+instruments: [A, B, C, D]
+authority_conditions: [NO, YES]
+max_new_tokens: 4
