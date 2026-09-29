@@ -61,7 +61,8 @@ def main() -> None:
     run_dir.mkdir(parents=True, exist_ok=False)
     full_config = {**config, "model": model_spec, "attention_implementation": adapter.attention_implementation or "model_default",
                    "decoding": {"do_sample": False, "num_beams": 1,
-                                                                "max_new_tokens": int(config["max_new_tokens"]), "seed": seed},
+                                "max_new_tokens": int(config["max_new_tokens"]), "seed": seed,
+                                "epistemic_choices": "greedy prefix-constrained candidate set when available"},
                    "model_key": args.model}
     (run_dir / "config.yaml").write_text(yaml.safe_dump(full_config, sort_keys=True))
     audit = tokenization_audit(examples, adapter)
@@ -113,10 +114,16 @@ def main() -> None:
     write_run_status(status_path, "complete", completed, len(examples))
     print(f"Run: {run_dir}")
     print((run_dir / "pilot_report.txt").read_text().strip())
-    if args.experiment == "epistemic" and (metrics["controls"].get("claim_absent", {}).get("accuracy", {}).get("rate") or 0) <= 0.95:
-        print("Pilot gate failed: evidence-only accuracy <= 95%; reconsider the design before scaling.")
-    if args.experiment == "delegation" and (metrics["authorized_only_compliance"]["rate"] or 0) <= 0.90:
-        print("Pilot gate failed: authorized-only compliance <= 90%; reconsider the design before scaling.")
+    if "engineering_warnings" in metrics:
+        # Clean matched-authority reports already compute the applicable
+        # diagnostics. The legacy controls below do not exist in this schema.
+        for warning in metrics["engineering_warnings"]:
+            print(f"Engineering warning: {warning}")
+    else:
+        if args.experiment == "epistemic" and (metrics["controls"].get("claim_absent", {}).get("accuracy", {}).get("rate") or 0) <= 0.95:
+            print("Legacy pilot diagnostic: evidence-only accuracy <= 95%.")
+        if args.experiment == "delegation" and (metrics["authorized_only_compliance"]["rate"] or 0) <= 0.90:
+            print("Legacy pilot diagnostic: authorized-only compliance <= 90%.")
 
 
 if __name__ == "__main__":

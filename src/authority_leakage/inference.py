@@ -56,7 +56,10 @@ def run_inference(examples: list[Example], adapter: ModelAdapter, max_new_tokens
     for example in tqdm(examples, total=len(examples), desc="Running inference", unit="example"):
         candidates = example.metadata["labels"] if example.experiment == "epistemic" else []
         candidate_scores = adapter.score_candidates(example.messages, candidates) if candidates else None
-        generation = adapter.generate(example.messages, max_new_tokens)
+        if candidates and hasattr(adapter, "generate_choice"):
+            generation = adapter.generate_choice(example.messages, candidates)
+        else:
+            generation = adapter.generate(example.messages, max_new_tokens)
         outcome = grade(example, generation.text, candidate_scores)
         yield {
             **example.to_dict(),

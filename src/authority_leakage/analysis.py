@@ -18,6 +18,11 @@ def analyze_clean(rows: list[dict]) -> dict:
     result = {"experiment": rows[0]["experiment"], "parse_success_rate": parse,
               "parse_success_n": len(rows), "worlds": len(grouped), "effects": {}, "raw_rates": {},
               "interpretation": "Behavioral authority influence; does not establish internal representation."}
+    result["parse_failure_examples"] = [
+        {"world_id": r["metadata"]["world_id"], "condition": r["condition"],
+         "raw_response": r.get("raw_response", "")[:500], "allowed_labels": r["metadata"].get("labels")}
+        for r in rows if not r["outcome"].get("parse_success")
+    ][:10]
     if rows[0]["experiment"] == "epistemic":
         cells = {"format_to_fact": ("AUTHORITY_I:output_format", "source_claim"),
                  "fact_to_fact": ("AUTHORITY_J:fact", "source_claim")}
@@ -106,9 +111,12 @@ def _mean(values):
 
 
 def _rate(rows: list[dict], key: str) -> dict:
-    values = [bool(r["outcome"].get(key)) for r in rows]
+    # Undefined outcomes from parser failures are excluded, not scored false.
+    values = [bool(r["outcome"][key]) for r in rows if r["outcome"].get(key) is not None]
     n = len(values)
-    return {"n": n, "rate": sum(values) / n if n else None, "ci95": bootstrap_ci(values) if n else [None, None]}
+    return {"n": n, "missing": len(rows) - n,
+            "rate": sum(values) / n if n else None,
+            "ci95": bootstrap_ci(values) if n else [None, None]}
 
 
 def analyze_epistemic(rows: list[dict]) -> dict:

@@ -119,6 +119,62 @@ class HFAdapter(ModelAdapter):
             generated_token_logprobs=selected_logprobs,
         )
 
+    def generate_choice(self, messages: list[Message], candidates: list[str]) -> Generation:
+        """Greedily generate exactly one candidate using a prefix constraint.
+
+        Candidate likelihoods for scientific scoring are computed separately by
+        score_candidates, without this constraint. This path makes categorical
+        output parsing independent of the model's tendency to add explanations.
+        """
+        torch = self.torch
+        prompt, input_ids = self._prompt_ids(messages)
+        candidate_ids = self.candidate_token_ids(candidates)
+        sequences = list(candidate_ids.values())
+        if not sequences or any(not seq for seq in sequences):
+            raise ValueError("Choice candidates must tokenize to nonempty sequences")
+        for candidate, token_ids in candidate_ids.items():
+            round_trip = self.tokenizer.decode(token_ids, skip_special_tokens=True).strip()
+            if round_trip != candidate.strip():
+                raise ValueError(
+                    f"Choice candidate does not round-trip through tokenizer: {candidate!r} -> {round_trip!r}"
+                )
+        eos = self.tokenizer.eos_token_id
+        eos_ids = list(eos) if isinstance(eos, (list, tuple)) else ([eos] if eos is not None else [])
+        prompt_length = input_ids.shape[1]
+
+        def allowed_tokens(_batch_id, current_ids):
+            suffix = current_ids[prompt_length:].tolist()
+            matching = [seq for seq in sequences if seq[:len(suffix)] == suffix]
+            allowed = {seq[len(suffix)] for seq in matching if len(seq) > len(suffix)}
+            if any(len(seq) == len(suffix) for seq in matching):
+                allowed.update(eos_ids)
+            if not allowed:
+                raise RuntimeError(f"No permitted choice continuation for token prefix {suffix}")
+            return sorted(allowed)
+
+        with torch.inference_mode():
+            output = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=torch.ones_like(input_ids),
+                max_new_tokens=max(len(seq) for seq in sequences) + 1,
+                do_sample=False,
+                num_beams=1,
+                pad_token_id=self.tokenizer.pad_token_id,
+                eos_token_id=eos_ids or None,
+                prefix_allowed_tokens_fn=allowed_tokens,
+            )
+        generated_ids = output.sequences[0, prompt_length:]
+        text = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+        if text not in {candidate.strip() for candidate in candidates}:
+            raise RuntimeError(
+                f"Constrained generation returned {text!r}; expected one of {candidates!r}"
+            )
+        return Generation(
+            text=text,
+            rendered_prompt=prompt,
+            generated_token_logprobs=None,
+        )
+
     def provenance(self) -> dict:
         import transformers
         return {
