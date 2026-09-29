@@ -10,7 +10,7 @@ The diagonal measures intended authority responsiveness. Off diagonal cells meas
 
 `epistemic` tests deontic `output_format` authority → influence on a factual claim. Every world is rendered with `NO_AUTHORITY`, `AUTHORITY_I` (format only), and an epistemic `AUTHORITY_J` positive control. Evidence-only, no-evidence, and explicit-denial controls diagnose competence and source following separately. Source claim, evidence, candidate values, query, and ordering remain fixed across the three primary authority variants. The source-claim log-probability margin is `log P(claim) − log P(other)`; the primary leakage is its paired change under format authority versus no authority. Claims are balanced true/false, candidate order is counterbalanced, and neutral templates are crossed. HF epistemic generation is constrained to the two candidate continuations; unconstrained candidate log-probability scoring remains the inferential outcome.
 
-`instrument_validation` is the required calibration stage for the one-scope `filename` task. It compares preregistered A/B/C authority representations and a D direct-control anchor across matched NO/YES conditions. The default config uses 60 shared worlds and separate authority-comprehension and behavioral-choice tasks. Selection uses only comprehension and intended filename adoption; it does not calculate leakage. Do not run the scope matrix unless an eligible instrument passes every fixed calibration gate. The later `scope` matrix uses `output_format`, `ordering`, `filename`, `tool_choice`, and `numeric_answer`, matched across no authority, each individual grant, and full authority. Its cell outcome is source adoption on the target dimension; each matrix cell is the paired adoption difference from no authority. Parse success, compliance, adoption, and joint valid-and-correct rates are distinct.
+`instrument_validation` is the original A/B/C/D calibration. `instrument_validation_v2` tests the decision-owner Instrument C under paired candidate-label reversal and uses mapping-cancelled conditional log-probability margins. Raw generated-choice adoption and label bias are reported separately. Only a passing v2 run enables the filename × ordering pilot. The first two-scope pilot is deontic only; factual answers remain epistemic targets and are excluded. The later full scope matrix should use action/output scopes such as `output_format`, `ordering`, `filename`, and `tool_choice`; factual-answer authority belongs in a separate deontic-to-epistemic experiment. Each leakage cell is a paired difference from no authority. Parse success, compliance, adoption, and joint valid-and-correct rates are distinct.
 
 The output contract and parser share one canonical JSON key schema. Malformed output is counted as parse failure and excluded from conditional compliance/adoption denominators, while joint valid-and-correct is reported separately. Epistemic parse failures are excluded from accuracy/following denominators and representative unchanged raw responses are included in the metrics for diagnosis. There is no LLM-as-judge scoring.
 
@@ -47,6 +47,27 @@ Authority-instrument validation (required before any scope matrix):
 
 ```bash
 uv run --locked --extra inference python scripts/run_instrument_validation.py --model qwen3_4b --config configs/instrument_validation.yaml
+```
+
+Paired-mapping Instrument C validation v2:
+
+```bash
+uv run --locked --extra inference python scripts/run_instrument_validation_v2.py --model qwen3_4b --config configs/instrument_validation_v2.yaml
+```
+
+If inference finished but plot generation failed, regenerate plots from saved metrics and predictions without rerunning the model:
+
+```bash
+uv run --locked python scripts/run_instrument_validation_v2.py --plots-only outputs/<instrument-validation-v2-run-directory>
+```
+
+Filename × ordering two-scope pilot. It refuses to run unless the supplied v2 run passed all validation gates:
+
+```bash
+uv run --locked --extra inference python scripts/run_two_scope_pilot.py \
+  --model qwen3_4b \
+  --validated-v2-run outputs/<passing-instrument-validation-v2-run-directory> \
+  --config configs/two_scope_pilot.yaml
 ```
 
 The validation config uses 60 independent worlds shared across the four representations. A/B/C are eligible for selection; D is an anchor only. If no instrument passes the fixed gates, stop and do not run the 2×2 or five-scope matrix. `--model` accepts a `configs/models.yaml` key or a Hugging Face model ID/path. Model and tokenizer revisions are pinned through that config when supplied. Greedy decoding settings, software versions, checkpoint commits, tokenizer identity, seed, git commit, dataset hash, raw outputs, per-example scores, metrics, confidence intervals, validation information, prompt diffs, selection record, and a human-readable report are saved under each run directory.

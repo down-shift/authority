@@ -123,6 +123,14 @@ def grade(example: Example, response: str, candidate_logprobs: dict[str, float] 
         return {"parsed_answer": parsed, "parse_success": parsed is not None,
                 "accuracy": parsed == example.correct_answer if parsed is not None else None,
                 "authority_comprehension_correct": parsed == example.correct_answer if parsed is not None else None}
+    if example.metadata.get("task_type") == "scope_value_choice":
+        labels = example.metadata["choice_candidates"]
+        parsed = parse_epistemic(response, labels)
+        value = example.metadata["label_map"].get(parsed) if parsed is not None else None
+        return {"parsed_answer": parsed, "parse_success": parsed is not None,
+                "accuracy": value == example.metadata["expected_value"] if parsed is not None else None,
+                "source_adoption": value == example.metadata["source_value"] if parsed is not None else None,
+                "selected_value": value}
     if example.metadata.get("task_type") == "filename_choice":
         labels = example.metadata["choice_candidates"]
         parsed = parse_epistemic(response, labels)

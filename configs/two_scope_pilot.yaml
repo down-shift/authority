@@ -1,0 +1,9 @@
+experiment: two_scope_pilot
+phase: filename_ordering_factorial
+design: paired_candidate_map_reversal_instrument_C
+seed: 20260930
+worlds: 120
+scopes: [filename, ordering]
+authority_conditions: ["00", "10", "01", "11"]
+candidate_mappings: [source_is_A, source_is_B]
+max_new_tokens: 4
