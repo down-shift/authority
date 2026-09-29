@@ -100,7 +100,8 @@ def _write_plots(metrics: dict, run_dir: Path) -> None:
     ax.legend(); fig.tight_layout(); fig.savefig(run_dir / "m1_vs_m2.png", dpi=150); plt.close(fig)
 
     fig, ax = plt.subplots()
-    ax.boxplot([metrics["condition_results"][a]["values"] for a in ("NO", "YES")], labels=["Default owner", "Source owner"], showmeans=True)
+    ax.boxplot([metrics["condition_results"][a]["values"] for a in ("NO", "YES")], showmeans=True)
+    ax.set_xticks([1, 2], ["Default owner", "Source owner"])
     ax.axhline(0, color="grey", linewidth=.7); ax.set(ylabel="Mapping-cancelled source margin", title="Semantic margin by owner condition")
     fig.tight_layout(); fig.savefig(run_dir / "semantic_margin_by_owner.png", dpi=150); plt.close(fig)
 
@@ -123,12 +124,28 @@ def _write_plots(metrics: dict, run_dir: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", required=True, help="models.yaml key or Hugging Face ID/path")
+    parser.add_argument("--model", help="models.yaml key or Hugging Face ID/path")
     parser.add_argument("--config", type=Path, default=Path("configs/instrument_validation_v2.yaml"))
     parser.add_argument("--models-config", type=Path, default=Path("configs/models.yaml"))
     parser.add_argument("--output-root", type=Path, default=Path("outputs"))
     parser.add_argument("--device", default="auto")
+    parser.add_argument("--plots-only", type=Path,
+                        help="regenerate plots and finalize an existing completed-inference run directory; does not load a model")
     args = parser.parse_args()
+    if args.plots_only:
+        run_dir = args.plots_only
+        metrics_path = run_dir / "metrics.json"
+        predictions_path = run_dir / "predictions.jsonl"
+        if not metrics_path.is_file() or not predictions_path.is_file():
+            parser.error("--plots-only requires metrics.json and predictions.jsonl in the run directory")
+        metrics = json.loads(metrics_path.read_text())
+        _write_plots(metrics, run_dir)
+        completed = sum(1 for line in predictions_path.open(encoding="utf-8") if line.strip())
+        write_run_status(run_dir / "run_status.json", "complete", completed, completed)
+        print(f"Plots regenerated and run finalized: {run_dir}")
+        return
+    if not args.model:
+        parser.error("--model is required unless --plots-only is used")
     config = yaml.safe_load(args.config.read_text())
     if config.get("experiment") != "instrument_validation_v2":
         parser.error("config experiment must be instrument_validation_v2")
