@@ -26,7 +26,7 @@ Use Python 3.10+ and an environment with enough RAM or accelerator memory for th
 uv sync --extra inference --extra test
 ```
 
-This creates a project environment. On first sync, `uv` resolves dependencies and writes `uv.lock`; later syncs use that pinned set. The `inference` extra adds `torch` and `transformers`; omit it when only generating data or analyzing saved predictions. No external account or API is required. Pin the model revision in `configs/models.yaml` for a repeatable checkpoint.
+This creates a project environment. On first sync, `uv` resolves dependencies and writes `uv.lock`; later syncs use that pinned set. The `inference` extra adds `torch` and `transformers`; `quantization` adds `bitsandbytes` for CUDA int8 loading. Omit both extras when only generating data or analyzing saved predictions. No external account or API is required. Pin the model revision in `configs/models.yaml` for a repeatable checkpoint.
 
 ## Generate and inspect datasets
 
@@ -71,11 +71,12 @@ The valid response is XML with `numeric_answer` 42. JSON responses must contain 
 ## Run a model
 
 ```bash
-uv run --extra inference python scripts/run_experiment.py --experiment epistemic --model qwen_3b_instruct --config configs/epistemic.yaml
-uv run --extra inference python scripts/run_experiment.py --experiment delegation --model qwen_3b_instruct --config configs/delegation.yaml
+uv run --extra inference python scripts/run_experiment.py --experiment epistemic --model qwen3_4b --config configs/epistemic.yaml
+uv run --extra inference python scripts/run_experiment.py --experiment delegation --model qwen3_4b --config configs/delegation.yaml
+uv run --extra inference --extra quantization python scripts/run_experiment.py --experiment epistemic --model qwen3_8b_int8 --config configs/epistemic.yaml
 ```
 
-`--model` may also be a Hugging Face repository ID or local model path. Only models with an official tokenizer chat template are supported. The configured roles must be supported by that template. Decoding is greedy. Candidate scores sum the conditional log probability of **every** continuation token; multi-token labels are never reduced to the first token. `metadata.json` records token IDs, unequal-length pairs, prompt-length differences, model/tokenizer commits when exposed, software versions, seed, decoding settings, UTC timestamp, and Git commit when available.
+`--model` may also be a Hugging Face repository ID or local model path. Only models with an official tokenizer chat template are supported. The configured roles must be supported by that template. Qwen3 entries disable thinking mode so greedy decoding and strict answer parsing remain suitable; the mode is saved in provenance. The int8 entry requires a CUDA device and explicitly uses PyTorch SDPA attention. Treat quantized results as a separate model condition because quantization changes logits. Candidate scores sum the conditional log probability of **every** continuation token; multi-token labels are never reduced to the first token. `metadata.json` records token IDs, unequal-length pairs, prompt-length differences, model/tokenizer commits when exposed, quantization, attention implementation, software versions, seed, decoding settings, UTC timestamp, and Git commit when available.
 
 Each run writes:
 

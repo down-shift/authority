@@ -38,7 +38,12 @@ def main() -> None:
     model_spec = model_entries.get(args.model, {"name": args.model, "revision": None})
     seed = int(config["seed"])
     examples = build(config)
-    adapter = HFAdapter(model_spec["name"], model_spec.get("revision"), args.device)
+    adapter = HFAdapter(
+        model_spec["name"], model_spec.get("revision"), args.device,
+        enable_thinking=model_spec.get("enable_thinking"),
+        quantization=model_spec.get("quantization"),
+        attention_implementation=model_spec.get("attention_implementation"),
+    )
     import random
     import numpy as np
     import torch
@@ -52,7 +57,8 @@ def main() -> None:
     slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", args.model)
     run_dir = args.output_root / f"{stamp}_{args.experiment}_{slug}_s{seed}"
     run_dir.mkdir(parents=True, exist_ok=False)
-    full_config = {**config, "model": model_spec, "decoding": {"do_sample": False, "num_beams": 1,
+    full_config = {**config, "model": model_spec, "attention_implementation": adapter.attention_implementation or "model_default",
+                   "decoding": {"do_sample": False, "num_beams": 1,
                                                                 "max_new_tokens": int(config["max_new_tokens"]), "seed": seed},
                    "model_key": args.model}
     (run_dir / "config.yaml").write_text(yaml.safe_dump(full_config, sort_keys=True))

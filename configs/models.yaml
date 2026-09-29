@@ -1,7 +1,21 @@
 # Model IDs can also be passed directly to --model. Set revision to a commit for pinned runs.
 models:
-  qwen_3b_instruct:
-    name: Qwen/Qwen2.5-3B-Instruct
+  qwen3_4b:
+    name: Qwen/Qwen3-4B
     revision: null
-    family: qwen
-    tuning: instruction
+    family: qwen3
+    enable_thinking: false
+    quantization: null
+  qwen3_8b:
+    name: Qwen/Qwen3-8B
+    revision: null
+    family: qwen3
+    enable_thinking: false
+    quantization: null
+  qwen3_8b_int8:
+    name: Qwen/Qwen3-8B
+    revision: null
+    family: qwen3
+    enable_thinking: false
+    quantization: bitsandbytes_int8
+    attention_implementation: sdpa
