@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from authority_leakage.models.base import Generation, ModelAdapter
 from authority_leakage.schemas import Message
-from authority_leakage.scoring import conditional_logprob
 import hashlib
 
 
@@ -79,24 +78,24 @@ class HFAdapter(ModelAdapter):
     def candidate_token_ids(self, candidates: list[str]) -> dict[str, list[int]]:
         return {candidate: self.tokenizer(candidate, add_special_tokens=False)["input_ids"] for candidate in candidates}
 
-    def score_candidates(self, messages: list[Message], candidates: list[str]) -> dict[str, float]:
+    def score_candidates_detailed(self, messages: list[Message], candidates: list[str]) -> dict:
+        from authority_leakage.models.continuation import continuation_encoding, continuation_logprob
         torch = self.torch
-        _, prompt_ids = self._prompt_ids(messages)
-        if prompt_ids.shape[1] == 0:
-            raise ValueError("Empty rendered prompt")
-        scores: dict[str, float] = {}
-        for candidate, token_ids in self.candidate_token_ids(candidates).items():
-            if not token_ids:
-                raise ValueError(f"Empty candidate: {candidate!r}")
-            suffix = torch.tensor([token_ids], dtype=prompt_ids.dtype, device=self.input_device)
-            full = torch.cat((prompt_ids, suffix), dim=1)
+        prompt = self.render(messages)
+        scores = {}
+        for candidate in candidates:
+            encoding = continuation_encoding(self.tokenizer, prompt, candidate)
+            full = torch.tensor([encoding["input_ids"]], device=self.input_device)
+            start = encoding["continuation_start"]
             with torch.inference_mode():
                 logits = self.model(input_ids=full).logits
-                positions = torch.arange(prompt_ids.shape[1] - 1, full.shape[1] - 1, device=self.input_device)
-                next_token_logits = logits[0, positions, :].float()
-                selected_logits = next_token_logits.cpu().numpy()
-            scores[candidate] = conditional_logprob(selected_logits, token_ids)
+                total, token_count = continuation_logprob(logits, full, start, torch)
+            scores[candidate] = {**encoding, "sum_logprob": total,
+                                 "mean_logprob": total / token_count}
         return scores
+
+    def score_candidates(self, messages: list[Message], candidates: list[str]) -> dict[str, float]:
+        return {c: s["sum_logprob"] for c, s in self.score_candidates_detailed(messages, candidates).items()}
 
     def generate(self, messages: list[Message], max_new_tokens: int) -> Generation:
         torch = self.torch

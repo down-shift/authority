@@ -1,0 +1,6 @@
+experiment: instruction_indirection_gap
+seed: 20260930
+worlds_per_family: 100
+model: qwen3_4b
+max_new_tokens: 32
+bootstrap_replicates: 4000
