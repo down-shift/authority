@@ -3,11 +3,12 @@ from collections import defaultdict
 from dataclasses import fields
 from .worlds import World, FAMILIES
 from .render import render, CONTRACT
+from authority_leakage.progress import tqdm
 
 
 def audit(rows):
     groups = defaultdict(list)
-    for row in rows:
+    for row in tqdm(rows, total=len(rows), desc="Auditing semantic matches", unit="prompt", leave=False):
         groups[row["world_id"]].append(row)
         raw = row["world"]
         w = World(**{f.name: raw[f.name] for f in fields(World)})

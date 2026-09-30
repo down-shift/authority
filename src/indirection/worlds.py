@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import random
+from authority_leakage.progress import tqdm
 
 FAMILIES = ("filename", "ordering", "destination")
 
@@ -42,7 +43,8 @@ def generate_worlds(n_per_family=100, seed=20260930):
         rng.shuffle(owners)
         source_first_order = [True] * (n_per_family // 2) + [False] * (n_per_family // 2)
         rng.shuffle(source_first_order)
-        for i, source_correct in enumerate(owners):
+        for i in tqdm(range(n_per_family), total=n_per_family, desc=f"Generating {family} worlds", unit="world", leave=False):
+            source_correct = owners[i]
             source = "Source " + rng.choice(["S", "T", "U", "V"])
             role = "R" + str(rng.randrange(100, 1000))
             field = "F" + str(rng.randrange(100, 1000))

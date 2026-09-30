@@ -1,5 +1,6 @@
 """Frozen depth ladder v1. One real template; no artificial paraphrase labels."""
 from .worlds import World
+from authority_leakage.progress import tqdm
 
 FIELDS = {"filename": "filename", "ordering": "ordering", "destination": "destination"}
 CONTRACT = "Return only the exact answer text, without explanation or punctuation added."
@@ -45,7 +46,7 @@ def render(w: World, depth: int, measurement: str, template_id="canonical_v1"):
 
 def examples(worlds):
     rows = []
-    for w in worlds:
+    for w in tqdm(worlds, total=len(worlds), desc="Rendering matched prompts", unit="world", leave=False):
         for depth in DEPTH_RENDERERS:
             for measurement in ("comprehension", "application"):
                 correct = w.owner if measurement == "comprehension" else w.correct_value
