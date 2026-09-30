@@ -1,0 +1,6 @@
+experiment: authorization_representation_invariance
+seed: 20261002
+worlds_per_pair: 4
+model: qwen3_4b
+bootstrap_replicates: 2000
+canonicalization: semantic_map_over_all_legal_policies
