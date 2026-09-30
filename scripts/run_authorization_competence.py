@@ -158,7 +158,10 @@ def main():
     torch.set_num_threads(int(cfg.get('torch_threads',4)))
     write_run_status(run/'run_status.json','loading_model',0,len(rows))
     try:
-        adapter=HFAdapter(spec['name'],spec.get('revision'),a.device,enable_thinking=spec.get('enable_thinking'))
+        adapter=HFAdapter(spec['name'],spec.get('revision'),a.device,
+                          enable_thinking=spec.get('enable_thinking'),
+                          quantization=spec.get('quantization'),
+                          attention_implementation=spec.get('attention_implementation'))
         commit=subprocess.run(['git','rev-parse','HEAD'],cwd=ROOT,capture_output=True,text=True).stdout.strip()
         tracked=[ROOT/'scripts/run_authorization_competence.py',*sorted((ROOT/'src/authorization_competence').glob('*.py')),
                  ROOT/'src/authority_leakage/models/hf.py',ROOT/'src/authority_leakage/models/continuation.py']
