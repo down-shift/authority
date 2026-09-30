@@ -40,7 +40,10 @@ def analyze(rows,seed=0,n_boot=4000):
     for key,rs in sorted(strata.items()):
         margins=[r["margin"] for r in rs]; acc=[float(r["correct"]) for r in rs]
         prompt=[r["candidate_scores"][r["correct_candidate"]]["prompt_token_count"] for r in rs]
-        summaries["|".join(map(str,key))]={"n_worlds":len({r["world_id"] for r in rs}),
+        summaries["|".join(map(str,key))]={"stratum":dict(zip(
+            ("task_family","template_id","model","measurement_type","condition_type",
+             "indirection_depth","relevant_path_depth"),key)),
+            "n_worlds":len({r["world_id"] for r in rs}),
             "accuracy":float(np.mean(acc)),"accuracy_ci95_world":_ci(acc,rng,n_boot),
             "mean_margin":float(np.mean(margins)),"median_margin":float(np.median(margins)),
             "margin_ci95_world":_ci(margins,rng,n_boot),

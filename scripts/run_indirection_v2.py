@@ -48,7 +48,17 @@ def report_text(config,sha,audit_report,token_audit,metrics=None):
       "| Family | Task | Depth | Worlds | Accuracy (95% world CI) | Mean margin (95% world CI) | Prompt tokens |",
       "|---|---|---:|---:|---:|---:|---:|"]
     for key,v in sorted(metrics["summaries"].items()):
-        fam,temp,model,task,condition,depth,pathdepth=key.split("|")
+        # Prefer named dimensions; tolerate older metrics whose keys only
+        # encode the stratum as a pipe-delimited string.
+        stratum=v.get("stratum")
+        if stratum:
+            fam=stratum["task_family"];task=stratum["measurement_type"]
+            condition=stratum["condition_type"];depth=stratum["indirection_depth"]
+        else:
+            parts=key.split("|")
+            if len(parts)<7:
+                raise ValueError(f"Unexpected summary stratum key: {key!r}")
+            fam=parts[0];task=parts[-4];condition=parts[-3];depth=parts[-2]
         if condition=="path":
             out.append(f"| {fam} | {task} | {depth} | {v['n_worlds']} | {v['accuracy']:.3f} ({v['accuracy_ci95_world']}) | {v['mean_margin']:.3f} ({v['margin_ci95_world']}) | {v['mean_prompt_tokens']:.1f} |")
     out += ["","## Paired depth and control contrasts","",
@@ -63,15 +73,43 @@ def report_text(config,sha,audit_report,token_audit,metrics=None):
     out += ["","Bootstrap resampling uses world as the unit. Results are behavioral and do not identify an internal mechanism.",""]
     return "\n".join(out)
 
+def recover_report(run_dir):
+    """Rebuild the final report/status from artifacts after a late report failure."""
+    run=Path(run_dir)
+    required=("config.yaml","dataset.jsonl","prompt_audit.json",
+              "tokenization_audit.json","metrics.json")
+    missing=[name for name in required if not (run/name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"Cannot rebuild report; missing run artifacts: {', '.join(missing)}")
+    config=yaml.safe_load((run/"config.yaml").read_text())
+    audit_report=json.loads((run/"prompt_audit.json").read_text())
+    token_audit=json.loads((run/"tokenization_audit.json").read_text())
+    metrics=json.loads((run/"metrics.json").read_text())
+    sha=hashlib.sha256((run/"dataset.jsonl").read_bytes()).hexdigest()
+    (run/"pilot_report.md").write_text(report_text(config,sha,audit_report,token_audit,metrics))
+    total=int(metrics.get("n_rows",0))
+    write_run_status(run/"run_status.json","complete",total,total)
+    return sha,total
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--config",type=Path,default=Path("configs/indirection_v2.yaml"))
     p.add_argument("--model",default=None);p.add_argument("--models-config",type=Path,default=Path("configs/models.yaml"))
     p.add_argument("--output-root",type=Path,default=Path("outputs"));p.add_argument("--device",default="auto")
     p.add_argument("--dataset-only",action="store_true");p.add_argument("--tokenizer-audit-only",action="store_true")
+    p.add_argument("--report-only",action="store_true",help="Rebuild the report/status from an existing completed analysis")
+    p.add_argument("--run-dir",type=Path,default=None,help="Existing run directory for --report-only")
     a=p.parse_args()
     logging.basicConfig(level=logging.INFO,format="%(asctime)s %(levelname)s %(message)s",datefmt="%Y-%m-%dT%H:%M:%S")
     logger=logging.getLogger("indirection_v2")
+    if a.report_only:
+        if a.run_dir is None: p.error("--report-only requires --run-dir")
+        run=a.run_dir
+        fh=logging.FileHandler(run/"run.log",encoding="utf-8")
+        fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"));logger.addHandler(fh)
+        sha,total=recover_report(run)
+        logger.info("Recovered report from existing artifacts run=%s sha256=%s rows=%d; no inference rerun",run,sha,total)
+        print(run);return
     cfg=yaml.safe_load(a.config.read_text());model=a.model or cfg["model"]
     stamp=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ");slug=re.sub(r"[^A-Za-z0-9_-]+","_",model)
     run=a.output_root/f"{stamp}_indirection_v2_{slug}_s{cfg['seed']}";run.mkdir(parents=True,exist_ok=False)
