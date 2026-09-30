@@ -1,0 +1,12 @@
+experiment: instruction_indirection_gap_v2_controlled
+seed: 20261001
+worlds_per_family: 4
+total_relation_edges: 6
+depths: [1, 2, 3, 4, 5]
+bridge_neutral_depths: [3, 4, 5]
+flattened_depths: [3, 4, 5]
+model: qwen3_4b
+max_new_tokens: 32
+bootstrap_replicates: 500
+max_depth_prompt_token_spread: 2
+max_bridge_neutral_token_delta: 0

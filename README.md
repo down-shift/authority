@@ -1,35 +1,43 @@
 # Instruction Indirection Gap
 
-We study the instruction indirection gap: whether language models become less reliable when an intended action is specified through declarative policy structure and multi-step semantic bindings rather than as a direct executable instruction. Using matched synthetic tasks, we hold the intended action constant while varying the number of semantic dereferences required to infer it. We separately measure policy comprehension and policy application using exact semantic continuation likelihoods.
+This repository studies whether language models become less reliable when an intended action must be derived through declarative provider-resolution links. It is a behavioral study: observed accuracy and semantic likelihood do not establish an internal mechanism.
 
-This is a behavioral study and does not by itself establish an internal mechanism. Direct and indirect conditions are matched at the world level. The primary outcome is the likelihood margin between semantic candidates, not arbitrary A/B output. Policy comprehension and execution are analyzed separately. The independent unit is the synthetic world; depth and task measurements are repeated observations.
+Worlds hold the action, candidate values, and resolved terminal provider constant across matched conditions. The primary outcome is the sum-log-probability margin between semantic candidates; candidate token counts and mean token log probability are also saved. Policy comprehension and action application are separate prompts and repeated measurements from the same synthetic world.
 
-## Frozen pilot design
+## Controlled experiment: v2
 
-The initial ladder has five levels: (0) direct final action, (1) direct relational instruction, (2) explicit field-owner lookup, (3) role-mediated ownership, and (4) compositional symbolic role/field rule. Each world is generated once and rendered at all depths for filename selection, literal sequence ordering, and destination selection. Within a world, the correct action and alternative action never change. Source versus default ownership is balanced within each family.
+The current primary design is indirection_v2_controlled. It varies relevant provider-resolution path depth from 1 to 5 while keeping six total relation edges in every graph. Relevant and disconnected distractor edges use the same resolves-to grammar. Distractor edges cannot connect to the queried field or either terminal provider. Source versus default terminal providers are exactly balanced within each task family, and relation statement order is randomized deterministically with relevant-edge positions recorded.
 
-Each world/depth has two prompts. Comprehension asks which source determines the field; application asks for the final semantic action. For each task both semantic candidates are scored, saving sum log probability, token count, and mean log probability. The primary margin is correct minus incorrect sum log probability. Positive means the correct candidate is preferred; token-length normalization remains diagnostic only. The pilot uses a single `canonical_v1` surface form and makes no claim about paraphrase robustness.
+The three families are filename, literal three-symbol sequence ordering, and destination. Every world/depth has comprehension and application questions. For depths 3–5, application also has a full-path neutral-note control, a full-path explicit bridge, and a flattened graph with one relevant edge and six total links. Bridge and neutral use the same insertion slot; tokenizer preflight checks their exact token-count match before loading model weights.
 
-## Run
+The main config creates 100 worlds per family. It yields 3,000 primary path/task rows and 2,700 deep-condition control rows, 5,700 total. Bootstrap resampling clusters by world; results remain separated by task family. The experiment does not assume a monotonic depth effect.
 
-```bash
-uv sync --extra inference --extra test
-uv run python scripts/run_indirection_experiment.py --config configs/indirection_pilot.yaml --dataset-only
-uv run python scripts/run_indirection_experiment.py --config configs/indirection_pilot.yaml --model qwen3_4b
-uv run python scripts/run_indirection_experiment.py --config configs/indirection.yaml --model qwen3_4b
-uv run pytest -q
-```
+### Dataset and tokenizer audit
 
-The pilot config defaults to four worlds per family for a fast engineering check. The main config has 100 worlds per family, three families, five depths, and two measurement tasks (3,000 rows). Rows can be regenerated deterministically with the configured seed. Model checkpoint configuration is in `configs/models.yaml`; run artifacts preserve the exact dataset hash, prompt audit, candidate tokenization audit, provenance, semantic scores, per-world rows, aggregate metrics, confidence intervals, figures and plot CSV, run status, and report. A completed dataset-only run stops before model loading.
+Dataset only: uv run python scripts/run_indirection_v2.py --config configs/indirection_v2_pilot.yaml --dataset-only
 
-Continuation scoring tokenizes rendered prompt and candidate jointly, then scores continuation tokens autoregressively. If tokenization changes across the boundary, the first token overlapping the candidate boundary is included and the overlap is recorded; a tokenizer cannot assign a partial-token conditional probability. This makes the chosen continuation estimand explicit.
+Tokenizer audit only: uv run --extra inference python scripts/run_indirection_v2.py --config configs/indirection_v2_pilot.yaml --tokenizer-audit-only
 
-## Interpretation
+The first command verifies graph paths, distractor disconnection, fixed link count, terminal balance, semantic matching, and bridge/neutral insertion. The second audits exact rendered prompt and candidate token lengths using the configured tokenizer, before loading model weights. It rejects candidate length mismatches, path-depth prompt spreads above the configured tolerance, bridge/neutral length differences, or flattened/path differences above tolerance.
 
-For each depth, report accuracy and margin for comprehension and application, paired change from depth zero, and family-specific curves. The bootstrap resamples worlds, retaining repeated measurements together. Application failure with correct comprehension is reported separately. Curves may be null, monotonic, threshold-like, or non-monotonic; the implementation does not assume a linear or monotonic effect. Depth-zero accuracy below 0.95 produces an engineering warning. Poor direct performance means a task family needs repair before interpreting deeper conditions.
+### Controlled Qwen3-4B run
 
-A later study may compare indirect prompts with length-matched neutral filler and flattened rules. These controls are outside the initial pilot. Multi-model comparisons should follow an interpretable single-model pilot; base/instruct contrasts describe post-training differences and do not identify a causal training mechanism.
+Run this on the designated model-capable machine:
 
-## Retained legacy experiments
+    uv run --extra inference python scripts/run_indirection_v2.py --config configs/indirection_v2.yaml --model qwen3_4b --device cuda
 
-`src/authority_leakage/` and historical outputs remain available as **legacy / exploratory authority-leakage experiments**. Their authority-specific analyses are not part of the new indirection study. Generic Hugging Face inference, provenance, durable JSONL, and bootstrap utilities are reused where appropriate.
+The tokenizer audit runs before model loading. The run saves the frozen dataset and hash, graph audit, tokenizer metadata and audit, model provenance, predictions with raw candidate scores, world-level outcomes, paired metrics and bootstrap intervals, plot-source CSV/JSON, figures, run.log, run status, and pilot_report.md. A pilot config with four worlds per family is for engineering checks; it is not suitable for inference.
+
+## Exploratory pilot: v1
+
+indirection_v1_exploratory is retained as historical data and code. It used five hand-written constructions whose wording, statement count, and prompt length changed along with depth. Qwen3-4B performance dropped sharply around its levels 2–3, but that result does not isolate semantic path depth. Do not pool v1 and v2 or describe v1 as a causal depth effect.
+
+Reproduce v1 with scripts/run_indirection_experiment.py and configs/indirection.yaml. Earlier scoped-authority experiments remain in src/authority_leakage/ as legacy exploratory work.
+
+## Inference and interpretation
+
+Continuation scoring jointly tokenizes the rendered chat prompt and candidate, records boundary behavior, and scores the continuation autoregressively. Sum log probability is primary; length-normalized scores are diagnostic.
+
+The independent unit is the synthetic world. Depth variants, task types, and control conditions are repeated observations. Report paired world-level contrasts and family-specific results. A comprehension-correct/application-wrong pair comes from separate prompts for the same world and depth; it describes a behavioral dissociation, not a sequential internal process.
+
+Do not add chain-of-thought prompting or run a multi-model sweep until the fixed-length depth effect, bridge-specific recovery, or comprehension/application dissociation survives v2 controls. Base/instruct differences, if studied later, describe post-training differences and do not identify a causal training mechanism.
