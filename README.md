@@ -23,3 +23,16 @@ The report gives interpretation and application accuracy/margins by representati
 ## Legacy experiments
 
 The prior scoped-authority and instruction-indirection experiments, their design notes, and historical findings are preserved in [docs/legacy_experiments.md](docs/legacy_experiments.md). Their code, configurations, tests, and outputs remain available and are not pooled with this experiment.
+
+## Competence-gated authorization study
+
+The earlier 12-world representation pilot is exploratory. Its interpretation responses showed a fixed Source S preference and its application choices showed a first-listed-value preference, so those disagreements do not establish competent authorization reasoning.
+
+The next design uses neutral, balanced actors and a single canonical JSON calibration over 120 frozen worlds. It scores direct actor-name and filename continuations; exact generated answers are secondary. Actor identity, authorized-owner status, actor order, and proposal order are crossed and balanced. Stage 1 requires at least 90% accuracy on both tasks, position gaps no greater than 0.15, actor-identity accuracy range no greater than 0.25, and matched candidate token counts. A failure stops representation testing and writes the same frozen worlds for a single Qwen3-8B follow-up.
+
+```sh
+uv run --extra inference python scripts/run_authorization_competence.py \
+  --config configs/authorization_competence.yaml --model qwen3_4b --device cuda
+```
+
+Only a passing Stage 1 opens Stage 2 (single-scope representation testing). Two-scope composition requires at least 90% accuracy per task and representation at Stage 2. Canonicalization runs only after adequate competence through Stage 3 and observed raw representation disagreement. Each stage saves its own predictions, world-clustered metrics, and report under `outputs/`; `run_status.json` records which gates stopped or opened later stages. A failed Qwen3-4B Stage 1 report includes a command to evaluate the exact same `worlds.jsonl` with Qwen3-8B.

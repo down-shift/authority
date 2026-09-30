@@ -1,0 +1,14 @@
+experiment: authorization_competence_gated
+seed: 20261003
+worlds: 120
+model: qwen3_4b
+bootstrap_replicates: 4000
+torch_threads: 4
+generation_max_new_tokens: 12
+gate:
+  stage1_interpretation_accuracy_min: 0.90
+  stage1_application_accuracy_min: 0.90
+  stage1_position_accuracy_gap_max: 0.15
+  stage1_actor_identity_accuracy_range_max: 0.25
+  candidate_token_count_mismatch: fail
+  later_task_representation_accuracy_min: 0.90
