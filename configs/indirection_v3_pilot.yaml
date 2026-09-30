@@ -1,0 +1,6 @@
+experiment: indirection_v3_factorial
+seed: 20261001
+worlds_per_family: 30
+model: qwen3_4b
+bootstrap_replicates: 2000
+token_padding_search_limit: 64

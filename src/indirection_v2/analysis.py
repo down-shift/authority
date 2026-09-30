@@ -101,7 +101,7 @@ def analyze(rows,seed=0,n_boot=4000):
             "n_comprehension_correct":n_c}
 
     return {"stratification_keys":list(KEYS),"independent_unit":"world_id",
-       "summaries":{"|".join(map(str,k)):v for k,v in summaries.items()},
+       "summaries":summaries,
        "path_depth_vs_depth1":depth_effects,"application_control_contrasts":control_effects,
        "comprehension_application_by_world":outcomes,
        "comprehension_application_dissociation":dissociation_metrics,

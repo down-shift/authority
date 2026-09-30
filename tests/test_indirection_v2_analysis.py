@@ -17,6 +17,8 @@ def test_world_bootstrap_pairs_depth_and_control_contrasts():
                  candidate_scores={r['correct_candidate']:{'prompt_token_count':100}})
     m=analyze(rows,seed=4,n_boot=50)
     assert m['n_worlds']==6
+    assert 'filename|resolution_grammar_v2|fixture|application|path|1|1' in m['summaries']
+    assert m['summaries']['filename|resolution_grammar_v2|fixture|application|path|1|1']['stratum']['task_family']=='filename'
     key='filename|fixture|application|5'
     assert m['path_depth_vs_depth1'][key]['n_worlds']==2
     control='filename|fixture|5|bridge_vs_neutral'

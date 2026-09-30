@@ -1,0 +1,1 @@
+"""Factorial provider-resolution experiment."""
