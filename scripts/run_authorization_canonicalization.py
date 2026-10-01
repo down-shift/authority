@@ -81,14 +81,14 @@ def git_provenance():
     return commit, dirty
 
 
-def validate_e2_source(e2_run):
+def validate_e2_source(e2_run, model_key):
     status_path = e2_run / "run_status.json"
     if not status_path.is_file() or json.loads(status_path.read_text()).get("status") != "complete":
         raise ValueError("E3 requires a completed E2 run")
     config = json.loads((e2_run / "config.json").read_text())
     revision = config.get("model_revision")
-    if config.get("model") != "qwen3_8b_int8" or not revision:
-        raise ValueError("E2 config must pin the Qwen3-8B int8 model revision")
+    if config.get("model") != model_key or not revision:
+        raise ValueError("E2 config model must match --model and pin its revision")
     predictions_path = e2_run / "predictions.jsonl"
     if not predictions_path.is_file():
         raise ValueError("E2 predictions are required to reuse the raw arm")
@@ -102,7 +102,13 @@ def validate_e2_source(e2_run):
         raise ValueError("E2 raw-score candidate audit contains failures")
     stage2_run = path_from_record(config["stage2_source_run"])
     stage2_meta = json.loads((stage2_run / "metadata.json").read_text())
+    model_spec = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][model_key]
+    e2_model = json.loads((e2_run / "metadata.json").read_text()).get("model", {})
+    if e2_model.get("model_name") != model_spec["name"] or e2_model.get("quantization") != model_spec.get("quantization"):
+        raise ValueError("E2 model and quantization do not match --model")
     actual_revision = stage2_meta["model"]["model_commit"]
+    if model_spec.get("revision") and actual_revision != model_spec.get("revision"):
+        raise ValueError("E2 model revision differs from pinned --model revision")
     if actual_revision != revision:
         raise ValueError("E2 and its Stage 2 source do not use the same model revision")
     stage2_worlds_path = stage2_run / "worlds.jsonl"
@@ -208,7 +214,8 @@ def finalize(run):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--e2-run", type=Path, required=True, help="Completed E2 cross-scope run")
-    parser.add_argument("--model", default="qwen3_8b_int8", choices=["qwen3_8b_int8"])
+    parser.add_argument("--model", default="qwen3_8b_int8",
+                        choices=["qwen3_8b_int8", "gemma3_12b_it_int8", "gemma3_12b_it_nf4"])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--output-root", type=Path, default=Path("outputs"))
     parser.add_argument("--dataset-only", action="store_true")
@@ -216,7 +223,7 @@ def main():
     args = parser.parse_args()
     e2_run = args.e2_run if args.e2_run.is_absolute() else ROOT / args.e2_run
     try:
-        e2_config, revision, stage2_run, worlds, e2_rows, e2_predictions, e2_validation = validate_e2_source(e2_run)
+        e2_config, revision, stage2_run, worlds, e2_rows, e2_predictions, e2_validation = validate_e2_source(e2_run, args.model)
     except Exception as exc:
         parser.error(f"Invalid frozen E2 source: {exc}")
     conversion_rows, answer_rows = make_e3_datasets(worlds, e2_rows)
@@ -225,7 +232,7 @@ def main():
     if validation["passed"] is not True:
         parser.error("E3 validation failed")
     run = args.resume or args.output_root / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") +
-                                              "_authorization_canonicalization_qwen3_8b_int8")
+                                              f"_authorization_canonicalization_{args.model}")
     config = {"experiment": "authorization_canonicalization_mitigation", "model": args.model,
               "model_revision": revision, "e2_source_run": str(e2_run), "stage2_source_run": str(stage2_run),
               "worlds": 180, "representations": list(REPRESENTATIONS), "conditions": list(CONDITIONS),
@@ -289,9 +296,15 @@ def main():
                                               "metrics_sha256": e2_file_hashes.get("metrics.json"),
                                               "model_revision": revision})
         commit, dirty = git_provenance()
+        selected_model = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][args.model]
         write_json(run / "metadata.json", {
-            "model": {"model_name": "Qwen/Qwen3-8B", "model_commit": revision,
-                      "quantization": "bitsandbytes_int8", "device_requested": args.device,
+            "model": {"model_name": selected_model["name"], "model_commit": revision,
+                      "quantization": selected_model.get("quantization"),
+                      "quantization_config": ({"load_in_8bit": True} if selected_model.get("quantization") == "bitsandbytes_int8" else
+                                              {"load_in_4bit": True, "bnb_4bit_quant_type": "nf4",
+                                               "bnb_4bit_use_double_quant": True, "bnb_4bit_compute_dtype": "bfloat16"}
+                                              if selected_model.get("quantization") == "bitsandbytes_nf4" else None),
+                      "device_requested": args.device,
                       "status": "not_loaded_yet"},
             "git_commit": commit, "git_dirty": dirty, "source_sha256": source_code_hashes(),
             "dataset_sha256": combined_hash, "source_run_lineage": str(run / "source_run_lineage.json"),

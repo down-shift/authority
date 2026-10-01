@@ -20,3 +20,17 @@ models:
     enable_thinking: false
     quantization: bitsandbytes_int8
     attention_implementation: sdpa
+  gemma3_12b_it_int8:
+    name: google/gemma-3-12b-it
+    revision: 96b6f1eccf38110c56df3a15bffe176da04bfd80
+    family: gemma3
+    enable_thinking: null
+    quantization: bitsandbytes_int8
+    attention_implementation: sdpa
+  gemma3_12b_it_nf4:
+    name: google/gemma-3-12b-it
+    revision: 96b6f1eccf38110c56df3a15bffe176da04bfd80
+    family: gemma3
+    enable_thinking: null
+    quantization: bitsandbytes_nf4
+    attention_implementation: sdpa

@@ -101,7 +101,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--calibration-run", type=Path, required=True,
                         help="Passing lexical-symmetry calibration run directory")
-    parser.add_argument("--model", default="qwen3_8b_int8", choices=["qwen3_8b_int8"])
+    parser.add_argument("--model", default="qwen3_8b_int8",
+                        choices=["qwen3_8b_int8", "gemma3_12b_it_int8", "gemma3_12b_it_nf4"])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--output-root", type=Path, default=Path("outputs"))
     args = parser.parse_args()
@@ -112,18 +113,21 @@ def main():
     if not (calibration / "predictions.jsonl").is_file():
         parser.error("Calibration run is missing saved predictions")
     source_metadata = json.loads((calibration / "metadata.json").read_text())
-    if source_metadata.get("model", {}).get("model_name") != "Qwen/Qwen3-8B" or \
-       source_metadata.get("model", {}).get("quantization") != "bitsandbytes_int8":
-        parser.error("Calibration must use the registered Qwen3-8B int8 model")
+    model_spec = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][args.model]
+    calibration_model = source_metadata.get("model", {})
+    if calibration_model.get("model_name") != model_spec["name"] or \
+       calibration_model.get("quantization") != model_spec.get("quantization"):
+        parser.error("Calibration model and quantization must match --model")
     model_revision = source_metadata.get("model", {}).get("model_commit")
     if not model_revision:
         parser.error("Calibration metadata is missing the resolved model revision")
+    if model_spec.get("revision") and model_revision != model_spec.get("revision"):
+        parser.error("Calibration revision differs from the pinned --model revision")
     worlds = load_jsonl(calibration / "worlds.jsonl")
     rows = build_lexical_representation_rows(worlds)
     validation = validate_lexical_representation_rows(worlds, rows)
-    model_spec = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][args.model]
     run = args.output_root / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") +
-                              "_authorization_lexical_invariance_qwen3_8b_int8")
+                              f"_authorization_lexical_invariance_{args.model}")
     run.mkdir(parents=True, exist_ok=False)
     write_json(run / "config.json", {"experiment": "single_scope_lexical_symmetrized_representation_invariance",
                                      "calibration_run": str(calibration), "model": args.model,

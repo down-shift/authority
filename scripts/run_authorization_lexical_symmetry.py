@@ -131,13 +131,16 @@ def main():
     parser.add_argument("--config", type=Path, default=Path("configs/authorization_lexical_symmetry.yaml"))
     parser.add_argument("--model", default=None)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--worlds-file", type=Path,
+                        help="Reuse frozen semantic worlds instead of generating new ones")
     parser.add_argument("--output-root", type=Path, default=Path("outputs"))
     parser.add_argument("--dataset-only", action="store_true", help="Write and validate the fresh paired dataset without loading a model")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text())
     model_key = args.model or config["model"]
-    if model_key != "qwen3_8b_int8":
-        parser.error("This frozen lexical-symmetry calibration is registered for qwen3_8b_int8 only")
+    supported_models = {"qwen3_8b_int8", "gemma3_12b_it_int8", "gemma3_12b_it_nf4"}
+    if model_key not in supported_models:
+        parser.error(f"Model must be one of {sorted(supported_models)}")
     if config.get("worlds") != 180 or config.get("gate") != {
         "interpretation_symmetrized_accuracy_min": 0.90,
         "application_symmetrized_accuracy_min": 0.90,
@@ -148,10 +151,15 @@ def main():
     }:
         parser.error("World count and gate are preregistered and cannot be changed")
     model_spec = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][model_key]
-    worlds = generate_semantic_worlds(config["worlds"], config["seed"])
+    if args.worlds_file:
+        worlds = [json.loads(line) for line in args.worlds_file.read_text().splitlines() if line.strip()]
+        if len(worlds) != 180:
+            parser.error(f"Frozen worlds file must contain exactly 180 worlds, got {len(worlds)}")
+    else:
+        worlds = generate_semantic_worlds(config["worlds"], config["seed"])
     rows = build_lexical_rows(worlds)
     validation = validate_lexical_worlds(worlds, rows)
-    run = args.output_root / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "_authorization_lexical_symmetry_qwen3_8b_int8")
+    run = args.output_root / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + f"_authorization_lexical_symmetry_{model_key}")
     run.mkdir(parents=True, exist_ok=False)
     write_json(run / "config.json", {**config, "model": model_key, "model_spec": model_spec})
     write_json(run / "preregistration.json", {
@@ -167,6 +175,7 @@ def main():
             "identifier_family": "max minus min symmetrized application accuracy across six predeclared identifier families <= 0.15",
         },
         "no_representation_invariance_stage_in_this_run": True,
+        "worlds_source": str(args.worlds_file) if args.worlds_file else "generated_from_frozen_seed",
     })
     write_jsonl(run / "worlds.jsonl", worlds)
     write_jsonl(run / "dataset.jsonl", rows)

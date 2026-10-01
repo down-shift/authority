@@ -22,15 +22,15 @@ class HFAdapter(ModelAdapter):
         self.enable_thinking = enable_thinking
         self.quantization = quantization
         self.attention_implementation = attention_implementation or (
-            "sdpa" if quantization == "bitsandbytes_int8" else None
+            "sdpa" if quantization in ("bitsandbytes_int8", "bitsandbytes_nf4") else None
         )
         kwargs = {"revision": revision} if revision else {}
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=False, **kwargs)
         if self.tokenizer.chat_template is None:
             raise ValueError(f"{model_name} has no official tokenizer chat template")
-        if quantization not in (None, "bitsandbytes_int8"):
+        if quantization not in (None, "bitsandbytes_int8", "bitsandbytes_nf4"):
             raise ValueError(f"Unsupported quantization: {quantization}")
-        if quantization == "bitsandbytes_int8":
+        if quantization in ("bitsandbytes_int8", "bitsandbytes_nf4"):
             # bitsandbytes emits this once per quantized matmul; it is expected
             # for bf16 activations and floods experiment logs. Keep other
             # UserWarnings visible.
@@ -40,20 +40,36 @@ class HFAdapter(ModelAdapter):
                 category=UserWarning,
             )
             if device not in ("auto", "cuda"):
-                raise ValueError("bitsandbytes int8 loading requires device='auto' or 'cuda'")
+                raise ValueError("bitsandbytes quantization requires device='auto' or 'cuda'")
             if not torch.cuda.is_available():
-                raise RuntimeError("bitsandbytes int8 loading requires a CUDA device in this adapter")
+                raise RuntimeError("bitsandbytes quantization requires a CUDA device in this adapter")
             try:
                 from transformers import BitsAndBytesConfig
             except ImportError as exc:
                 raise RuntimeError("Install the quantization extra for bitsandbytes int8 loading") from exc
-            quant_config = BitsAndBytesConfig(load_in_8bit=True)
+            if quantization == "bitsandbytes_int8":
+                quant_config = BitsAndBytesConfig(load_in_8bit=True)
+                self.quantization_config = {"load_in_8bit": True}
+            else:
+                quant_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                )
+                self.quantization_config = {
+                    "load_in_4bit": True,
+                    "bnb_4bit_quant_type": "nf4",
+                    "bnb_4bit_use_double_quant": True,
+                    "bnb_4bit_compute_dtype": "bfloat16",
+                }
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, trust_remote_code=False, torch_dtype="auto",
                 quantization_config=quant_config, device_map="auto",
                 attn_implementation=self.attention_implementation, **kwargs,
             )
         else:
+            self.quantization_config = None
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, trust_remote_code=False, torch_dtype="auto",
                 attn_implementation=self.attention_implementation, **kwargs,
@@ -204,6 +220,7 @@ class HFAdapter(ModelAdapter):
             "device": self.device,
             "requested_device": self.requested_device,
             "quantization": self.quantization,
+            "quantization_config": self.quantization_config,
             "enable_thinking": self.enable_thinking,
             "attention_implementation": self.attention_implementation or "model_default",
             "model_dtype": str(next(self.model.parameters()).dtype),

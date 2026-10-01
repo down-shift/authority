@@ -1,0 +1,13 @@
+experiment: authorization_lexical_symmetry_calibration
+seed: 20261004
+worlds: 180
+model: gemma3_12b_it_int8
+bootstrap_replicates: 4000
+torch_threads: 4
+gate:
+  interpretation_symmetrized_accuracy_min: 0.90
+  application_symmetrized_accuracy_min: 0.90
+  application_swap_flip_rate_max: 0.10
+  application_position_accuracy_gap_max: 0.15
+  identifier_family_accuracy_range_max: 0.15
+  candidate_token_count_mismatch: fail

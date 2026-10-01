@@ -157,7 +157,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage2-run", type=Path, required=True,
                         help="Completed Experiment 1 single-scope lexical-invariance run")
-    parser.add_argument("--model", default="qwen3_8b_int8", choices=["qwen3_8b_int8"])
+    parser.add_argument("--model", default="qwen3_8b_int8",
+                        choices=["qwen3_8b_int8", "gemma3_12b_it_int8", "gemma3_12b_it_nf4"])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--output-root", type=Path, default=Path("outputs"))
     parser.add_argument("--dataset-only", action="store_true", help="Generate, validate, and save the 7,200-row dataset without loading a model")
@@ -175,11 +176,14 @@ def main():
         parser.error("The lexical-symmetry competence calibration gate must have passed")
     source_meta = json.loads((source / "metadata.json").read_text())
     model_meta = source_meta.get("model", {})
-    if model_meta.get("model_name") != "Qwen/Qwen3-8B" or model_meta.get("quantization") != "bitsandbytes_int8":
-        parser.error("Stage 2 source must use Qwen3-8B int8")
+    model_spec = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][args.model]
+    if model_meta.get("model_name") != model_spec["name"] or model_meta.get("quantization") != model_spec.get("quantization"):
+        parser.error("Stage 2 source model and quantization must match --model")
     model_revision = model_meta.get("model_commit")
     if not model_revision:
         parser.error("Stage 2 metadata is missing the resolved model revision")
+    if model_spec.get("revision") and model_revision != model_spec.get("revision"):
+        parser.error("Stage 2 source revision differs from the pinned --model revision")
     frozen_worlds = load_jsonl(source / "worlds.jsonl")
     worlds = derive_cross_scope_worlds(frozen_worlds)
     rows = build_cross_scope_rows(worlds)
@@ -187,7 +191,7 @@ def main():
     if len(rows) != 7200:
         raise RuntimeError(f"Expected 7,200 rows before inference, got {len(rows)}")
     run = args.resume or args.output_root / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") +
-                                              "_authorization_cross_scope_qwen3_8b_int8")
+                                              f"_authorization_cross_scope_{args.model}")
     config = yaml.safe_load((ROOT / "configs/authorization_cross_scope.yaml").read_text())
     prereg = {
         "primary_estimand": "M_sym(conflicting) - M_sym(congruent), orientation-correct filename margin",
@@ -245,7 +249,6 @@ def main():
     try:
         import torch
         import transformers
-        model_spec = yaml.safe_load((ROOT / "configs/models.yaml").read_text())["models"][args.model]
         tokenizer = transformers.AutoTokenizer.from_pretrained(model_spec["name"], revision=model_revision,
                                                                 trust_remote_code=False)
         audit = tokenizer_audit(tokenizer, rows)
