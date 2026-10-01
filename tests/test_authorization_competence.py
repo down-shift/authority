@@ -9,6 +9,11 @@ from authorization_competence.design import (
     ACTORS, REPRESENTATIONS, RESOURCES, Policy, build_rows, decode,
     generate_worlds, legal_policy_candidates, render, validate,
 )
+from authorization_competence.lexical_analysis import lexical_symmetry_analysis
+from authorization_competence.lexical_symmetry import (
+    ACTOR_FAMILIES, ACTOR_IDENTIFIERS, ASSIGNMENTS, build_lexical_rows,
+    generate_semantic_worlds, validate_lexical_worlds,
+)
 
 
 def test_frozen_world_allocation_balances_actor_identity_and_positions():
@@ -160,3 +165,54 @@ def test_representation_analysis_bootstraps_120_worlds_not_600_rows():
     for c in result['cells']:
         assert c['accuracy']['n_worlds']==120
         assert c['margin']['n_worlds']==120
+
+
+def test_lexical_symmetry_worlds_are_fresh_balanced_and_swap_semantics_exactly():
+    worlds = generate_semantic_worlds(seed=20261004)
+    rows = build_lexical_rows(worlds)
+    audit = validate_lexical_worlds(worlds, rows)
+    assert audit['passed']
+    assert len(worlds) == 180 and len(rows) == 720
+    assert worlds == generate_semantic_worlds(seed=20261004)
+    assert len(ACTOR_IDENTIFIERS) == 36
+    assert len(ACTOR_FAMILIES) == 6
+    by_key = {(r['world_id'], r['assignment'], r['task']): r for r in rows}
+    for world in worlds:
+        original = by_key[(world['world_id'], 'original', 'application')]
+        swapped = by_key[(world['world_id'], 'swapped', 'application')]
+        assert original['owner_logical'] == swapped['owner_logical']
+        assert original['values_by_logical_actor'] == swapped['values_by_logical_actor']
+        assert original['correct'] == swapped['correct']
+        assert original['name_map']['logical_actor_1'] == swapped['name_map']['logical_actor_2']
+        assert original['name_map']['logical_actor_2'] == swapped['name_map']['logical_actor_1']
+        for task in ('interpretation', 'application'):
+            assert by_key[(world['world_id'], 'original', task)]['prompt'] != by_key[(world['world_id'], 'swapped', task)]['prompt']
+    for family in ACTOR_FAMILIES:
+        group = [w for w in worlds if w['family'] == family]
+        assert len(group) == 30
+        assert sum(w['owner_logical'] == 'logical_actor_1' for w in group) == 15
+        assert sum(w['owner_logical'] == 'logical_actor_2' for w in group) == 15
+
+
+def test_lexical_symmetry_analysis_averages_oriented_margins_by_world():
+    rows = []
+    for row in build_lexical_rows(generate_semantic_worlds(seed=20261004)):
+        rows.append({**row, 'margin': 2.0,
+                     'score_audit': {'candidate_token_count_mismatch': False, 'boundary_error': False}})
+    metrics = lexical_symmetry_analysis(rows, seed=18)
+    assert metrics['tasks']['application']['raw_accuracy']['n_worlds'] == 180
+    assert metrics['tasks']['application']['symmetrized_accuracy']['mean'] == 1.0
+    assert metrics['tasks']['application']['symmetrized_margin']['mean'] == 2.0
+    assert metrics['tasks']['application']['mean_identity_sensitivity']['mean'] == 0.0
+    assert metrics['tasks']['application']['swap_flip_rate']['mean'] == 0.0
+    assert metrics['application_identifier_family']['accuracy_range'] == 0.0
+    assert metrics['gate']['passed']
+
+    # One opposing pair has a sign flip and zero symmetrized margin; it must
+    # count as a flip and as incorrect after averaging.
+    target = next(r for r in rows if r['world_id'] == 'lex-world-0000'
+                  and r['assignment'] == 'original' and r['task'] == 'application')
+    target['margin'] = -2.0
+    failed = lexical_symmetry_analysis(rows, seed=18)
+    assert failed['tasks']['application']['swap_flip_rate']['mean'] == pytest.approx(1 / 180)
+    assert failed['tasks']['application']['symmetrized_accuracy']['mean'] == pytest.approx(179 / 180)

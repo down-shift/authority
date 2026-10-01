@@ -36,3 +36,15 @@ uv run --extra inference python scripts/run_authorization_competence.py \
 ```
 
 Only a passing Stage 1 opens Stage 2 (single-scope representation testing). Two-scope composition requires at least 90% accuracy per task and representation at Stage 2. Canonicalization runs only after adequate competence through Stage 3 and observed raw representation disagreement. Each stage saves its own predictions, world-clustered metrics, and report under `outputs/`; `run_status.json` records which gates stopped or opened later stages. A failed Qwen3-4B Stage 1 report includes a command to evaluate the exact same `worlds.jsonl` with Qwen3-8B.
+
+## Lexical-symmetry competence calibration
+
+The follow-up calibration creates 180 fresh semantic worlds, each with original and swapped assignments drawn from 36 equal-length actor identifiers across six predeclared identifier families. It preserves the canonical JSON and Stage-1 wording, audits identifier tokenization and authorization/position frequencies, and reports raw and world-paired symmetrized margins, name-swap flips, position effects, and family effects. The preregistered gate must pass before a separate representation-invariance run is considered; this runner never starts that stage.
+
+```sh
+uv run --extra inference --extra quantization python scripts/run_authorization_lexical_symmetry.py \
+  --config configs/authorization_lexical_symmetry.yaml \
+  --model qwen3_8b_int8 --device cuda
+```
+
+Use `--dataset-only` to generate and validate the fresh paired dataset without loading a model.

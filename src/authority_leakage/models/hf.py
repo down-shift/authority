@@ -4,6 +4,7 @@ from __future__ import annotations
 from authority_leakage.models.base import Generation, ModelAdapter
 from authority_leakage.schemas import Message
 import hashlib
+import warnings
 
 
 class HFAdapter(ModelAdapter):
@@ -30,6 +31,14 @@ class HFAdapter(ModelAdapter):
         if quantization not in (None, "bitsandbytes_int8"):
             raise ValueError(f"Unsupported quantization: {quantization}")
         if quantization == "bitsandbytes_int8":
+            # bitsandbytes emits this once per quantized matmul; it is expected
+            # for bf16 activations and floods experiment logs. Keep other
+            # UserWarnings visible.
+            warnings.filterwarnings(
+                "ignore",
+                message=r"^MatMul8bitLt: inputs will be cast from .* to float16 during quantization$",
+                category=UserWarning,
+            )
             if device not in ("auto", "cuda"):
                 raise ValueError("bitsandbytes int8 loading requires device='auto' or 'cuda'")
             if not torch.cuda.is_available():
