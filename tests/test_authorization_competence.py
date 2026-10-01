@@ -22,6 +22,11 @@ from authorization_competence.cross_scope import (
     derive_cross_scope_worlds, validate_cross_scope_worlds,
 )
 from authorization_competence.cross_scope_analysis import cross_scope_analysis
+from authorization_competence.canonicalization import (
+    APPLICATION_ORDERS, CANONICALIZATION_ARMS, make_e3_datasets,
+    validate_e3_datasets,
+)
+from authorization_competence.canonicalization_analysis import canonicalization_analysis
 
 
 def test_frozen_world_allocation_balances_actor_identity_and_positions():
@@ -329,3 +334,54 @@ def test_cross_scope_analysis_uses_world_paired_symmetrized_delta():
     assert harm['tasks']['application']['categorical_harm_rate']['mean'] == pytest.approx(1 / 900)
     predictions[0]['score_audit']['prompt_prefix_retokenized'] = True
     assert not cross_scope_analysis(predictions, seed=51)['candidate_scoring_audit_passed']
+
+
+def test_e3_datasets_reuse_e2_pairs_and_symmetrize_candidate_order_for_both_arms():
+    worlds = derive_cross_scope_worlds(generate_semantic_worlds(seed=20261004), seed=20261005)
+    e2_rows = build_cross_scope_rows(worlds)
+    conversions, answers = make_e3_datasets(worlds, e2_rows)
+    report = validate_e3_datasets(worlds, e2_rows, conversions, answers)
+    assert report['passed'] and report['bootstrap_unit'] == 'semantic world'
+    assert len(conversions) == 3600
+    assert len(answers) == 21600
+    assert report['gold_used_to_select_ir'] is False
+    assert all(set(row['gold_ir']) == {'filename_owner', 'ordering_owner'} for row in conversions)
+    assert all(len(row['candidates']) == 4 and row['gold_ir_text'] in row['candidates'] for row in conversions)
+    for row in answers:
+        if row['task'] == 'application':
+            assert row['candidate_order'] in APPLICATION_ORDERS
+            assert len(row['candidates']) == 2
+            assert all(value.startswith('filename_') for value in row['candidates'])
+        if row['arm'] == 'canonicalized':
+            assert '{{PREDICTED_CANONICAL_IR}}' in row['prompt']
+    grouped = {}
+    for row in answers:
+        grouped.setdefault((row['world_id'], row['representation'], row['scope_condition'],
+                            row['assignment'], row['task'], row['candidate_order']), {})[row['arm']] = row
+    assert all(pair['raw']['candidates'] == pair['canonicalized']['candidates'] for pair in grouped.values())
+
+
+def test_e3_analysis_uses_order_then_name_symmetrization_and_world_bootstrap():
+    worlds = derive_cross_scope_worlds(generate_semantic_worlds(seed=20261004), seed=20261005)
+    e2_rows = build_cross_scope_rows(worlds)
+    conversions, answers = make_e3_datasets(worlds, e2_rows)
+    conversion_predictions = [{**row, 'selected_ir': row['gold_ir']} for row in conversions]
+    scored_answers = []
+    for row in answers:
+        if row['task'] == 'application':
+            margin = {('raw', 'congruent'): 2.0, ('raw', 'conflicting'): 1.0,
+                      ('canonicalized', 'congruent'): 3.0, ('canonicalized', 'conflicting'): 2.5}[
+                          (row['arm'], row['scope_condition'])]
+        else:
+            margin = 1.0 if row['scope_condition'] == 'congruent' else 0.5
+        scored_answers.append({**row, 'margin': margin,
+            'score_audit': {'candidate_token_count_mismatch': False, 'boundary_error': False,
+                            'boundary_overlap': False, 'prompt_prefix_retokenized': False}})
+    metrics = canonicalization_analysis(conversion_predictions, scored_answers, seed=7)
+    app = metrics['tasks']['application']
+    assert app['interference_reduction']['delta_scope_raw']['mean'] == pytest.approx(-1.0)
+    assert app['interference_reduction']['delta_scope_canonicalized']['mean'] == pytest.approx(-0.5)
+    assert app['interference_reduction']['interference_reduction']['mean'] == pytest.approx(0.5)
+    assert app['interference_reduction']['interference_reduction']['n_worlds'] == 180
+    assert metrics['conversion']['overall']['exact_conversion_correct']['mean'] == 1.0
+    assert metrics['candidate_scoring_audit_passed']

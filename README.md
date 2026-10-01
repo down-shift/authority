@@ -72,3 +72,13 @@ uv run --extra inference --extra quantization python scripts/run_authorization_c
 ## Legacy authorization-invariance pilot
 
 `authorization_invariance` is the original asymmetric `Source S` / `Default policy` exploratory pilot. Its package, config, runner, and outputs are retained for provenance only. New authorization experiments should use `authorization_competence` and must not import the legacy package.
+
+## Experiment 3: canonicalization mitigation
+
+E3 reuses the complete E2 run and its pinned Qwen3-8B int8 revision. The model converts each raw two-scope policy by scoring the four legal canonical owner mappings; it then answers from the selected IR. Application margins average frozen and reversed filename proposal order before lexical-name symmetrization. Conversion and answer accuracy are reported separately. A dataset-only run validates and saves all datasets and provenance before inference; use `--resume` on the same host to score that exact prepared run.
+
+```sh
+uv run --extra inference --extra quantization python scripts/run_authorization_canonicalization.py \
+  --e2-run outputs/20261001T130103102194Z_authorization_cross_scope_qwen3_8b_int8 \
+  --model qwen3_8b_int8 --device cuda
+```
