@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from itertools import combinations
 import numpy as np
 
 from authorization_competence.analysis import boot, BIAS_POSITION_MAX_GAP, COMPETENCE_ACCURACY_MIN
@@ -128,3 +129,95 @@ def lexical_symmetry_analysis(rows, seed=20261004):
                        "identifier_family_accuracy_range_max": FAMILY_ACCURACY_RANGE_MAX},
     }
     return result
+
+
+def lexical_representation_analysis(rows, seed=20261005):
+    """Analyze five encodings after averaging the two matched name assignments."""
+    from authorization_competence.design import REPRESENTATIONS
+
+    by_pair = defaultdict(dict)
+    for row in rows:
+        if row.get("stage") != 2:
+            continue
+        by_pair[(row["world_id"], row["representation"], row["task"])][row["assignment"]] = row
+    if len(by_pair) != 180 * len(REPRESENTATIONS) * len(TASKS) or any(
+        set(assignments) != set(ASSIGNMENTS) for assignments in by_pair.values()
+    ):
+        raise ValueError("Stage 2 requires both name assignments for every world, representation, and task")
+    per_cell = {}
+    world_rep_answers = defaultdict(dict)
+    world_rep_margins = defaultdict(dict)
+    raw_app_position = defaultdict(list)
+    for task_index, task in enumerate(TASKS):
+        per_cell[task] = {}
+        for rep_index, rep in enumerate(REPRESENTATIONS):
+            pairs = []
+            raw = []
+            for (world_id, row_rep, row_task), assignments in by_pair.items():
+                if row_rep != rep or row_task != task:
+                    continue
+                original, swapped = (assignments[a] for a in ASSIGNMENTS)
+                m0, m1 = float(original["margin"]), float(swapped["margin"])
+                msym = (m0 + m1) / 2
+                correct = float(msym > 0)
+                pairs.append((world_id, msym, correct))
+                world_rep_answers[(world_id, task)][rep] = correct
+                world_rep_margins[(world_id, task)][rep] = msym
+                raw.extend([float(m0 > 0), float(m1 > 0)])
+                if task == "application":
+                    raw_app_position[original["correct_value_position"]].append((world_id, float(m0 > 0), float(m1 > 0)))
+            per_cell[task][rep] = {
+                "symmetrized_accuracy": boot([x[2] for x in pairs], seed + task_index * 100 + rep_index),
+                "symmetrized_margin": boot([x[1] for x in pairs], seed + task_index * 100 + rep_index + 20),
+                "raw_accuracy_both_assignments": boot(
+                    [np.mean([float(by_pair[(world_id, rep, task)][a]["margin"] > 0)
+                              for a in ASSIGNMENTS]) for world_id, _, _ in pairs],
+                    seed + task_index * 100 + rep_index + 40),
+                "swap_flip_rate": boot([
+                    float(np.sign(float(by_pair[(world_id, rep, task)]["original"]["margin"])) !=
+                          np.sign(float(by_pair[(world_id, rep, task)]["swapped"]["margin"])))
+                    for world_id, _, _ in pairs], seed + task_index * 100 + rep_index + 60),
+                "n_worlds": len(pairs),
+            }
+    disagreement = {}
+    dispersion = {}
+    for task_index, task in enumerate(TASKS):
+        answers = [world_rep_answers[(world_id, task)] for world_id in sorted({k[0] for k in world_rep_answers if k[1] == task})]
+        margins = [world_rep_margins[(world_id, task)] for world_id in sorted({k[0] for k in world_rep_margins if k[1] == task})]
+        disagreement_values = [float(len(set(x.values())) > 1) for x in answers]
+        dispersion_values = [float(np.var(list(x.values()))) for x in margins]
+        disagreement[task] = boot(disagreement_values, seed + 200 + task_index)
+        dispersion[task] = boot(dispersion_values, seed + 210 + task_index)
+    pairwise = {task: {} for task in TASKS}
+    for task_index, task in enumerate(TASKS):
+        for contrast_index, (rep_a, rep_b) in enumerate(combinations(REPRESENTATIONS, 2)):
+            worlds = sorted({key[0] for key in world_rep_margins if key[1] == task})
+            margin_diffs = [world_rep_margins[(w, task)][rep_a] - world_rep_margins[(w, task)][rep_b] for w in worlds]
+            accuracy_diffs = [world_rep_answers[(w, task)][rep_a] - world_rep_answers[(w, task)][rep_b] for w in worlds]
+            pairwise[task][f"{rep_a}_minus_{rep_b}"] = {
+                "symmetrized_margin_difference": boot(margin_diffs, seed + 300 + task_index * 100 + contrast_index),
+                "symmetrized_accuracy_difference": boot(accuracy_diffs, seed + 400 + task_index * 100 + contrast_index),
+            }
+    pos_by = {}
+    for pos in (0, 1):
+        entries = raw_app_position[pos]
+        by_world = defaultdict(list)
+        for world_id, original_correct, swapped_correct in entries:
+            by_world[world_id].append((original_correct + swapped_correct) / 2)
+        # Position is repeated for five representations; average within world first.
+        values = [np.mean(x) for x in by_world.values()]
+        pos_by[pos] = boot(values, seed + 500 + pos)
+    position_gap = abs(pos_by[0]["mean"] - pos_by[1]["mean"])
+    score_issue = any(r.get("score_audit", {}).get("candidate_token_count_mismatch", False) or
+                      r.get("score_audit", {}).get("boundary_error", False) for r in rows)
+    return {
+        "worlds": len({r["world_id"] for r in rows}), "rows": len(rows),
+        "tasks": per_cell,
+        "categorical_disagreement_fraction": disagreement,
+        "within_world_margin_variance": dispersion,
+        "pairwise_representation_contrasts": pairwise,
+        "application_position": {"accuracy_by_correct_value_position": {
+            "first": pos_by[0], "second": pos_by[1]}, "accuracy_gap": position_gap},
+        "candidate_scoring_audit_passed": not score_issue,
+        "analysis_note": "All margins and representation outcomes are paired-name symmetrized; bootstrap resamples semantic worlds.",
+    }

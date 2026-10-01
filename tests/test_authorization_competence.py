@@ -10,9 +10,12 @@ from authorization_competence.design import (
     generate_worlds, legal_policy_candidates, render, validate,
 )
 from authorization_competence.lexical_analysis import lexical_symmetry_analysis
+from authorization_competence.lexical_analysis import lexical_representation_analysis
 from authorization_competence.lexical_symmetry import (
     ACTOR_FAMILIES, ACTOR_IDENTIFIERS, ASSIGNMENTS, build_lexical_rows,
+    build_lexical_representation_rows, decode_lexical_policy,
     generate_semantic_worlds, validate_lexical_worlds,
+    validate_lexical_representation_rows,
 )
 
 
@@ -216,3 +219,35 @@ def test_lexical_symmetry_analysis_averages_oriented_margins_by_world():
     failed = lexical_symmetry_analysis(rows, seed=18)
     assert failed['tasks']['application']['swap_flip_rate']['mean'] == pytest.approx(1 / 180)
     assert failed['tasks']['application']['symmetrized_accuracy']['mean'] == pytest.approx(179 / 180)
+
+
+def test_lexical_representation_renderers_preserve_paired_semantics_and_queries():
+    worlds = generate_semantic_worlds(seed=20261004)
+    rows = build_lexical_representation_rows(worlds)
+    audit = validate_lexical_representation_rows(worlds, rows)
+    assert audit['passed']
+    assert len(rows) == 3600
+    for row in rows:
+        assert decode_lexical_policy(row['policy_text'], row['representation']) == row['policy']
+    grouped = {}
+    for row in rows:
+        grouped.setdefault((row['world_id'], row['assignment'], row['task']), set()).add(
+            row['prompt'].replace(row['policy_text'], '<POLICY>'))
+    assert all(len(prompts) == 1 for prompts in grouped.values())
+
+
+def test_lexical_representation_analysis_bootstraps_worlds_and_detects_disagreement():
+    rows = []
+    for row in build_lexical_representation_rows(generate_semantic_worlds(seed=20261004)):
+        rows.append({**row, 'margin': 1.0,
+                     'score_audit': {'candidate_token_count_mismatch': False, 'boundary_error': False}})
+    metrics = lexical_representation_analysis(rows, seed=29)
+    assert metrics['tasks']['application']['json']['symmetrized_accuracy']['n_worlds'] == 180
+    assert metrics['categorical_disagreement_fraction']['application']['mean'] == 0.0
+    assert metrics['within_world_margin_variance']['application']['mean'] == 0.0
+    victim = next(r for r in rows if r['world_id'] == 'lex-world-0000'
+                  and r['representation'] == 'json' and r['assignment'] == 'original'
+                  and r['task'] == 'application')
+    victim['margin'] = -3.0
+    metrics = lexical_representation_analysis(rows, seed=29)
+    assert metrics['categorical_disagreement_fraction']['application']['mean'] == pytest.approx(1 / 180)

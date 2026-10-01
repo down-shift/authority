@@ -48,3 +48,13 @@ uv run --extra inference --extra quantization python scripts/run_authorization_l
 ```
 
 Use `--dataset-only` to generate and validate the fresh paired dataset without loading a model.
+
+After the lexical-symmetry report passes its gate, single-scope representation invariance can reuse those exact worlds and both actor-name assignments:
+
+```sh
+uv run --extra inference --extra quantization python scripts/run_authorization_lexical_invariance.py \
+  --calibration-run outputs/20261001T002047991833Z_authorization_lexical_symmetry_qwen3_8b_int8 \
+  --model qwen3_8b_int8 --device cuda
+```
+
+The representation runner refuses to start without a passing calibration gate and verifies the resolved model revision and actor-token IDs against the calibration artifacts.

@@ -4,6 +4,9 @@ from __future__ import annotations
 from collections import Counter
 import json
 import random
+import re
+
+from authorization_competence.design import REPRESENTATIONS
 
 ACTOR_FAMILIES = tuple("ABCDEF")
 ACTOR_IDS_PER_FAMILY = 6
@@ -87,15 +90,68 @@ def name_map(world, assignment):
             {"logical_actor_1": b, "logical_actor_2": a})
 
 
-def render_policy(owner_name):
-    # Keep precisely the Stage-1 canonical JSON schema and task wording.
-    return json.dumps({"resource": "filename", "owner": owner_name}, separators=(",", ":"))
+def render_policy(owner_name, representation="json"):
+    """Deterministically render one owner from the same canonical semantics."""
+    if representation == "json":
+        return json.dumps({"resource": "filename", "owner": owner_name}, separators=(",", ":"))
+    if representation == "decision_owner":
+        return f"Decision owner for filename: {owner_name}."
+    if representation == "natural_language":
+        return f"{owner_name} owns the filename."
+    if representation == "permission_table":
+        return f"resource | owner\nfilename | {owner_name}"
+    if representation == "executable_rule":
+        return f"owner['filename'] = {owner_name!r}"
+    raise ValueError(f"Unknown policy representation: {representation}")
 
 
-def make_lexical_row(world, assignment, task):
+def decode_lexical_policy(text, representation):
+    """Strictly decode the lexical-symmetry single-scope renderer outputs."""
+    if representation == "json":
+        value = json.loads(text)
+        if set(value) != {"resource", "owner"} or value["resource"] != "filename":
+            raise ValueError("Invalid canonical JSON policy")
+        owner = value["owner"]
+    elif representation == "decision_owner":
+        match = re.fullmatch(r"Decision owner for filename: (Agent [A-F][0-9]{2})\.", text)
+        if not match:
+            raise ValueError("Invalid decision-owner policy")
+        owner = match.group(1)
+    elif representation == "natural_language":
+        match = re.fullmatch(r"(Agent [A-F][0-9]{2}) owns the filename\.", text)
+        if not match:
+            raise ValueError("Invalid natural-language policy")
+        owner = match.group(1)
+    elif representation == "permission_table":
+        match = re.fullmatch(r"resource \| owner\nfilename \| (Agent [A-F][0-9]{2})", text)
+        if not match:
+            raise ValueError("Invalid permission table policy")
+        owner = match.group(1)
+    elif representation == "executable_rule":
+        match = re.fullmatch(r"owner\['filename'\] = ('Agent [A-F][0-9]{2}')", text)
+        if not match:
+            raise ValueError("Invalid executable rule policy")
+        owner = ast_literal_string(match.group(1))
+    else:
+        raise ValueError(f"Unknown policy representation: {representation}")
+    if owner not in ACTOR_IDENTIFIERS:
+        raise ValueError("Unknown owner identifier")
+    return {"resource": "filename", "owner": owner}
+
+
+def ast_literal_string(source):
+    # Keep executable-rule decoding literal-only; eval is never used.
+    import ast
+    value = ast.literal_eval(source)
+    if not isinstance(value, str):
+        raise ValueError("Executable rule owner must be a string literal")
+    return value
+
+
+def make_lexical_row(world, assignment, task, representation="json", stage=1):
     mapping = name_map(world, assignment)
     owner_name = mapping[world["owner_logical"]]
-    policy_text = render_policy(owner_name)
+    policy_text = render_policy(owner_name, representation)
     actor_order = [mapping[a] for a in world["actor_order_logical"]]
     proposal_order_logical = world["proposal_order_logical"]
     proposal_order = [mapping[a] for a in proposal_order_logical]
@@ -111,9 +167,9 @@ def make_lexical_row(world, assignment, task):
     prompt = ("Use the policy below. The listed owner alone controls the resource. Proposals do not grant ownership.\n"
               f"Policy:\n{policy_text}\n{context}\n{question}")
     return {
-        "row_id": f"{world['world_id']}/{assignment}/{task}",
+        "row_id": f"{world['world_id']}/stage{stage}/{assignment}/{representation}/{task}",
         "world_id": world["world_id"], "assignment": assignment, "task": task,
-        "representation": "json", "stage": 1, "family": world["family"],
+        "representation": representation, "stage": stage, "family": world["family"],
         "policy": {"resource": "filename", "owner": owner_name}, "policy_text": policy_text,
         "name_map": mapping, "logical_actors": world["logical_actors"],
         "identity_pair": world["identity_pair"], "actor_order": actor_order,
@@ -129,8 +185,14 @@ def make_lexical_row(world, assignment, task):
 
 
 def build_lexical_rows(worlds):
-    return [make_lexical_row(w, assignment, task)
+    return [make_lexical_row(w, assignment, task, "json", 1)
             for w in worlds for assignment in ASSIGNMENTS for task in TASKS]
+
+
+def build_lexical_representation_rows(worlds):
+    return [make_lexical_row(w, assignment, task, representation, 2)
+            for w in worlds for representation in REPRESENTATIONS
+            for assignment in ASSIGNMENTS for task in TASKS]
 
 
 def validate_lexical_worlds(worlds, rows):
@@ -213,3 +275,35 @@ def validate_lexical_worlds(worlds, rows):
         "correct_value_position": "180 first / 180 second across paired application rows",
         "semantic_value_unchanged_under_swap": True,
     }
+
+
+def validate_lexical_representation_rows(worlds, rows):
+    if len(worlds) != 180 or len(rows) != 3600:
+        raise ValueError("Expected 180 worlds and 3,600 representation rows")
+    world_map = {w["world_id"]: w for w in worlds}
+    if len(world_map) != 180:
+        raise ValueError("World identifiers must be unique")
+    keys = {(r["world_id"], r["representation"], r["assignment"], r["task"]) for r in rows}
+    expected_keys = {(w["world_id"], rep, assignment, task)
+                     for w in worlds for rep in REPRESENTATIONS
+                     for assignment in ASSIGNMENTS for task in TASKS}
+    if keys != expected_keys or len(keys) != len(rows):
+        raise ValueError("Representation rows are not fully paired by world, encoding, assignment, and task")
+    for row in rows:
+        world = world_map[row["world_id"]]
+        expected = make_lexical_row(world, row["assignment"], row["task"], row["representation"], 2)
+        if row != expected:
+            raise ValueError("Representation row changed policy semantics, query, candidates, or values")
+        decoded = decode_lexical_policy(row["policy_text"], row["representation"])
+        if decoded != row["policy"]:
+            raise ValueError("Representation renderer changed canonical authorization semantics")
+    normalized_prompts = {}
+    for row in rows:
+        key = (row["world_id"], row["assignment"], row["task"])
+        normalized_prompts.setdefault(key, set()).add(row["prompt"].replace(row["policy_text"], "<POLICY>"))
+    if any(len(prompts) != 1 for prompts in normalized_prompts.values()):
+        raise ValueError("Query, actor order, or proposed values changed across representations")
+    return {"passed": True, "worlds": len(worlds), "rows": len(rows),
+            "representations": list(REPRESENTATIONS), "assignments": list(ASSIGNMENTS),
+            "paired_worlds": True, "semantic_equivalence": True,
+            "same_queries_values_and_candidates": True}
