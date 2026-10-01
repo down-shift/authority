@@ -17,6 +17,11 @@ from authorization_competence.lexical_symmetry import (
     generate_semantic_worlds, validate_lexical_worlds,
     validate_lexical_representation_rows,
 )
+from authorization_competence.cross_scope import (
+    CONDITIONS, build_cross_scope_rows, decode_cross_scope_policy,
+    derive_cross_scope_worlds, validate_cross_scope_worlds,
+)
+from authorization_competence.cross_scope_analysis import cross_scope_analysis
 
 
 def test_frozen_world_allocation_balances_actor_identity_and_positions():
@@ -244,6 +249,7 @@ def test_lexical_representation_analysis_bootstraps_worlds_and_detects_disagreem
     metrics = lexical_representation_analysis(rows, seed=29)
     assert metrics['tasks']['application']['json']['symmetrized_accuracy']['n_worlds'] == 180
     assert metrics['categorical_disagreement_fraction']['application']['mean'] == 0.0
+    assert metrics['raw_representation_disagreement']['application']['fraction_assignment_worlds_with_disagreement']['mean'] == 0.0
     assert metrics['within_world_margin_variance']['application']['mean'] == 0.0
     victim = next(r for r in rows if r['world_id'] == 'lex-world-0000'
                   and r['representation'] == 'json' and r['assignment'] == 'original'
@@ -251,3 +257,75 @@ def test_lexical_representation_analysis_bootstraps_worlds_and_detects_disagreem
     victim['margin'] = -3.0
     metrics = lexical_representation_analysis(rows, seed=29)
     assert metrics['categorical_disagreement_fraction']['application']['mean'] == pytest.approx(1 / 180)
+    raw = metrics['raw_representation_disagreement']['application']
+    assert raw['fraction_assignment_worlds_with_disagreement']['mean'] == pytest.approx(1 / 360)
+    assert raw['fraction_worlds_either_assignment_disagrees']['mean'] == pytest.approx(1 / 180)
+    assert raw['fraction_worlds_both_assignments_disagree']['mean'] == 0
+
+    bad = dict(rows[0])
+    bad['score_audit'] = {'candidate_token_count_mismatch': False, 'boundary_error': False,
+                          'boundary_overlap': True, 'prompt_prefix_retokenized': False}
+    assert not lexical_representation_analysis(rows[1:] + [bad], seed=29)['candidate_scoring_audit_passed']
+
+
+def test_cross_scope_pairs_change_only_irrelevant_owner_and_balance_order():
+    frozen = generate_semantic_worlds(seed=20261004)
+    worlds = derive_cross_scope_worlds(frozen, seed=20261005)
+    rows = build_cross_scope_rows(worlds)
+    audit = validate_cross_scope_worlds(worlds, rows)
+    assert audit['passed']
+    assert len(rows) == 7200
+    assert audit['filename_owner_counts'] == {'logical_actor_1': 90, 'logical_actor_2': 90}
+    assert audit['condition_position_counts']['congruent_first'] == 1800
+    assert audit['condition_position_counts']['conflicting_second'] == 1800
+    index = {(r['world_id'], r['representation'], r['scope_condition'], r['assignment'], r['task']): r for r in rows}
+    for world in worlds:
+        for rep in REPRESENTATIONS:
+            for assignment in ASSIGNMENTS:
+                for task in ('interpretation', 'application'):
+                    congruent = index[(world['world_id'], rep, 'congruent', assignment, task)]
+                    conflicting = index[(world['world_id'], rep, 'conflicting', assignment, task)]
+                    assert congruent['num_scopes'] == conflicting['num_scopes'] == 2
+                    assert congruent['policy']['filename'] == conflicting['policy']['filename']
+                    assert congruent['policy']['ordering'] != conflicting['policy']['ordering']
+                    assert congruent['values'] == conflicting['values']
+                    assert congruent['candidates'] == conflicting['candidates']
+                    assert congruent['name_map'] == conflicting['name_map']
+                    assert congruent['scope_order'] == conflicting['scope_order']
+                    assert decode_cross_scope_policy(congruent['policy_text'], rep) == congruent['policy']
+                    assert decode_cross_scope_policy(conflicting['policy_text'], rep) == conflicting['policy']
+                    actor_counts = {actor: congruent['policy_text'].count(actor) for actor in congruent['actor_order']}
+                    assert actor_counts == {actor: conflicting['policy_text'].count(actor) for actor in conflicting['actor_order']}
+                    assert len(congruent['candidates']) == 2
+                    if task == 'application':
+                        assert all(value.startswith('filename_') for value in congruent['candidates'])
+                    assert len(congruent['policy_text'].splitlines()) == len(conflicting['policy_text'].splitlines())
+
+
+def test_cross_scope_analysis_uses_world_paired_symmetrized_delta():
+    worlds = derive_cross_scope_worlds(generate_semantic_worlds(seed=20261004), seed=20261005)
+    rows = build_cross_scope_rows(worlds)
+    predictions = []
+    for row in rows:
+        predictions.append({**row,
+            'margin': 1.0 if row['scope_condition'] == 'congruent' else 0.5,
+            'score_audit': {'candidate_token_count_mismatch': False, 'boundary_error': False}})
+    metrics = cross_scope_analysis(predictions, seed=51)
+    assert metrics['worlds'] == 180 and metrics['rows'] == 7200
+    assert metrics['tasks']['application']['mean_delta_scope']['mean'] == pytest.approx(-0.5)
+    assert metrics['tasks']['application']['mean_delta_scope']['n_worlds'] == 180
+    assert metrics['tasks']['application']['accuracy_congruent']['mean'] == 1.0
+    assert metrics['tasks']['application']['accuracy_conflicting']['mean'] == 1.0
+    assert metrics['tasks']['application']['categorical_harm_rate']['mean'] == 0.0
+    assert metrics['tasks']['application']['lexical_swap_interaction']['mean'] == pytest.approx(0.0)
+    assert metrics['scope_order']['application']['delta_second_minus_first']['mean'] == pytest.approx(0.0)
+    assert metrics['bootstrap_unit'] == 'semantic world'
+
+    victim = next(r for r in predictions if r['world_id'] == worlds[0]['world_id']
+                  and r['representation'] == 'json' and r['scope_condition'] == 'conflicting'
+                  and r['assignment'] == 'original' and r['task'] == 'application')
+    victim['margin'] = -1.0
+    harm = cross_scope_analysis(predictions, seed=51)
+    assert harm['tasks']['application']['categorical_harm_rate']['mean'] == pytest.approx(1 / 900)
+    predictions[0]['score_audit']['prompt_prefix_retokenized'] = True
+    assert not cross_scope_analysis(predictions, seed=51)['candidate_scoring_audit_passed']

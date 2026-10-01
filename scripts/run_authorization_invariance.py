@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Frozen single-model authorization representation experiment."""
+"""LEGACY ONLY: asymmetric Source S / Default policy exploratory pilot.
+
+Retained for provenance and reproduction; new experiments must use
+authorization_competence and its dedicated runners.
+"""
 from __future__ import annotations
 import argparse
 from datetime import datetime, timezone

@@ -58,3 +58,17 @@ uv run --extra inference --extra quantization python scripts/run_authorization_l
 ```
 
 The representation runner refuses to start without a passing calibration gate and verifies the resolved model revision and actor-token IDs against the calibration artifacts.
+
+## Experiment 2: cross-scope authorization interference
+
+This experiment reuses the Stage 2 worlds and model revision. Every CONGRUENT/CONFLICTING pair contains filename and ordering scopes, with both actors explicitly marked owner/non-owner in each scope; only the ordering owner changes. Application prompts include filename proposals only. Both lexical assignments and all five representations are scored for filename interpretation and application. Filename policy order is balanced first/second within conditions. The runner validates and writes exactly 7,200 rows before inference and does not launch canonicalization or another model.
+
+```sh
+uv run --extra inference --extra quantization python scripts/run_authorization_cross_scope.py \
+  --stage2-run outputs/20261001T120524351420Z_authorization_lexical_invariance_qwen3_8b_int8 \
+  --model qwen3_8b_int8 --device cuda
+```
+
+## Legacy authorization-invariance pilot
+
+`authorization_invariance` is the original asymmetric `Source S` / `Default policy` exploratory pilot. Its package, config, runner, and outputs are retained for provenance only. New authorization experiments should use `authorization_competence` and must not import the legacy package.

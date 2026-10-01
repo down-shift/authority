@@ -1,0 +1,11 @@
+experiment: authorization_cross_scope_interference
+seed: 20261005
+worlds: 180
+model: qwen3_8b_int8
+bootstrap_replicates: 4000
+torch_threads: 4
+expected_rows: 7200
+scope_conditions:
+  congruent: filename owner equals ordering owner
+  conflicting: filename owner differs from ordering owner
+primary_estimand: symmetrized conflicting margin minus symmetrized congruent margin

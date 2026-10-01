@@ -87,9 +87,12 @@ def candidate_audit(tokenizer, rows):
         result.append({"row_id": row["row_id"], "candidate_token_counts": [e["token_count"] for e in encodings],
                        "candidate_token_count_mismatch": len({e["token_count"] for e in encodings}) > 1,
                        "boundary_modes": [e["boundary_mode"] for e in encodings],
-                       "prompt_prefix_retokenized": [e["prompt_prefix_retokenized"] for e in encodings]})
+                       "boundary_overlap": any(e["boundary_overlap"] for e in encodings),
+                       "prompt_prefix_retokenized": any(e["prompt_prefix_retokenized"] for e in encodings)})
     return {"rows": result,
             "stage1_mismatch_rows": sum(r["candidate_token_count_mismatch"] for r in result),
+            "boundary_overlap_rows": sum(r["boundary_overlap"] for r in result),
+            "prefix_retokenization_rows": sum(r["prompt_prefix_retokenized"] for r in result),
             "all_scopes_mismatch_rows": sum(r["candidate_token_count_mismatch"] for r in result)}
 
 
@@ -195,6 +198,12 @@ def main():
             finalize(run)
             print(run / "actor_identifier_audit.json")
             return
+        if token_rows["stage1_mismatch_rows"] or token_rows["boundary_overlap_rows"] or token_rows["prefix_retokenization_rows"]:
+            write_run_status(run / "run_status.json", "candidate_tokenization_audit_failed", 0, len(rows),
+                             "Candidate length mismatch, boundary overlap, or prompt-prefix retokenization; inference not run")
+            finalize(run)
+            print(run / "candidate_tokenization_audit.json")
+            return
         torch.set_num_threads(int(config.get("torch_threads", 4)))
         write_run_status(run / "run_status.json", "loading_model", 0, len(rows))
         adapter = HFAdapter(model_spec["name"], model_spec.get("revision"), args.device,
@@ -231,6 +240,8 @@ def main():
                     "margin": correct - incorrect, "selected": selected,
                     "score_audit": {"candidate_token_count_mismatch": audit["candidate_token_count_mismatch"],
                                     "boundary_error": any(s["token_count"] <= 0 for s in scores.values()),
+                                    "boundary_overlap": audit["boundary_overlap"],
+                                    "prompt_prefix_retokenized": audit["prompt_prefix_retokenized"],
                                     "candidate_token_counts": [scores[c]["token_count"] for c in sorted(scores)]}}
                 output_rows.append(prediction)
                 out.write(json.dumps(prediction, sort_keys=True) + "\n")

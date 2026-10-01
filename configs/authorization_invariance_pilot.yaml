@@ -1,3 +1,5 @@
+# LEGACY ONLY: original asymmetric Source S / Default policy pilot.
+# Retained to reproduce archived outputs; do not use for new experiments.
 experiment: authorization_representation_invariance
 seed: 20261002
 worlds_per_pair: 4

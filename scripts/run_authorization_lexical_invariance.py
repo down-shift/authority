@@ -56,6 +56,8 @@ def tokenization_audit(tokenizer, rows):
         row_audit.append({"row_id": row["row_id"], "candidate_token_counts": [x["token_count"] for x in enc],
                           "candidate_token_count_mismatch": len({x["token_count"] for x in enc}) > 1,
                           "boundary_error": any(x["token_count"] <= 0 for x in enc),
+                          "boundary_overlap": any(x["boundary_overlap"] for x in enc),
+                          "prefix_retokenization": any(x["prompt_prefix_retokenized"] for x in enc),
                           "boundary_modes": [x["boundary_mode"] for x in enc],
                           "prompt_prefix_retokenized": [x["prompt_prefix_retokenized"] for x in enc]})
     return {"passed": len(token_counts) == 1 and len(char_lengths) == 1,
@@ -84,6 +86,7 @@ def report(metrics):
         v = metrics["within_world_margin_variance"][task]
         lines.append(f"| {task} | {d['mean']:.3f} [{d['ci95'][0]:.3f}, {d['ci95'][1]:.3f}] | {v['mean']:.3f} [{v['ci95'][0]:.3f}, {v['ci95'][1]:.3f}] |")
     lines += ["", "Pairwise world-paired margin and accuracy contrasts are in `metrics.json`. CIs resample semantic worlds.",
+              "", "The raw disagreement metrics compare winners across representations separately within each of the 360 world-assignment pairs. The symmetrized disagreement metric compares winners after averaging the two name-assignment margins; it does not represent literal single-prompt answer flips.",
               "", "All five representation renderers were strictly decoded back to the same canonical owner, and queries, values, candidates, world IDs, and name assignments were held fixed.", ""]
     return "\n".join(lines)
 
@@ -131,7 +134,8 @@ def main():
         "worlds_and_name_assignments": "exactly reused from the lexical-symmetry calibration",
         "primary_margin": "correct semantic candidate sum log probability minus incorrect semantic candidate sum log probability",
         "per_representation_symmetrized_margin": "mean of original and swapped assignment margins, each oriented correct minus incorrect",
-        "categorical_disagreement": "within-world difference in semantic winner across representations after name-swap symmetrization",
+        "symmetrized_disagreement": "within-world difference in semantic winner across representations after name-swap symmetrization; not literal single-prompt flips",
+        "raw_disagreement": "representation winner differences separately for each world and actor-name assignment",
         "margin_dispersion": "within-world variance across five symmetrized representation margins",
         "bootstrap_unit": "semantic world",
         "representation_invariance_only": True,
@@ -153,7 +157,14 @@ def main():
         audit = tokenization_audit(tokenizer, rows)
         write_json(run / "tokenization_audit.json", audit)
         prior_audit = json.loads((calibration / "actor_identifier_audit.json").read_text())
-        if not audit["passed"] or audit["candidate_token_count_mismatch_rows"]:
+        bad_rows = [r for r in audit["candidate_rows"] if
+                    r["candidate_token_count_mismatch"] or r["boundary_error"] or
+                    r["boundary_overlap"] or r["prefix_retokenization"]]
+        audit["boundary_overlap_rows"] = sum(r["boundary_overlap"] for r in audit["candidate_rows"])
+        audit["prefix_retokenization_rows"] = sum(r["prefix_retokenization"] for r in audit["candidate_rows"])
+        audit["passed"] = audit["passed"] and not bad_rows
+        write_json(run / "tokenization_audit.json", audit)
+        if not audit["passed"]:
             write_run_status(run / "run_status.json", "tokenizer_audit_failed", 0, len(rows), "Representation candidate scoring token audit failed")
             finalize(run)
             return
@@ -197,6 +208,8 @@ def main():
                     "margin": correct - incorrect, "selected": selected,
                     "score_audit": {"candidate_token_count_mismatch": row_audit["candidate_token_count_mismatch"],
                                     "boundary_error": row_audit["boundary_error"],
+                                    "boundary_overlap": row_audit["boundary_overlap"],
+                                    "prompt_prefix_retokenized": row_audit["prefix_retokenization"],
                                     "candidate_token_counts": row_audit["candidate_token_counts"]}}
                 predictions.append(prediction)
                 output.write(json.dumps(prediction, sort_keys=True) + "\n")

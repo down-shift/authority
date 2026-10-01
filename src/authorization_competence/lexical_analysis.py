@@ -179,14 +179,46 @@ def lexical_representation_analysis(rows, seed=20261005):
                     for world_id, _, _ in pairs], seed + task_index * 100 + rep_index + 60),
                 "n_worlds": len(pairs),
             }
-    disagreement = {}
+    symmetrized_disagreement = {}
+    raw_disagreement = {}
     dispersion = {}
     for task_index, task in enumerate(TASKS):
         answers = [world_rep_answers[(world_id, task)] for world_id in sorted({k[0] for k in world_rep_answers if k[1] == task})]
         margins = [world_rep_margins[(world_id, task)] for world_id in sorted({k[0] for k in world_rep_margins if k[1] == task})]
         disagreement_values = [float(len(set(x.values())) > 1) for x in answers]
         dispersion_values = [float(np.var(list(x.values()))) for x in margins]
-        disagreement[task] = boot(disagreement_values, seed + 200 + task_index)
+        symmetrized_disagreement[task] = boot(disagreement_values, seed + 200 + task_index)
+
+        # Literal single-prompt disagreement: compare representation winners
+        # separately within each assignment, then summarize at assignment-world
+        # and world levels. Bootstrap semantic worlds to retain paired assignments.
+        raw_by_assignment_world = defaultdict(dict)
+        for world_id in sorted({key[0] for key in by_pair if key[2] == task}):
+            for assignment in ASSIGNMENTS:
+                winners = {}
+                for rep in REPRESENTATIONS:
+                    row = by_pair[(world_id, rep, task)][assignment]
+                    winners[rep] = row.get("selected", row["correct"] if float(row["margin"]) > 0 else row["incorrect"])
+                raw_by_assignment_world[world_id][assignment] = float(len(set(winners.values())) > 1)
+        assignment_world_values = [raw_by_assignment_world[w][a]
+                                   for w in sorted(raw_by_assignment_world) for a in ASSIGNMENTS]
+        per_world_assignment_mean = [float(np.mean([raw_by_assignment_world[w][a] for a in ASSIGNMENTS]))
+                                     for w in sorted(raw_by_assignment_world)]
+        either_values = [float(any(raw_by_assignment_world[w].values())) for w in sorted(raw_by_assignment_world)]
+        both_values = [float(all(raw_by_assignment_world[w].values())) for w in sorted(raw_by_assignment_world)]
+        raw_disagreement[task] = {
+            "fraction_assignment_worlds_with_disagreement": boot(per_world_assignment_mean, seed + 220 + task_index),
+            "fraction_worlds_either_assignment_disagrees": boot(either_values, seed + 230 + task_index),
+            "fraction_worlds_both_assignments_disagree": boot(both_values, seed + 240 + task_index),
+            "assignment_worlds": len(assignment_world_values),
+            "n_assignment_worlds": 360,
+            "disagreement_assignment_worlds": int(sum(assignment_world_values)),
+            "by_world_assignment": [
+                {"world_id": world_id, "assignment": assignment,
+                 "representation_disagreement": bool(raw_by_assignment_world[world_id][assignment])}
+                for world_id in sorted(raw_by_assignment_world) for assignment in ASSIGNMENTS
+            ],
+        }
         dispersion[task] = boot(dispersion_values, seed + 210 + task_index)
     pairwise = {task: {} for task in TASKS}
     for task_index, task in enumerate(TASKS):
@@ -208,16 +240,22 @@ def lexical_representation_analysis(rows, seed=20261005):
         values = [np.mean(x) for x in by_world.values()]
         pos_by[pos] = boot(values, seed + 500 + pos)
     position_gap = abs(pos_by[0]["mean"] - pos_by[1]["mean"])
-    score_issue = any(r.get("score_audit", {}).get("candidate_token_count_mismatch", False) or
-                      r.get("score_audit", {}).get("boundary_error", False) for r in rows)
+    score_issue = any(
+        r.get("score_audit", {}).get("candidate_token_count_mismatch", False) or
+        r.get("score_audit", {}).get("boundary_error", False) or
+        r.get("score_audit", {}).get("boundary_overlap", False) or
+        r.get("score_audit", {}).get("prompt_prefix_retokenized", False)
+        for r in rows)
     return {
         "worlds": len({r["world_id"] for r in rows}), "rows": len(rows),
         "tasks": per_cell,
-        "categorical_disagreement_fraction": disagreement,
+        "categorical_disagreement_fraction": symmetrized_disagreement,
+        "symmetrized_representation_disagreement_fraction": symmetrized_disagreement,
+        "raw_representation_disagreement": raw_disagreement,
         "within_world_margin_variance": dispersion,
         "pairwise_representation_contrasts": pairwise,
         "application_position": {"accuracy_by_correct_value_position": {
             "first": pos_by[0], "second": pos_by[1]}, "accuracy_gap": position_gap},
         "candidate_scoring_audit_passed": not score_issue,
-        "analysis_note": "All margins and representation outcomes are paired-name symmetrized; bootstrap resamples semantic worlds.",
+        "analysis_note": "Symmetrized disagreement compares winners after averaging paired name-swap margins; it is not literal single-prompt answer flips. Raw disagreement compares representation winners separately for each of 360 world-assignment pairs. Bootstrap resamples semantic worlds.",
     }
