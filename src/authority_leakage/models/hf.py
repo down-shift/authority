@@ -46,7 +46,8 @@ class HFAdapter(ModelAdapter):
             )
         else:
             self.model = AutoModelForCausalLM.from_pretrained(
-                model_name, trust_remote_code=False, torch_dtype="auto", **kwargs,
+                model_name, trust_remote_code=False, torch_dtype="auto",
+                attn_implementation=self.attention_implementation, **kwargs,
             )
         if self.enable_thinking is None and getattr(self.model.config, "model_type", "") == "qwen3":
             self.enable_thinking = False

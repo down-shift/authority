@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 import subprocess
 import sys
-import time
+from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -185,8 +185,8 @@ def main():
                 stage_rows=[r for r in rows if r['stage']==stage]
                 if stage==2 and not stage_predictions[1]['gate']['passed']: break
                 if stage==3 and not stage_predictions[2]['competence_passed']: break
-                scored=[]; start=time.monotonic()
-                for r in stage_rows:
+                scored=[]
+                for r in tqdm(stage_rows, desc=f'Stage {stage}', unit='row'):
                     prompt=r['prompt']; conversion=None
                     cand=r['candidates']
                     scores=score(prompt,cand)
@@ -209,7 +209,6 @@ def main():
                     done+=1
                     if done%40==0:
                         write_run_status(run/'run_status.json','running',done,len(rows),f'stage={stage}')
-                        print(f'{done} scored rows; stage {stage}; {time.monotonic()-start:.1f}s',flush=True)
                 stage_predictions[stage]=scored
                 if stage==1:
                     result=stage1_analysis(scored,int(cfg['seed']))

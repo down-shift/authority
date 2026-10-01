@@ -12,6 +12,7 @@ models:
     family: qwen3
     enable_thinking: false
     quantization: null
+    attention_implementation: sdpa
   qwen3_8b_int8:
     name: Qwen/Qwen3-8B
     revision: null
