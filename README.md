@@ -59,6 +59,22 @@ uv run --extra inference --extra quantization python scripts/run_authorization_l
 
 The representation runner refuses to start without a passing calibration gate and verifies the resolved model revision and actor-token IDs against the calibration artifacts.
 
+### Gemma 3 12B IT NF4 findings
+
+The Gemma 3 12B IT NF4 lexical-symmetry calibration passed its preregistered gate on 180 worlds. The subsequent single-scope representation run scored 3,600 rows over the same worlds and both actor-name assignments. Dataset semantics, candidate scoring, and token-boundary audits passed.
+
+Interpretation was at 100% symmetrized accuracy for all five representations, with no name-swap flips or representation disagreement. Application was format-sensitive: decision-owner statements, JSON, and permission tables were at 100% symmetrized accuracy; executable rules were at 100% after name-swap averaging but 98.3% across individual assignments; natural-language policies were at 91.1% symmetrized accuracy (88.1% across individual assignments), with a 12.8% name-swap flip rate. Across representations, application winners disagreed in 8.9% of worlds after symmetrization and in 12.5% of individual world-assignment pairs. Symmetrization is an analysis measure, not a deployable single-prompt behavior. Application accuracy also retained a position gap: 100% when the correct value was first versus 94% when it was second.
+
+This supports a representation-dependent application result for this synthetic single-scope task; it does not establish a general authorization failure or an internal mechanism. The calibration gate qualifies this task for representation testing but does not remove the observed single-prompt sensitivity. The run has not yet been extended to Gemma cross-scope testing. To test whether the effect transfers to cross-scope interference, use the completed Gemma Stage 2 run as the E2 source:
+
+```sh
+uv run --extra inference --extra quantization python scripts/run_authorization_cross_scope.py \
+  --stage2-run outputs/20261001T203345458674Z_authorization_lexical_invariance_gemma3_12b_it_nf4 \
+  --model gemma3_12b_it_nf4 --device cuda
+```
+
+See the [Gemma single-scope report](outputs/20261001T203345458674Z_authorization_lexical_invariance_gemma3_12b_it_nf4/report.md) and [metrics](outputs/20261001T203345458674Z_authorization_lexical_invariance_gemma3_12b_it_nf4/metrics.json) for world-bootstrap intervals and detailed contrasts. The existing Qwen3-8B E2/E3 results are a separate model-specific sequence and should not be treated as evidence that these Gemma effects transfer.
+
 ## Experiment 2: cross-scope authorization interference
 
 This experiment reuses the Stage 2 worlds and model revision. Every CONGRUENT/CONFLICTING pair contains filename and ordering scopes, with both actors explicitly marked owner/non-owner in each scope; only the ordering owner changes. Application prompts include filename proposals only. Both lexical assignments and all five representations are scored for filename interpretation and application. Filename policy order is balanced first/second within conditions. The runner validates and writes exactly 7,200 rows before inference and does not launch canonicalization or another model.
