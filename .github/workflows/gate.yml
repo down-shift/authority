@@ -1,0 +1,46 @@
+# Mandatory gate, run in CI. Mirrors `bash scripts/check.sh`:
+# ruff check + ruff format --check (changed files) + pytest -q.
+# Per docs/AUTONOMY.md the local gate is still authoritative — this workflow
+# exists so PRs cannot accidentally land with a red gate when the author
+# forgot to run it locally.
+
+name: gate
+
+# Quoted to keep YAML parsers from interpreting `on` as a boolean.
+"on":
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # check.sh diffs against the base to scope ruff
+
+      - name: Set up uv (Astral)
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Run gate
+        # Only the dev extra: torch/transformers aren't exercised by the gate
+        # (heavy imports are lazy; torch tests use pytest.importorskip).
+        env:
+          GATE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          git cat-file -e "$GATE_BASE^{commit}" 2>/dev/null || export GATE_BASE=HEAD~1
+          bash scripts/check.sh

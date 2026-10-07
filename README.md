@@ -98,3 +98,7 @@ uv run --extra inference --extra quantization python scripts/run_authorization_c
   --e2-run outputs/20261001T130103102194Z_authorization_cross_scope_qwen3_8b_int8 \
   --model qwen3_8b_int8 --device cuda
 ```
+
+## Development workflow
+
+Work advances through an autonomous, human-checkpointed loop: `docs/PLAN.md` is the step ledger, `/continue` in Claude Code (or «продолжи») claims and ships one step per invocation, and `bash scripts/check.sh` is the mandatory gate (also run in CI). The research spec is [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md); see also [CLAUDE.md](CLAUDE.md) and [docs/AUTONOMY.md](docs/AUTONOMY.md). Experiment reports, including negative results, go in `docs/experiments/`. The paper is in `paper/` (ACL template; `cd paper && latexmk -pdf main`).

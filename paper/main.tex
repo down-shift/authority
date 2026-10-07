@@ -1,0 +1,64 @@
+% Paper build (ACL / ARR format).
+%
+% Template: acl.sty + acl_natbib.bst from
+% https://github.com/acl-org/acl-style-files, commit d5adc82 (2026-06-29).
+% Do not modify the style files (ACL rule); customize only this file.
+%
+% Compile with pdflatex:
+%   cd paper && pdflatex main && bibtex main && pdflatex main && pdflatex main
+% (or: cd paper && latexmk -pdf main)
+%
+% Section files live under sections/ and are \input{}ed below; figures go in
+% figures/. ARR long paper: 8 pages of content; the required Limitations
+% section, references, and appendices do not count toward the limit.
+
+\documentclass[11pt]{article}
+
+% "review": anonymous, line-numbered. "preprint": non-anonymous with page
+% numbers. Drop the option for the camera-ready (final) version.
+\usepackage[review]{acl}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% If the title and author information does not fit, uncomment and set >= 5cm:
+%\setlength\titlebox{<dim>}
+
+\title{Representation Invariance of Authorization Policies for LLM Agents}
+
+% Anonymous for review; acl.sty [review] hides the author block anyway.
+\author{Anonymous submission}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/method}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+% ACL/ARR: Limitations is required, unnumbered, after the conclusion and
+% before the references; it does not count toward the page limit.
+\input{sections/limitations}
+\input{sections/ethics}
+
+% acl.sty sets \bibliographystyle{acl_natbib} itself. Uncomment once the
+% first \cite exists (bibtex fails on an empty bibliography).
+% \bibliography{references}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}
