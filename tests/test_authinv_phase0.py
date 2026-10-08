@@ -163,3 +163,13 @@ def test_phase0_config_matches_registry():
     assert set(cfg["large_models"]) <= set(reg["sets"][cfg["models_set"]])
     assert cfg["generation"]["temperature"] == 0.0
     assert json.dumps(cfg["gate0"]) and cfg["gate0"]["min_large_models_passing"] == 2
+
+
+def test_read_head_without_git_binary(tmp_path):
+    git = tmp_path / ".git"
+    (git / "refs" / "heads").mkdir(parents=True)
+    (git / "HEAD").write_text("ref: refs/heads/main\n")
+    (git / "packed-refs").write_text("# pack-refs\n" + "a" * 40 + " refs/heads/main\n")
+    assert provenance._read_head(tmp_path) == "a" * 40
+    (git / "refs" / "heads" / "main").write_text("b" * 40 + "\n")
+    assert provenance._read_head(tmp_path) == "b" * 40
