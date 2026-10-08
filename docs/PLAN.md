@@ -143,9 +143,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/render/ has pure functions nl_statement, owner_statement, table (Markdown), json_policy, executable (Cedar), each with a RENDERER_VERSION string and a decoder back to the canonical object; round-trip tests (canonical → rendering → decode == canonical) over all tiers; renderer versions logged in docs/CHANGELOG.md; gate green.
 
 ### P1.3 — Cedar engine + request-set generator
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:30:39Z
 - deps: P1.1
 - source: RESEARCH_PLAN §3 Phase 1 [DECISION] engine, task 3
 - done-when: `engines` extra / documented install for the cedar-policy CLI or Python bindings; src/authinv/equivalence/engine.py evaluates (policy, request) via the real engine; request generator yields balanced allow/deny sets incl. boundary requests per policy; engine tests are skipped when the engine is absent and run in CI if it can be installed there (decision noted in the PR); gate green.
