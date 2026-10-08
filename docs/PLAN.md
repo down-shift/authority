@@ -184,9 +184,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: fetch script (data/raw git-ignored) with pinned source URL/commit and license recorded; CedarBench policies mapped to canonical objects where expressible (unsupported constructs counted and reported, not dropped silently); imported worlds engine-checked; tests on a small fixture; gate green.
 
 ### P1.8 — Quacky AWS IAM import → Cedar
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T08:01:06Z
 - deps: P1.7
 - source: RESEARCH_PLAN §3 Phase 1 [DECISION] IAM handling
 - done-when: the Quacky policy dataset pinned (source URL/commit, license, and the **actual** policy count: the "587 policies" figure is unverified per docs/related_work.md, so the size is whatever the pinned source contains) and fetched; either local SMT equivalence (if it runs without pain) or IAM→Cedar translation validated by request-level differential testing against an IAM evaluator; method choice and failure counts documented; tests on fixtures; gate green.
