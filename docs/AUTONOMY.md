@@ -74,8 +74,17 @@ configured model and quantization (`configs/models.yaml`), and gated models
 (e.g. `google/gemma-3-*`) need a Hugging Face token. Steps that need a GPU say
 so in their title/`done-when` (`[GPU]`, `[GPU: <class, memory>]`).
 
+**Machines and their rules** (A100 `ssh A100-ya`, RTX PCs `ssh gpubox` /
+`ssh NSSLabPC`, H100 `ssh d.dgx` GPU #7 via docker compose only, V100 via
+docker contexts `adgx`/`bdgx`) are codified in `memory/reference-dgx-usage.md`.
+Read it before any `[GPU…]` step. A tag names the GPU class the step needs, not
+a specific host: claim by the doc's priority order (vacant A100 first, idle
+RTX PCs for small jobs, H100 for big ones, V100 any time). For example, a
+`[GPU: H100]` step may run on two free A100s. Clean up on A100 and H100 when
+done.
+
 **Before claiming, check whether this machine can actually run the next eligible
-step.** If it can't, do **not** claim it — report to the human which step is
+step.** An agent driving remote machines over ssh/docker counts as having them. If it can't, do **not** claim it — report to the human which step is
 next and where it should run. If you discover the mismatch only *after*
 claiming, `scripts/mark.py <id> todo "needs <hw>, this machine lacks it"` to
 release it, and stop for the human. Never sit on a claim you cannot execute.
