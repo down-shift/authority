@@ -192,7 +192,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: the Quacky policy dataset pinned (source URL/commit, license, and the **actual** policy count: the "587 policies" figure is unverified per docs/related_work.md, so the size is whatever the pinned source contains) and fetched; either local SMT equivalence (if it runs without pain) or IAM→Cedar translation validated by request-level differential testing against an IAM evaluator; method choice and failure counts documented; tests on fixtures; gate green.
 
 ### P1.9 — ACRE import (NL → canonical, engine-checked)
-- status: claimed
+- status: blocked
+- note: ACRE: only public copy (paperwave/RAGent@6f11a4b) has no license; needs Jerzy's decision (permission / internal-only / drop)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:40:12Z
 - deps: P1.4
