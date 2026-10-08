@@ -225,7 +225,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 2 — Three evaluation tiers on the model sweep (Weeks 7–12)
 
 ### P2.0 — Parser strict-v2 (Unicode apostrophes)
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:26:51Z
 - deps: G0
