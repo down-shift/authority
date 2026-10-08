@@ -1,0 +1,13 @@
+// Hand-written CedarBench-style fixture (authinv P1.7 tests); not copied from CedarBench.
+entity Team;
+entity User in [Team];
+entity Repo = {
+    readers: Team,
+    owner: User,
+    isPrivate: Bool,
+};
+
+action pull appliesTo {
+    principal: [User],
+    resource: [Repo],
+};

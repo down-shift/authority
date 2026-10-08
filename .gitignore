@@ -10,3 +10,6 @@ outputs/*
 .claude/worktrees/
 .DS_Store
 tools/
+
+# raw third-party data (fetched by scripts/fetch_*.py, pinned in configs/authinv/sources/)
+data/raw/
