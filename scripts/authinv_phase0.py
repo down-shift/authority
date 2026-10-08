@@ -219,7 +219,11 @@ def cmd_run(args) -> None:
                 raise SystemExit(f"model dir does not match the pinned upstream: {verification}")
         from authinv.eval.generation import VLLMChat
 
-        engine = {"gpu_memory_utilization": args.gpu_memory_utilization, "enforce_eager": args.enforce_eager}
+        engine = {
+            "gpu_memory_utilization": args.gpu_memory_utilization,
+            "enforce_eager": args.enforce_eager,
+            "max_num_seqs": args.max_num_seqs,
+        }
         overrides = cfg.get("generation_overrides", {}).get(args.model, {})  # frozen per-model settings
         gen = {**cfg["generation"], **overrides, **engine}  # engine knobs are recorded, not frozen config
         chat = VLLMChat(spec, str(args.model_dir) if args.model_dir else None, gen, args.tensor_parallel)
@@ -384,6 +388,9 @@ def main() -> None:
     r.add_argument("--resume", type=Path)
     r.add_argument("--gpu-memory-utilization", type=float, default=0.9)
     r.add_argument("--enforce-eager", action="store_true")
+    r.add_argument(
+        "--max-num-seqs", type=int, help="vLLM batch cap (hybrid Mamba models need <= their cache blocks)"
+    )
     r.add_argument("--limit", type=int, help="engineering smoke test: first N rows only; never aggregated")
     r.set_defaults(func=cmd_run)
     a = sub.add_parser("aggregate")

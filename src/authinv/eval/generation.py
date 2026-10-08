@@ -50,6 +50,7 @@ class VLLMChat:
             max_model_len=gen["max_model_len"],
             gpu_memory_utilization=gen.get("gpu_memory_utilization", 0.9),
             enforce_eager=gen.get("enforce_eager", False),
+            **({"max_num_seqs": gen["max_num_seqs"]} if gen.get("max_num_seqs") else {}),
             # Multimodal checkpoints are scored on text prompts only: skip the vision/audio towers.
             **({"language_model_only": True} if spec.get("multimodal") else {}),
         )
