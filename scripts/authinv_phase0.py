@@ -220,7 +220,8 @@ def cmd_run(args) -> None:
         from authinv.eval.generation import VLLMChat
 
         engine = {"gpu_memory_utilization": args.gpu_memory_utilization, "enforce_eager": args.enforce_eager}
-        gen = {**cfg["generation"], **engine}  # engine knobs are recorded, not part of the frozen config
+        overrides = cfg.get("generation_overrides", {}).get(args.model, {})  # frozen per-model settings
+        gen = {**cfg["generation"], **overrides, **engine}  # engine knobs are recorded, not frozen config
         chat = VLLMChat(spec, str(args.model_dir) if args.model_dir else None, gen, args.tensor_parallel)
         provenance.write_json(
             run / "metadata.json",
@@ -230,6 +231,7 @@ def cmd_run(args) -> None:
                 "model_dir_verified": bool(verification and verification["passed"]),
                 "runtime": chat.provenance(),
                 "engine": {**engine, "tensor_parallel": args.tensor_parallel},
+                "generation": gen,
                 "git": provenance.git_state(),
                 "source_sha256": provenance.source_hashes(TRACKED),
                 "dataset_sha256": provenance.sha256_json(rows),
@@ -286,7 +288,7 @@ def cmd_aggregate(args) -> None:
         > 0.05
         for k, m in per_model.items()
     }
-    g = cfg["gate0"]
+    g = cfg.get("gate0")  # absent for the addendum: reported outside the Gate-0 rule
     result = {
         "primary_task": task,
         "holm_adjusted_gap_p": metrics.holm(pvals),
@@ -295,7 +297,9 @@ def cmd_aggregate(args) -> None:
             cfg["large_models"],
             g["worst_case_gap_pp"],
             g["rendering_disagreement"],
-        ),
+        )
+        if g
+        else None,
         "parser_sensitive": parser_sensitive,
         "runs": [str(r) for r in args.runs],
     }
@@ -343,6 +347,9 @@ def aggregate_md(per_model: dict, result: dict, cfg: dict) -> str:
             )
         out.append("")
     g = result["gate0"]
+    if g is None:
+        out += ["Not a Gate-0 input (addendum; see its preregistration).", ""]
+        return "\n".join(out)
     out += [
         "### Gate 0 (application, strict parser)",
         "",

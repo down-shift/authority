@@ -1,0 +1,30 @@
+# Phase 0 addendum on current models (docs/RESEARCH_PLAN.md §3 Phase 0 addendum; preregistration: docs/prereg/phase0-addendum.md).
+# Identical to phase0.yaml except the model set, per-model generation overrides, and no gate0 section:
+# these runs are reported next to Phase 0 and never enter the Gate-0 rule.
+experiment: authinv_phase0_addendum_generation
+seed: 20261008
+# The Gemma 3 12B NF4 single-scope Stage-2 run. Its rendered prompts are used
+# verbatim (no re-rendering): 180 worlds x 2 name assignments x 5 renderings x
+# 2 tasks = 3,600 rows. Both files must match these hashes.
+source:
+  run_name: 20261001T203345458674Z_authorization_lexical_invariance_gemma3_12b_it_nf4
+  worlds_sha256: b7f5e1db10cedd990f1f49ba974c2379f02ee4165dce3df1b2854c77f78a6dd1
+  dataset_sha256: 5c3b7823f2b8433fcafca83238c5871495b65d0e4bd29055a99ab35eb744148d
+  expected: {worlds: 180, rows: 3600, assignments: 2, representations: 5, tasks: 2}
+models_set: phase0_addendum
+large_models: [qwen3_8_27b, gemma4_31b, gpt_oss_120b]  # Holm family for the addendum
+generation:
+  seed: 20261008
+  temperature: 0.0  # greedy
+  max_tokens: 64
+  max_model_len: 2048
+  batch_size: 512  # rows per resumable chunk
+parser_version: strict-v1
+analysis:
+  primary_task: application
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261008
+generation_overrides:
+  # gpt-oss reasons before answering (harmony analysis channel); 64 tokens would truncate it.
+  # Reasoning effort is the checkpoint default; the answer is taken from the final channel.
+  gpt_oss_120b: {max_tokens: 4096, max_model_len: 8192}
