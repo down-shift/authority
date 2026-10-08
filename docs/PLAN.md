@@ -249,7 +249,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: nl-v2, owner-v2, table-v2, json-v2 (Cedar and Rego unchanged): each states the combining rule in its own idiom (any allow suffices, any forbid wins, all of a rule's conditions must hold); "only when" replaced by sufficiency wording ("whenever all of these hold"); `in` scopes render as "X itself or any member of it"; owner-v2 opens with a line defining "decides whether to" as permission, and forbids read "may never … (overrides every other line)"; JSON uses explicit match kinds and `conditions_mode: "all"`; exact round trips on fuzzed policies of all tiers; docs/CHANGELOG.md rows; gate green.
 
 ### P1.13 — Benchmark v2 rebuild + round-2 spot-check packet
-- status: claimed
+- status: in_review (#43)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T14:04:55Z
 - deps: P1.12
