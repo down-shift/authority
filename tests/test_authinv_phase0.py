@@ -31,16 +31,17 @@ CANDS = ["Agent F04", "Agent F05"]
     ],
 )
 def test_strict_parser(text, category, selected):
-    out = parse_answer(text, CANDS, "Agent F05")
+    out = parse_answer(text, CANDS, "Agent F05", version="strict-v1")
     assert (out["category"], out["selected"]) == (category, selected)
 
 
 def test_lenient_selection_is_secondary_only():
-    out = parse_answer("The owner is Agent F05.", CANDS, "Agent F05")
+    out = parse_answer("The owner is Agent F05.", CANDS, "Agent F05", version="strict-v1")
     assert out["category"] == "parse_failure" and out["lenient_selected"] == "Agent F05"
     files = ["filename_1.txt", "filename_12.txt"]
     assert (
-        parse_answer("Use filename_12.txt", files, "filename_1.txt")["lenient_selected"] == "filename_12.txt"
+        parse_answer("Use filename_12.txt", files, "filename_1.txt", version="strict-v1")["lenient_selected"]
+        == "filename_12.txt"
     )
 
 
@@ -228,7 +229,10 @@ def test_split_harmony_takes_final_channel():
     assert out["reasoning"] == "The listed owner is Agent F05." and out["raw_text"] == raw
     truncated = split_harmony("<|channel|>analysis<|message|>Thinking about it")
     assert truncated["text"] == "" and not truncated["harmony_final_found"]
-    assert parse_answer(truncated["text"], CANDS, "Agent F05")["category"] == "parse_failure"
+    assert (
+        parse_answer(truncated["text"], CANDS, "Agent F05", version="strict-v1")["category"]
+        == "parse_failure"
+    )
 
 
 def test_addendum_config_only_differs_where_intended():
