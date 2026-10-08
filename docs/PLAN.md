@@ -75,7 +75,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 0 — Kill test on open models (Weeks 1–2)
 
 ### P0.1 — authinv package skeleton, configs, logs
-- status: claimed
+- status: in_review (#3)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T00:27:14Z
 - deps: —
