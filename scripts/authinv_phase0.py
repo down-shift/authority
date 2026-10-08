@@ -275,7 +275,17 @@ def cmd_aggregate(args) -> None:
         if status["status"] != "complete" or conf["config_sha256"] != provenance.sha256_json(cfg):
             raise SystemExit(f"{run}: not complete or config differs")
         per_model[conf["model"]["key"]] = json.loads((run / "metrics.json").read_text())
-    pvals = {k: m["tasks"][task]["worst_case_gap"]["p_bootstrap"] for k, m in per_model.items()}
+    # Holm family: the large models only (docs/prereg/phase0.md).
+    pvals = {
+        k: m["tasks"][task]["worst_case_gap"]["p_bootstrap"]
+        for k, m in per_model.items()
+        if k in cfg["large_models"]
+    }
+    parser_sensitive = {
+        k: max(v["parse_failure_rate"]["mean"] for v in m["tasks"][task]["per_representation"].values())
+        > 0.05
+        for k, m in per_model.items()
+    }
     g = cfg["gate0"]
     result = {
         "primary_task": task,
@@ -286,11 +296,71 @@ def cmd_aggregate(args) -> None:
             g["worst_case_gap_pp"],
             g["rendering_disagreement"],
         ),
+        "parser_sensitive": parser_sensitive,
         "runs": [str(r) for r in args.runs],
     }
     print(json.dumps(result, indent=2, sort_keys=True))
     if args.out:
         provenance.write_json(args.out, result)
+    if args.markdown:
+        args.markdown.write_text(aggregate_md(per_model, result, cfg))
+
+
+def _pct(v: dict) -> str:
+    return f"{100 * v['mean']:.1f} [{100 * v['ci95'][0]:.1f}, {100 * v['ci95'][1]:.1f}]"
+
+
+def aggregate_md(per_model: dict, result: dict, cfg: dict) -> str:
+    """Cross-model tables for docs/experiments (strict parser; lenient as sensitivity)."""
+    out = []
+    for task in ("application", "interpretation"):
+        reps = sorted(next(iter(per_model.values()))["tasks"][task]["per_representation"])
+        out += [
+            f"### {task}: accuracy % by rendering (95% CI)",
+            "",
+            "| model | " + " | ".join(reps) + " |",
+            "|---|" + "---:|" * len(reps),
+        ]
+        for key, m in per_model.items():
+            pr = m["tasks"][task]["per_representation"]
+            out.append(f"| {key} | " + " | ".join(_pct(pr[r]) for r in reps) + " |")
+        out += [
+            "",
+            f"### {task}: invariance summary",
+            "",
+            "| model | worst (rendering) | gap pp | Holm p | all-correct % | disagreement % | "
+            "deny→allow inst. | allow→deny inst. | lenient gap pp |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+        for key, m in per_model.items():
+            t, lt = m["tasks"][task], m["lenient_tasks"][task]
+            holm_p = result["holm_adjusted_gap_p"].get(key) if task == result["primary_task"] else None
+            out.append(
+                f"| {key} | {100 * t['worst_case_accuracy']:.1f} ({t['worst_representation']}) | "
+                f"{_pct(t['worst_case_gap'])} | {'—' if holm_p is None else f'{holm_p:.4f}'} | "
+                f"{_pct(t['all_renderings_correct'])} | {_pct(t['rendering_disagreement'])} | "
+                f"{t['deny_to_allow_count']} | {t['allow_to_deny_count']} | {_pct(lt['worst_case_gap'])} |"
+            )
+        out.append("")
+    g = result["gate0"]
+    out += [
+        "### Gate 0 (application, strict parser)",
+        "",
+        f"Rule: {g['rule']}.",
+        "",
+        "| large model | gap criterion | disagreement criterion | passes | parser-sensitive |",
+        "|---|---|---|---|---|",
+    ]
+    for key, h in g["models"].items():
+        if h is None:
+            out.append(f"| {key} | not run | | | |")
+        else:
+            out.append(
+                f"| {key} | {h['gap_criterion']} | {h['disagreement_criterion']} | {h['passes']} | "
+                f"{result['parser_sensitive'].get(key)} |"
+            )
+    out += ["", f"**Recommendation: {g['recommendation']}** (for Jerzy's decision in G0).", ""]
+    return "\n".join(out)
 
 
 def main() -> None:
@@ -313,6 +383,7 @@ def main() -> None:
     a.add_argument("--config", type=Path, required=True)
     a.add_argument("--runs", type=Path, nargs="+", required=True)
     a.add_argument("--out", type=Path)
+    a.add_argument("--markdown", type=Path)
     a.set_defaults(func=cmd_aggregate)
     args = p.parse_args()
     args.func(args)
