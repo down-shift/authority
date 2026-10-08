@@ -160,7 +160,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/equivalence/ checks per world that every rendering decodes to the canonical object and that the engine's allow/deny on the executable rendering matches the reference evaluator on every request; a world ships only if all renderings pass; proofs written to equivalence.jsonl with hashes; tests with known-equivalent and known-different pairs; gate green.
 
 ### P1.5 — OPA/Rego rendering and engine (if H0.1 says yes)
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:40:05Z
 - deps: P1.4 H0.1
