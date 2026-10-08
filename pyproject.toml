@@ -14,6 +14,13 @@ inference = ["torch>=2.1.1", "transformers>=4.51.0"]
 quantization = ["bitsandbytes>=0.45"]
 test = ["pytest>=8"]
 dev = ["pytest>=8", "ruff>=0.6"]
+# authinv extras (RESEARCH_PLAN §5). vLLM is deliberately not locked here: it
+# pins its own torch, so generation runs use the pinned vllm/vllm-openai image
+# (H100) or a separate venv with the same vllm version (A100); the runner
+# records the version it ran with.
+engines = []  # Cedar / OPA bindings, filled by P1.3 / P1.5
+probing = ["scikit-learn>=1.4"]
+agent = []  # sandbox deps, filled by P2.7
 
 [tool.setuptools.packages.find]
 where = ["src"]

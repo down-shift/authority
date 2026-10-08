@@ -10,3 +10,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 
 2026-10-07 — Autonomous `/continue` loop ported (ledger, runbook, gate, CI, memory/, paper/ ACL skeleton); plan pending from the human.
 2026-10-07 — Research plan entered: docs/RESEARCH_PLAN.md + docs/novelty_check.md; steps E0.1–W1.1 in docs/PLAN.md. Waiting on human: H0.1 (§8 questions).
+2026-10-08 — P0.1 authinv skeleton: package boundaries, pinned model registry (12 models), Gemma upstream manifests (gated repos reproduced from byte-identical mirrors; Llama mirrors are not identical, so the Llama bf16 access path is open for Phase 2).
