@@ -224,6 +224,8 @@ Reuse E2 design but hold constraint count fixed and vary semantic independence. 
 
 **G0 (Jerzy, 2026-10-08): waived — proceed to Phase 1.** The Gate-0 rule recommended FAIL (`docs/experiments/p0.4-phase0-kill-test.md`). Jerzy waived it: the toy worlds sit at ceiling for ≥27B models, gpt-oss-120b still shows a 7.5 pp effect (P0.5), and Phase 1's harder engine-certified policies are the real test. No pivot.
 
+**Phase-1 sources (Jerzy, 2026-10-08):** ACRE is **dropped** (no licensed public source). CedarBench and Quacky importers get exact universe enlargement (CedarBench: schema-action probes, extra entities, exact `||` split; Quacky: wildcard witnesses, exact Not* complements); the ≥1,000-world target is filled with more synthetic worlds; real vs synthetic is reported separately everywhere.
+
 **Approved changes (Jerzy, 2026-10-08):** parser strict-v2 before Phase 2 (step P2.0); pin the Quacky dataset in P1.8 (the "587 policies" figure is unverified per `docs/related_work.md`); a threat-model step for the format-choice claim (W0.1); Phase-4 SFT models refreshed to Qwen3.5-9B and Gemma-4-12B-it. Paper stays on the ACL template for now.
 
 ## 9. What success looks like
