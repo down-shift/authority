@@ -25,10 +25,10 @@ from authinv.policy import AttrRef, Condition, EntityRef, Policy, Rule, Scope
 
 SAFE = re.compile(r"^[A-Za-z0-9_.-]+$")
 VERSIONS = {
-    "nl_statement": "nl-v1",
-    "owner_statement": "owner-v1",
-    "table": "table-v1",
-    "json_policy": "json-v1",
+    "nl_statement": "nl-v2",
+    "owner_statement": "owner-v2",
+    "table": "table-v2",
+    "json_policy": "json-v2",
     "executable": "cedar-v1",
     "rego": "rego-v1",
 }
@@ -147,32 +147,35 @@ def _split_or(t: str) -> list[str]:
     return t.split(" or ")
 
 
-# ---- 1. natural-language permission statement --------------------------------
+# ---- 1. natural-language permission statement (nl-v2) ---------------------------
+
+NL_HEADER = (
+    "A request is allowed if at least one rule that allows it applies and no rule that forbids it applies; "
+    "a rule that forbids always wins. A rule applies only when all of its conditions hold."
+)
 
 
 def _nl_scope(s: Scope, side: str) -> str:
-    anyone = "anyone" if side == "principal" else "any resource"
-    member = "anyone" if side == "principal" else "anything"
     if s.kind == "any":
-        return anyone
+        return "anyone" if side == "principal" else "any resource"
     if s.kind == "eq":
         return _ent(s.entity)
     if s.kind == "is":
         return f"any {s.type}"
     if s.kind == "in":
-        return f"{member} in {_ent(s.entity)}"
+        member = "any member of it" if side == "principal" else "anything in it"
+        return f"{_ent(s.entity)} itself or {member}"
     return f"any {s.type} in {_ent(s.entity)}"
 
 
 def _nl_unscope(t: str, side: str) -> Scope:
-    anyone = "anyone" if side == "principal" else "any resource"
-    member = "anyone" if side == "principal" else "anything"
-    if t == anyone:
+    if t == ("anyone" if side == "principal" else "any resource"):
         return Scope()
+    member = "any member of it" if side == "principal" else "anything in it"
+    if m := re.fullmatch(rf"{_ENT} itself or {member}", t):
+        return Scope("in", EntityRef(m.group(1), m.group(2)))
     if m := re.fullmatch(rf"any ([A-Za-z0-9_.-]+) in {_ENT}", t):
         return Scope("is_in", EntityRef(m.group(2), m.group(3)), m.group(1))
-    if m := re.fullmatch(rf"{member} in {_ENT}", t):
-        return Scope("in", EntityRef(m.group(1), m.group(2)))
     if m := re.fullmatch(r"any ([A-Za-z0-9_.-]+)", t):
         return Scope("is", type=m.group(1))
     return Scope("eq", _unent(t))
@@ -203,94 +206,127 @@ def _nl_uncond(t: str) -> Condition:
     return Condition(_nl_unoperand(m.group(1)), _WORD_OPS[m.group(2)], _nl_unoperand(m.group(3)))
 
 
+def _nl_conds(conds) -> str:
+    """Sufficiency wording: the rule applies whenever its condition(s) hold (all of them)."""
+    if not conds:
+        return ""
+    if len(conds) == 1:
+        return ", whenever " + _nl_cond(conds[0])
+    return ", whenever all of these hold: " + "; ".join(_nl_cond(c) for c in conds)
+
+
+def _nl_unconds(all_marker: str | None, body: str | None) -> tuple[Condition, ...]:
+    if body is None:
+        return ()
+    parts = body.split("; ") if all_marker else [body]
+    if all_marker and len(parts) < 2:
+        raise RenderError("'all of these hold' needs two or more conditions")
+    return tuple(_nl_uncond(c) for c in parts)
+
+
+_RES_ALT = r"(?:any|anything)\b.*?|" + _ENT.replace("(", "(?:") + r"(?: itself or anything in it)?"
+
+
 def render_nl(policy: Policy) -> str:
-    lines = []
+    lines = [NL_HEADER, ""]
     for r in _rules(policy):
-        verb = "may" if r.effect == "permit" else "must never"
-        s = f"Rule {r.rule_id}: {_nl_scope(r.principal, 'principal')} {verb} {_join_or(sorted(r.actions))} "
-        s += _nl_scope(r.resource, "resource")
-        if r.conditions:
-            s += ", but only when " + " and ".join(_nl_cond(c) for c in r.conditions)
+        verb = "allows" if r.effect == "permit" else "forbids"
+        s = f"Rule {r.rule_id} {verb} {_nl_scope(r.principal, 'principal')} to {_join_or(sorted(r.actions))} "
+        s += _nl_scope(r.resource, "resource") + _nl_conds(r.conditions)
         lines.append(s + ".")
     return "\n".join(lines) + "\n"
 
 
 _NL_LINE = re.compile(
-    r"Rule ([A-Za-z0-9_.-]+): (.+?) (may|must never) (.+?) ((?:any|anything|anyone)\b.*?|"
-    + _ENT.replace("(", "(?:")
-    + r")(?:, but only when (.+))?\."
+    r"Rule ([A-Za-z0-9_.-]+) (allows|forbids) (.+?) to (.+?) (" + _RES_ALT + r")"
+    r"(?:, whenever (all of these hold: )?(.+))?\."
 )
 
 
 def decode_nl(text: str) -> list[Rule]:
+    lines = text.strip().splitlines()
+    if len(lines) < 3 or lines[0] != NL_HEADER or lines[1] != "":
+        raise RenderError("missing nl header")
     rules = []
-    for line in text.strip().splitlines():
+    for line in lines[2:]:
         m = _NL_LINE.fullmatch(line)
         if not m:
             raise RenderError(f"bad nl line {line!r}")
-        rid, p, verb, acts, res, conds = m.groups()
+        rid, verb, p, acts, res, all_marker, conds = m.groups()
         rules.append(
             Rule(
                 rid,
-                "permit" if verb == "may" else "forbid",
+                "permit" if verb == "allows" else "forbid",
                 _nl_unscope(p, "principal"),
                 tuple(_split_or(acts)),
                 _nl_unscope(res, "resource"),
-                tuple(_nl_uncond(c) for c in conds.split(" and ")) if conds else (),
+                _nl_unconds(all_marker, conds),
             )
         )
     return rules
 
 
-# ---- 2. decision-owner statement ("X decides Y"), one line per action ---------
+# ---- 2. decision-owner statement (owner-v2), one line per action ------------------
+
+OWNER_HEADER = (
+    'In these lines, "X decides whether to A R" means X is permitted to A R, and "X may never A R" means '
+    "X is forbidden to A R, which overrides every other line. A line applies only when all of its conditions "
+    "hold; a request is allowed if at least one line permits it and no line forbids it."
+)
 
 
 def render_owner(policy: Policy) -> str:
-    lines = []
+    lines = [OWNER_HEADER, ""]
     for r in _rules(policy):
         for a in sorted(r.actions):
             who, what = _nl_scope(r.principal, "principal"), _nl_scope(r.resource, "resource")
-            if r.effect == "permit":
-                s = f"{who} decides whether to {a} {what}"
-            else:
-                s = f"{who} never decides whether to {a} {what}, whatever any other line says"
-            if r.conditions:
-                s += ", but only when " + " and ".join(_nl_cond(c) for c in r.conditions)
+            verb = "decides whether to" if r.effect == "permit" else "may never"
+            s = f"{who} {verb} {a} {what}" + _nl_conds(r.conditions)
             lines.append(f"[{r.rule_id}] " + s[0].upper() + s[1:] + ".")
     return "\n".join(lines) + "\n"
 
 
 _OWNER_LINE = re.compile(
-    r"\[([A-Za-z0-9_.-]+)\] (.+?) (never decides|decides) whether to ([A-Za-z0-9_.-]+) "
-    r"(.+?)(, whatever any other line says)?(?:, but only when (.+))?\."
+    r"\[([A-Za-z0-9_.-]+)\] (.+?) (decides whether to|may never) ([A-Za-z0-9_.-]+) (" + _RES_ALT + r")"
+    r"(?:, whenever (all of these hold: )?(.+))?\."
 )
 
 
 def decode_owner(text: str) -> list[Rule]:
+    lines = text.strip().splitlines()
+    if len(lines) < 3 or lines[0] != OWNER_HEADER or lines[1] != "":
+        raise RenderError("missing owner header")
     rules = []
-    for i, line in enumerate(text.strip().splitlines()):
+    for i, line in enumerate(lines[2:]):
         m = _OWNER_LINE.fullmatch(line)
         if not m:
             raise RenderError(f"bad owner line {line!r}")
-        rid, who, verb, act, what, _, conds = m.groups()
-        who = who[0].lower() + who[1:] if who.split(" ")[0] in ("Anyone", "Any") else who
+        rid, who, verb, act, what, all_marker, conds = m.groups()
+        if who.split(" ")[0] in ("Anyone", "Any"):
+            who = who[0].lower() + who[1:]
         rules.append(
             Rule(
                 f"{rid}#{i}",
-                "forbid" if verb == "never decides" else "permit",
+                "permit" if verb == "decides whether to" else "forbid",
                 _nl_unscope(who, "principal"),
                 (act,),
                 _nl_unscope(what, "resource"),
-                tuple(_nl_uncond(c) for c in conds.split(" and ")) if conds else (),
+                _nl_unconds(all_marker, conds),
             )
         )
     return rules
 
 
-# ---- 3. Markdown permission table ---------------------------------------------
+# ---- 3. Markdown permission table (table-v2) --------------------------------------
+
+TABLE_CAPTION = (
+    "Allow rows grant the listed actions and deny rows forbid them. A row applies only when all of its "
+    "conditions hold; a request is allowed if at least one allow row applies and no deny row applies "
+    "(a deny row always wins)."
+)
 
 
-def _tab_scope(s: Scope) -> str:
+def _tab_scope(s: Scope, side: str) -> str:
     if s.kind == "any":
         return "any"
     if s.kind == "eq":
@@ -298,17 +334,20 @@ def _tab_scope(s: Scope) -> str:
     if s.kind == "is":
         return f"is {s.type}"
     if s.kind == "in":
-        return f"in {_ent(s.entity)}"
+        return f"{_ent(s.entity)} itself or any " + (
+            "member" if side == "principal" else "contained resource"
+        )
     return f"is {s.type} in {_ent(s.entity)}"
 
 
-def _tab_unscope(t: str) -> Scope:
+def _tab_unscope(t: str, side: str) -> Scope:
     if t == "any":
         return Scope()
+    tail = "member" if side == "principal" else "contained resource"
+    if m := re.fullmatch(rf"{_ENT} itself or any {tail}", t):
+        return Scope("in", EntityRef(m.group(1), m.group(2)))
     if m := re.fullmatch(rf"is ([A-Za-z0-9_.-]+) in {_ENT}", t):
         return Scope("is_in", EntityRef(m.group(2), m.group(3)), m.group(1))
-    if m := re.fullmatch(rf"in {_ENT}", t):
-        return Scope("in", EntityRef(m.group(1), m.group(2)))
     if m := re.fullmatch(r"is ([A-Za-z0-9_.-]+)", t):
         return Scope("is", type=m.group(1))
     return Scope("eq", _unent(t))
@@ -328,25 +367,27 @@ _TAB_HEAD = "| rule | effect | principal | actions | resource | conditions (all 
 
 
 def render_table(policy: Policy) -> str:
-    rows = [_TAB_HEAD, "|---|---|---|---|---|---|"]
+    rows = [TABLE_CAPTION, "", _TAB_HEAD, "|---|---|---|---|---|---|"]
     for r in _rules(policy):
         conds = (
             "; ".join(f"{_tab_operand(c.left)} {c.op} {_tab_operand(c.right)}" for c in r.conditions) or "—"
         )
         effect = "allow" if r.effect == "permit" else "deny"
         rows.append(
-            f"| {r.rule_id} | {effect} | {_tab_scope(r.principal)} | {', '.join(sorted(r.actions))} | "
-            f"{_tab_scope(r.resource)} | {conds} |"
+            f"| {r.rule_id} | {effect} | {_tab_scope(r.principal, 'principal')} | "
+            f"{', '.join(sorted(r.actions))} | {_tab_scope(r.resource, 'resource')} | {conds} |"
         )
     return "\n".join(rows) + "\n"
 
 
 def decode_table(text: str) -> list[Rule]:
     lines = text.strip().splitlines()
-    if lines[0] != _TAB_HEAD or not re.fullmatch(r"\|(---\|){6}", lines[1]):
+    if len(lines) < 4 or lines[0] != TABLE_CAPTION or lines[1] != "" or lines[2] != _TAB_HEAD:
         raise RenderError("bad table header")
+    if not re.fullmatch(r"\|(---\|){6}", lines[3]):
+        raise RenderError("bad table separator")
     rules = []
-    for line in lines[2:]:
+    for line in lines[4:]:
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) != 6:
             raise RenderError(f"bad table row {line!r}")
@@ -358,24 +399,40 @@ def decode_table(text: str) -> list[Rule]:
                 if not m:
                     raise RenderError(f"bad table condition {c!r}")
                 cs.append(Condition(_tab_unoperand(m.group(1)), m.group(2), _tab_unoperand(m.group(3))))
+        if eff not in ("allow", "deny"):
+            raise RenderError(f"bad effect {eff!r}")
         rules.append(
             Rule(
                 rid,
                 {"allow": "permit", "deny": "forbid"}[eff],
-                _tab_unscope(p),
+                _tab_unscope(p, "principal"),
                 tuple(acts.split(", ")),
-                _tab_unscope(res),
+                _tab_unscope(res, "resource"),
                 tuple(cs),
             )
         )
     return rules
 
 
-# ---- 4. JSON policy -------------------------------------------------------------
+# ---- 4. JSON policy (json-v2) -------------------------------------------------------
+
+JSON_COMBINING_RULE = (
+    "deny-overrides: a request is allowed if at least one allow rule applies and no deny rule applies; "
+    "otherwise it is denied"
+)
+JSON_CONDITION_SEMANTICS = "a rule applies only when all of its conditions hold (conditions_mode 'all')"
+_JS_MATCH = {
+    "any": "any",
+    "eq": "exactly",
+    "is": "any_of_type",
+    "in": "entity_or_member_of",
+    "is_in": "type_and_member_of",
+}
+_JS_KIND = {v: k for k, v in _JS_MATCH.items()}
 
 
 def _js_scope(s: Scope) -> dict:
-    d: dict = {"match": s.kind}
+    d: dict = {"match": _JS_MATCH[s.kind]}
     if s.type:
         d["type"] = s.type
     if s.entity:
@@ -384,8 +441,10 @@ def _js_scope(s: Scope) -> dict:
 
 
 def _js_unscope(d: dict) -> Scope:
+    if d.get("match") not in _JS_KIND:
+        raise RenderError(f"bad match kind {d.get('match')!r}")
     ent = d.get("entity")
-    return Scope(d["match"], EntityRef(ent["type"], ent["id"]) if ent else None, d.get("type"))
+    return Scope(_JS_KIND[d["match"]], EntityRef(ent["type"], ent["id"]) if ent else None, d.get("type"))
 
 
 def _js_operand(x):
@@ -401,6 +460,8 @@ def _js_unoperand(x):
 
 def render_json(policy: Policy) -> str:
     doc = {
+        "combining_rule": JSON_COMBINING_RULE,
+        "condition_semantics": JSON_CONDITION_SEMANTICS,
         "rules": [
             {
                 "id": r.rule_id,
@@ -408,32 +469,43 @@ def render_json(policy: Policy) -> str:
                 "principal": _js_scope(r.principal),
                 "actions": sorted(r.actions),
                 "resource": _js_scope(r.resource),
+                "conditions_mode": "all",
                 "conditions": [
                     {"left": _js_operand(c.left), "op": c.op, "right": _js_operand(c.right)}
                     for c in r.conditions
                 ],
             }
             for r in _rules(policy)
-        ]
+        ],
     }
     return json.dumps(doc, indent=2) + "\n"
 
 
 def decode_json(text: str) -> list[Rule]:
-    return [
-        Rule(
-            r["id"],
-            {"allow": "permit", "deny": "forbid"}[r["effect"]],
-            _js_unscope(r["principal"]),
-            tuple(r["actions"]),
-            _js_unscope(r["resource"]),
-            tuple(
-                Condition(_js_unoperand(c["left"]), c["op"], _js_unoperand(c["right"]))
-                for c in r["conditions"]
-            ),
+    doc = json.loads(text)
+    if (
+        doc.get("combining_rule") != JSON_COMBINING_RULE
+        or doc.get("condition_semantics") != JSON_CONDITION_SEMANTICS
+    ):
+        raise RenderError("JSON policy lacks the v2 semantics fields")
+    rules = []
+    for r in doc["rules"]:
+        if r.get("conditions_mode") != "all":
+            raise RenderError("unsupported conditions_mode")
+        rules.append(
+            Rule(
+                r["id"],
+                {"allow": "permit", "deny": "forbid"}[r["effect"]],
+                _js_unscope(r["principal"]),
+                tuple(r["actions"]),
+                _js_unscope(r["resource"]),
+                tuple(
+                    Condition(_js_unoperand(c["left"]), c["op"], _js_unoperand(c["right"]))
+                    for c in r["conditions"]
+                ),
+            )
         )
-        for r in json.loads(text)["rules"]
-    ]
+    return rules
 
 
 # ---- 5. executable rules (Cedar) ------------------------------------------------
