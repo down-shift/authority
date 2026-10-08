@@ -60,3 +60,4 @@ testing) are themselves experiments and get reports.
 - `p1.8-quacky-import.md` — Quacky AWS IAM (587 files): 99 shipped via translation + IAM-evaluator differential test, 28 unique worlds, 5 non-degenerate (data audit). v2 (P1.8.2, wildcard witnesses + closed-world Not* complements): 365 shipped, 107 unique worlds, 50 non-degenerate.
 - `p1.10-benchmark.md` — frozen Phase-1 benchmark: 1,984 certified worlds (544 real), 172,296 rows (data audit).
 - `p1.11-benchmark-audit.md` — certification summary (0 mismatches/errors) and the G1 spot-check packet.
+- `g1-spotcheck-round1.md` — G1 human review, round 1: not passed (20/20 worlds flagged; Cedar and Rego clean).
