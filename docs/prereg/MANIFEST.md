@@ -16,4 +16,4 @@ hash of the code that produced it.
 
 | rule (paper location) | pre-registration commit | committed (UTC) | first result (UTC) | file |
 |---|---|---|---|---|
-| Phase 0 kill test: Gate-0 rule, strict-v1 parser, worst-case gap, disagreement, flip definitions | `89b91c0` | 2026-10-08 02:47:05 (UTC) | — (P0.4) | `phase0.md` |
+| Phase 0 kill test: Gate-0 rule, strict-v1 parser, worst-case gap, disagreement, flip definitions | `89b91c0` | 2026-10-08 00:47:05 | — (P0.4) | `phase0.md` |
