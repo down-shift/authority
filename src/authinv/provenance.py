@@ -45,12 +45,37 @@ def sha256_json(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
+def _read_head(root: Path) -> str | None:
+    """Resolve HEAD from .git without the git binary (e.g. inside a vLLM container)."""
+    git = root / ".git"
+    try:
+        head = (git / "HEAD").read_text().strip()
+        if not head.startswith("ref: "):
+            return head
+        ref = head[5:]
+        if (git / ref).is_file():
+            return (git / ref).read_text().strip()
+        for line in (git / "packed-refs").read_text().splitlines():
+            if line.endswith(" " + ref):
+                return line.split()[0]
+    except OSError:
+        return None
+    return None
+
+
 def git_state(root: Path = ROOT) -> dict:
     def run(*args: str) -> str:
-        r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+        try:
+            r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+        except FileNotFoundError:
+            return ""
         return r.stdout.strip() if r.returncode == 0 else ""
 
-    return {"commit": run("rev-parse", "HEAD") or None, "dirty": bool(run("status", "--porcelain"))}
+    commit = run("rev-parse", "HEAD")
+    if not commit:  # no git binary: read .git directly; dirtiness is then unknown
+        return {"commit": _read_head(root), "dirty": None, "source": ".git files"}
+
+    return {"commit": commit, "dirty": bool(run("status", "--porcelain")), "source": "git"}
 
 
 def source_hashes(paths: list[Path], root: Path = ROOT) -> dict[str, str]:
