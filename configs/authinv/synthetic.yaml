@@ -2,5 +2,5 @@
 # 24 design cells per domain (src/authinv/sources/synthetic.py design_grid) x replicates.
 seed: 20261009
 domains: [repo, mcp]
-replicates: 15            # 24 cells x 15 x 2 domains = 720 worlds
+replicates: 30            # 24 cells x 30 x 2 domains = 1,440 worlds (P1.6.2 top-up; v1 used 15)
 min_per_label: 4          # each world must offer >= 4 allow and >= 4 deny requests (>= 2 boundary each)
