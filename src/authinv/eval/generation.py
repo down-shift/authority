@@ -33,6 +33,12 @@ def split_harmony(raw: str) -> dict:
     }
 
 
+def _with_schema(params, structured):
+    p = params.clone()
+    p.structured_outputs = structured
+    return p
+
+
 class VLLMChat:
     def __init__(
         self, spec: dict[str, Any], model_path: str | None, gen: dict[str, Any], tensor_parallel: int = 1
@@ -64,9 +70,20 @@ class VLLMChat:
         )
         self.chat_kwargs = {"enable_thinking": bool(spec["thinking"])} if "thinking" in spec else None
 
-    def generate(self, prompts: list[str]) -> list[dict]:
+    def generate(self, prompts: list[str], schemas: list[dict | None] | None = None) -> list[dict]:
+        """Greedy chat generation; `schemas` (one per prompt) enables constrained JSON decoding."""
         convs = [[{"role": "user", "content": p}] for p in prompts]
-        outs = self.llm.chat(convs, self.params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs)
+        params = self.params
+        if schemas is not None:
+            from vllm.sampling_params import StructuredOutputsParams
+
+            params = [
+                self.params.clone()
+                if sch is None
+                else _with_schema(self.params, StructuredOutputsParams(json=sch))
+                for sch in schemas
+            ]
+        outs = self.llm.chat(convs, params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs)
         rows = []
         for o in outs:
             row = {
