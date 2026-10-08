@@ -129,9 +129,10 @@ uv run --extra engines python scripts/authinv_import_cedarbench.py --dataset-onl
 
 ## authinv Phase 1: Quacky AWS IAM import
 
-Fetches the pinned Quacky AWS IAM policy set (`configs/authinv/sources/quacky.yaml`: repo, commit, BSD-2-Clause license, tree hash, 587 files) into the git-ignored `data/raw/quacky/`. It then translates each IAM policy to a canonical world over a closed request universe and differential-tests the translation against a reference IAM evaluator (`src/authinv/sources/iam_eval.py`) run on the original JSON. Each world is certified with Cedar and OPA. No model is loaded.
+Fetches the pinned Quacky AWS IAM policy set (`configs/authinv/sources/quacky.yaml`: repo, commit, BSD-2-Clause license, tree hash, 587 files) into the git-ignored `data/raw/quacky/`. It then translates each IAM policy to a canonical world over a closed request universe and differential-tests the translation against a reference IAM evaluator (`src/authinv/sources/iam_eval.py`) run on the original JSON. Each world is certified with Cedar and OPA. No model is loaded. The importer version is set in the manifest (`importer`, currently `quacky-import-v2`: wildcard witnesses and closed-world `NotAction`/`NotResource` complements); `--importer quacky-import-v1` reproduces the P1.8 run.
 
 ```sh
 uv run --extra engines python scripts/fetch_quacky.py                # or --verify-only
 uv run --extra engines python scripts/authinv_import_quacky.py --dataset-only
+uv run --extra engines python scripts/authinv_import_quacky.py --dataset-only --importer quacky-import-v1
 ```

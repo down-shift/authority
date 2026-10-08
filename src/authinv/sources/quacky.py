@@ -14,14 +14,20 @@ JSON, must give the canonical reference decision on every request in the
 universe. `certify()` then checks every rendering with Cedar and OPA. Only
 policies with zero mismatches ship.
 
+Two importer versions exist; `IMPORTER_VERSION` is the current one and the
+other stays selectable so earlier runs reproduce (`convert(..., version=...)`).
+
 Closed request universe (recorded in each world's meta):
 
-- **actions**: every concrete (wildcard-free) action string in the policy, plus
-  one probe action `PROBE_ACTION` that no concrete string names;
-- **resources**: every concrete resource ARN in the policy, plus `PROBE_RESOURCE`;
-- **principals**: for an identity policy (no `Principal` element) a single
-  caller whose policy this is; for a resource policy, every principal the
-  policy names plus one unrelated caller `PROBE_PRINCIPAL`;
+- **actions**: every concrete (wildcard-free) action string in the policy
+  (`Action` and `NotAction`), plus one probe action `PROBE_ACTION` that no
+  concrete string names; v2 adds one **witness** per wildcard pattern;
+- **resources**: every concrete resource ARN in the policy (`Resource` and
+  `NotResource`), plus `PROBE_RESOURCE`; v2 adds one witness per wildcard pattern;
+- **principals**: for an identity policy (no `Principal` / `NotPrincipal`
+  element) a single caller whose policy this is; for a resource policy, every
+  principal the policy names plus one unrelated caller `PROBE_PRINCIPAL`; v2
+  adds `PRINCIPAL_WITNESS` when some statement says `Principal: "*"`;
 - **context**: one key per condition key, with the literals the policy uses
   plus neighbours (`authinv.equivalence.requests.context_values`). Every
   request supplies every key.
@@ -35,10 +41,33 @@ per member, and a positive condition operator with several values (an OR) is
 split into one rule per value. Both splits are exact. Negated operators with
 several values become a conjunction of `!=`.
 
-Everything else is **excluded and counted per construct**: `NotAction`,
-`NotResource`, `NotPrincipal`, operators beyond `iam_eval.OPERATORS`,
-`IfExists`, `ForAnyValue:` / `ForAllValues:`, policy variables, account or
-wildcard principals, non-integer numbers. Nothing is approximated.
+**v2 (`quacky-import-v2`, step P1.8.2).** Two changes, both exact on the
+closed universe:
+
+- *Wildcard witnesses* (`witness`). For each distinct wildcard pattern on the
+  action or resource axis, one concrete string is built by replacing every `*`
+  with a fixed token and every `?` with the token's first letter. The tokens
+  are tried in the order of `WITNESS_TOKENS` (`ZzWitness`, `QqWitness`, ... for
+  actions; `zz-witness`, `qq-witness`, ... for resources), and the first one
+  that matches the fewest *other* patterns of the policy, and is not already a
+  universe member, is kept. So `s3:Get*` -> `s3:GetZzWitness` and
+  `arn:aws:s3:::bucket/*` -> `arn:aws:s3:::bucket/zz-witness`. A witness also
+  matches another pattern only when no candidate avoids it, typically because
+  that pattern is more general (`s3:GetZzWitness` necessarily matches `s3:*`).
+  Those overlaps are recorded in meta (`witnesses`). The probes stay, so every
+  axis still has a member that no specific pattern names.
+- *Closed-world complements.* `NotAction` / `NotResource` cover every universe
+  member that matches none of their patterns, written as the explicit set.
+  `NotPrincipal` is translated the same way when it names only `Service`
+  principals (a service principal is one identity, so the complement over the
+  closed principal set is exact). `NotPrincipal` naming an AWS account, user or
+  role stays excluded: AWS also matches such a caller through its account ARN.
+  Worlds using a complement carry `closed_world_complement: true`.
+
+Everything else is **excluded and counted per construct**: operators beyond
+`iam_eval.OPERATORS`, `IfExists`, `ForAnyValue:` / `ForAllValues:`, policy
+variables, account or partial-wildcard principals, non-integer numbers, and
+(v1 only) `NotAction`, `NotResource`, `NotPrincipal`. Nothing is approximated.
 
 Identifiers are mapped injectively to the renderers' `SAFE` alphabet (`:` →
 `.`, any other unsafe character → `_`; condition keys → `[A-Za-z0-9_]`). The
@@ -71,7 +100,10 @@ from authinv.policy import (
 from authinv.render.renderers import SAFE, RenderError, check_safe
 from authinv.sources import iam_eval
 
-IMPORTER_VERSION = "quacky-import-v1"
+IMPORTER_V1 = "quacky-import-v1"
+IMPORTER_V2 = "quacky-import-v2"
+IMPORTER_VERSIONS = (IMPORTER_V1, IMPORTER_V2)
+IMPORTER_VERSION = IMPORTER_V2
 PRINCIPAL_TYPE = "Principal"
 RESOURCE_TYPE = "Resource"
 PRINCIPAL_TYPES = (PRINCIPAL_TYPE,)
@@ -80,10 +112,16 @@ CALLER_ID = "caller"  # the identity-policy caller (no Principal element anywher
 PROBE_ACTION = "authinv-probe:UnlistedAction"
 PROBE_RESOURCE = "arn:aws:authinv-probe:::unlisted-resource"
 PROBE_PRINCIPAL = ("AWS", "arn:aws:iam::000000000000:user/authinv-unlisted-caller")
+PRINCIPAL_WITNESS = ("AWS", "arn:aws:iam::000000000000:user/authinv-witness-caller")  # v2, for "*"
+WITNESS_TOKENS = {
+    "action": ("ZzWitness", "QqWitness", "XxWitness", "JjWitness", "VvWitness"),
+    "resource": ("zz-witness", "qq-witness", "xx-witness", "jj-witness", "vv-witness"),
+}
 UNSEEN = "__unseen__"  # same unseen string authinv.equivalence.requests adds to context keys
 MAX_RULES = 64
 MAX_REQUESTS = 20_000
-NON_DEGENERATE = 4  # P1.6 bar: >= 4 allow and >= 4 deny requests
+NON_DEGENERATE = 4  # P1.6 bar: >= 4 allow and >= 4 deny requests ...
+NON_DEGENERATE_BOUNDARY = 2  # ... of which >= 2 boundary requests each (synthetic.is_non_degenerate)
 
 # the translator's own operator table (independent of iam_eval's)
 _OPS = {
@@ -166,8 +204,15 @@ def _value(v, kind: str):
 # ---- construct scan ------------------------------------------------------------
 
 
-def scan(doc) -> tuple[list[dict], set[str], set[str]]:
+def _check_version(version: str) -> None:
+    if version not in IMPORTER_VERSIONS:
+        raise ValueError(f"unknown importer version {version!r}; known: {IMPORTER_VERSIONS}")
+
+
+def scan(doc, version: str = IMPORTER_VERSION) -> tuple[list[dict], set[str], set[str]]:
     """(statements, excluded constructs, flags). Constructs outside the subset are named, not guessed."""
+    _check_version(version)
+    v2 = version == IMPORTER_V2
     found: set[str] = set()
     flags: set[str] = set()
     if not isinstance(doc, dict) or "Statement" not in doc:
@@ -183,20 +228,44 @@ def scan(doc) -> tuple[list[dict], set[str], set[str]]:
     key_kinds: dict[str, set[str]] = {}
     for s in stmts:
         for el in ("NotAction", "NotResource", "NotPrincipal"):
-            if el in s:
+            if el in s and not v2:
                 found.add(el)
+        if v2:
+            for el in ("NotAction", "NotResource"):
+                if el in s:
+                    flags.add("not_action" if el == "NotAction" else "not_resource")
+            if "NotPrincipal" in s:
+                np = s["NotPrincipal"]
+                ok = (
+                    isinstance(np, dict)
+                    and bool(np)
+                    and set(np) == {"Service"}
+                    and all(isinstance(v, str) and not _wild(v) for v in _list(np["Service"]))
+                )
+                if ok:
+                    flags.add("not_principal")
+                else:
+                    found.add("NotPrincipal")  # names an AWS account / user / role: not single-identity
+            if "Principal" in s and "NotPrincipal" in s:
+                found.add("principal_and_notprincipal")
         if s.get("Effect") not in ("Allow", "Deny"):
             found.add("bad_effect")
         if "Action" not in s and "NotAction" not in s:
             found.add("missing_action")
         if "Resource" not in s and "NotResource" not in s:
             found.add("missing_resource")
-        for a in _list(s.get("Action", [])):
+        if v2 and "Action" in s and "NotAction" in s:
+            found.add("action_and_notaction")
+        if v2 and "Resource" in s and "NotResource" in s:
+            found.add("resource_and_notresource")
+        action_els = ("Action", "NotAction") if v2 else ("Action",)
+        for a in [a for el in action_els for a in _list(s.get(el, []))]:
             if not isinstance(a, str):
                 found.add("non_string_action")
             elif _wild(a):
                 flags.add("action_wildcard")
-        for r in _list(s.get("Resource", [])):
+        resource_els = ("Resource", "NotResource") if v2 else ("Resource",)
+        for r in [r for el in resource_els for r in _list(s.get(el, []))]:
             if not isinstance(r, str):
                 found.add("non_string_resource")
             elif _wild(r):
@@ -298,33 +367,98 @@ def _conjunct_alternatives(cond: dict, key_ids: dict, str_ids: dict) -> list[lis
     return [sum(combo, []) for combo in itertools.product(*per_key)] or [[]]
 
 
-def convert(doc, policy_id: str, source_sha256: str, *, expand_wildcards: bool = True) -> Conversion:
+def witness(pattern: str, others: list[str], taken: set[str], *, axis: str) -> tuple[str, list[str]]:
+    """One concrete member for a wildcard `pattern`: (witness, the other patterns it unavoidably matches).
+
+    Every `*` becomes a token from `WITNESS_TOKENS[axis]` and every `?` the token's
+    first letter (lower case). Of the tokens that give a string not in `taken`,
+    the first matching the fewest patterns in `others` wins. `taken` holds the
+    axis's existing members, case-folded for actions. Raises _Exclude if all are taken.
+    """
+    fold = axis == "action"
+    best: tuple[str, list[str]] | None = None
+    for tok in WITNESS_TOKENS[axis]:
+        w = "".join(tok if ch == "*" else tok[0].lower() if ch == "?" else ch for ch in pattern)
+        if (w.lower() if fold else w) in taken or not _matches(pattern, w, fold=fold):
+            continue
+        extra = sorted(o for o in others if o != pattern and _matches(o, w, fold=fold))
+        if best is None or len(extra) < len(best[1]):
+            best = (w, extra)
+    if best is None:
+        raise _Exclude("witness_unavailable", f"{axis}: {pattern!r}")
+    return best
+
+
+def _axis_members(
+    stmts: list[dict], els: tuple[str, ...], probe: str, *, axis: str, witnesses: bool
+) -> tuple[list[str], dict[str, dict]]:
+    """Sorted concrete strings + probe (+ one witness per distinct wildcard pattern); the witness table."""
+    fold = axis == "action"
+    values = [v for s in stmts for el in els for v in _list(s.get(el, []))]
+    concrete: dict[str, str] = {}
+    for v in values:
+        if not _wild(v):
+            prev = concrete.setdefault(v.lower() if fold else v, v)
+            if prev != v:
+                raise _Exclude(f"{axis}_case_variant", f"{prev!r} / {v!r}")
+    members = sorted(concrete.values()) + [probe]
+    table: dict[str, dict] = {}
+    if witnesses:
+        patterns: dict[str, str] = {}
+        for v in values:
+            if _wild(v):
+                patterns.setdefault(v.lower() if fold else v, v)
+        pats = sorted(patterns.values())
+        taken = {m.lower() if fold else m for m in members}
+        for pat in pats:
+            w, extra = witness(pat, pats, taken, axis=axis)
+            taken.add(w.lower() if fold else w)
+            table[pat] = {"witness": w, "also_matches": extra}
+        members = sorted(concrete.values()) + sorted(t["witness"] for t in table.values()) + [probe]
+    return members, table
+
+
+def _covered(stmt: dict, pos: str, neg: str, members: list[str], *, fold: bool) -> list[str]:
+    """Universe members a statement's `pos` patterns match, or (closed-world complement) `neg`'s don't."""
+    if pos in stmt:
+        return [m for m in members if any(_matches(p, m, fold=fold) for p in _list(stmt[pos]))]
+    return [m for m in members if not any(_matches(p, m, fold=fold) for p in _list(stmt[neg]))]
+
+
+def convert(
+    doc,
+    policy_id: str,
+    source_sha256: str,
+    *,
+    expand_wildcards: bool = True,
+    version: str = IMPORTER_VERSION,
+) -> Conversion:
     """Translate one IAM document into a canonical Policy over its closed universe, or explain why not."""
-    stmts, found, flags = scan(doc)
+    stmts, found, flags = scan(doc, version)
     if not expand_wildcards:
         found |= {f for f in flags if f in ("action_wildcard", "resource_wildcard", "principal_wildcard_all")}
     if found:
         return Conversion("excluded", sorted(found), flags=sorted(flags))
     try:
-        return _translate(stmts, policy_id, source_sha256, flags)
+        return _translate(stmts, policy_id, source_sha256, flags, version)
     except _Exclude as e:
         return Conversion("excluded", [e.args[0]], detail=e.args[1] if len(e.args) > 1 else None)
 
 
-def _translate(stmts: list[dict], policy_id: str, source_sha256: str, flags: set[str]) -> Conversion:
-    identity = not any("Principal" in s for s in stmts)
-    # --- action axis: concrete strings (case-insensitive in IAM) + probe
-    concrete_actions: dict[str, str] = {}
-    for s in stmts:
-        for a in _list(s["Action"]):
-            if not _wild(a):
-                prev = concrete_actions.setdefault(a.lower(), a)
-                if prev != a:
-                    raise _Exclude("action_case_variant", f"{prev!r} / {a!r}")
-    actions = sorted(concrete_actions.values()) + [PROBE_ACTION]
+def _translate(
+    stmts: list[dict], policy_id: str, source_sha256: str, flags: set[str], version: str
+) -> Conversion:
+    v2 = version == IMPORTER_V2
+    identity = not any("Principal" in s or "NotPrincipal" in s for s in stmts)
+    # --- action axis: concrete strings (case-insensitive in IAM) [+ witnesses] + probe
+    actions, act_wit = _axis_members(
+        stmts, ("Action", "NotAction"), PROBE_ACTION, axis="action", witnesses=v2
+    )
     act_id = _injective(actions, _safe_id, "action")
     # --- resource axis
-    resources = sorted({r for s in stmts for r in _list(s["Resource"]) if not _wild(r)}) + [PROBE_RESOURCE]
+    resources, res_wit = _axis_members(
+        stmts, ("Resource", "NotResource"), PROBE_RESOURCE, axis="resource", witnesses=v2
+    )
     res_id = _injective(resources, _safe_id, "resource")
     # --- principal axis
     if identity:
@@ -332,12 +466,16 @@ def _translate(stmts: list[dict], policy_id: str, source_sha256: str, flags: set
         prin_id = {None: CALLER_ID}
     else:
         named = set()
+        star = False
         for s in stmts:
-            p = s["Principal"]
+            p = s.get("Principal", s.get("NotPrincipal"))
+            if p == "*":
+                star = True
             if isinstance(p, dict):
                 for ptype, vals in p.items():
                     named |= {(ptype, v) for v in _list(vals) if v != "*"}
-        principals = sorted(named) + [PROBE_PRINCIPAL]
+                    star = star or (ptype == "AWS" and "*" in _list(vals))
+        principals = sorted(named) + ([PRINCIPAL_WITNESS] if v2 and star else []) + [PROBE_PRINCIPAL]
         ids = _injective([v for _, v in principals], _safe_id, "principal")
         prin_id = {p: ids[p[1]] for p in principals}
         if len(set(prin_id.values())) != len(prin_id):
@@ -361,13 +499,17 @@ def _translate(stmts: list[dict], policy_id: str, source_sha256: str, flags: set
     for i, s in enumerate(stmts):
         sid = s.get("Sid")
         base = f"s{i}" + (f"_{_safe_id(sid)}" if isinstance(sid, str) and sid else "")
-        acts = [a for a in actions if any(_matches(p, a, fold=True) for p in _list(s["Action"]))]
-        ress = [r for r in resources if any(_matches(p, r, fold=False) for p in _list(s["Resource"]))]
+        acts = _covered(s, "Action", "NotAction", actions, fold=True)
+        ress = _covered(s, "Resource", "NotResource", resources, fold=False)
         if identity:
             pscopes = [Scope()]
         else:
-            spec = s["Principal"]
-            if spec == "*" or (isinstance(spec, dict) and "*" in _list(spec.get("AWS", []))):
+            if "NotPrincipal" in s:  # closed-world complement over the principal axis
+                listed = {(t, v) for t, vals in s["NotPrincipal"].items() for v in _list(vals)}
+                hit = [p for p in principals if p not in listed]
+            elif (spec := s["Principal"]) == "*" or (
+                isinstance(spec, dict) and "*" in _list(spec.get("AWS", []))
+            ):
                 hit = list(principals)
             else:
                 listed = {(t, v) for t, vals in spec.items() for v in _list(vals)}
@@ -415,23 +557,37 @@ def _translate(stmts: list[dict], policy_id: str, source_sha256: str, flags: set
         "context_key": {key_ids[k]: k for k in kinds},
         "context_value": {key_ids[k]: {c: o for o, c in str_ids[k].items()} for k in str_ids},
     }
+    meta = [
+        ("source", "quacky"),
+        ("importer", version),
+        ("source_sha256", source_sha256),
+        ("entities_synthesized", True),
+        ("identity_policy", identity),
+        ("wildcard_expanded", "wildcard_expanded" in flags),
+        ("names", json.dumps(names, sort_keys=True)),
+        ("principal_types", PRINCIPAL_TYPE),
+        ("resource_types", RESOURCE_TYPE),
+    ]
+    if v2:
+        complement = bool(flags & {"not_action", "not_resource", "not_principal"})
+        if complement:
+            flags.add("closed_world_complement")
+        wit = {"action": act_wit, "resource": res_wit}
+        if PRINCIPAL_WITNESS in principals:
+            wit["principal"] = {"*": {"witness": list(PRINCIPAL_WITNESS), "also_matches": []}}
+        if any(wit.values()):
+            flags.add("wildcard_witness")
+        meta += [
+            ("closed_world_complement", complement),
+            ("witnesses", json.dumps(wit, sort_keys=True)),
+        ]
     policy = Policy(
         policy_id=policy_id,
         entities=entities,
         actions=tuple(sorted(act_id[a] for a in actions)),
         rules=tuple(rules),
         context_schema=tuple(sorted((key_ids[k], kinds[k]) for k in kinds)),
-        meta=(
-            ("source", "quacky"),
-            ("importer", IMPORTER_VERSION),
-            ("source_sha256", source_sha256),
-            ("entities_synthesized", True),
-            ("identity_policy", identity),
-            ("wildcard_expanded", "wildcard_expanded" in flags),
-            ("names", json.dumps(names, sort_keys=True)),
-            ("principal_types", PRINCIPAL_TYPE),
-            ("resource_types", RESOURCE_TYPE),
-        ),
+        meta=tuple(meta),
     )
     try:
         validate(policy)
@@ -506,7 +662,33 @@ def subset_of(rel: str) -> str:
     return "mutation" if rel.startswith("mutations/") else "original"
 
 
-def import_policy(path: Path, samples: Path, *, expand_wildcards: bool = True):
+def degeneracy(policy: Policy) -> dict:
+    """Allow / deny / boundary counts over the closed universe, and the P1.6 non-degeneracy bar.
+
+    `non_degenerate`: >= NON_DEGENERATE allow and deny requests, each with >=
+    NON_DEGENERATE_BOUNDARY boundary requests (as `synthetic.is_non_degenerate`,
+    without its dead-rule check). `non_degenerate_counts` is the v1 report's bar
+    (counts only), kept so v1 and v2 numbers compare.
+    """
+    from authinv.equivalence.requests import label_universe
+
+    rows = label_universe(policy, PRINCIPAL_TYPES, RESOURCE_TYPES)
+    n_allow = sum(x["decision"] == "allow" for x in rows)
+    n_deny = len(rows) - n_allow
+    b_allow = sum(x["boundary"] for x in rows if x["decision"] == "allow")
+    b_deny = sum(x["boundary"] for x in rows if x["decision"] == "deny")
+    counts = n_allow >= NON_DEGENERATE and n_deny >= NON_DEGENERATE
+    return {
+        "n_boundary_allow": b_allow,
+        "n_boundary_deny": b_deny,
+        "non_degenerate_counts": counts,
+        "non_degenerate": counts and b_allow >= NON_DEGENERATE_BOUNDARY and b_deny >= NON_DEGENERATE_BOUNDARY,
+    }
+
+
+def import_policy(
+    path: Path, samples: Path, *, expand_wildcards: bool = True, version: str = IMPORTER_VERSION
+):
     """Full pipeline for one IAM file; returns (record, policy | None, proof | None)."""
     from authinv.equivalence.check import certify
     from authinv.policy import semantic_hash, tier
@@ -521,13 +703,14 @@ def import_policy(path: Path, samples: Path, *, expand_wildcards: bool = True):
         "subset": subset_of(rel),
         "service": rel.split("/")[1] if rel.startswith("mutations/") else rel.split("/")[0],
         "source_sha256": src,
+        "importer": version,
     }
     try:
         doc = json.loads(text)
     except ValueError as e:
         rec.update(status="excluded", constructs=["json_parse_error"], detail=str(e)[:200])
         return rec, None, None
-    conv = convert(doc, pid, src, expand_wildcards=expand_wildcards)
+    conv = convert(doc, pid, src, expand_wildcards=expand_wildcards, version=version)
     rec.update(status=conv.status, constructs=conv.constructs, flags=conv.flags)
     if conv.detail:
         rec["detail"] = conv.detail
@@ -543,7 +726,10 @@ def import_policy(path: Path, samples: Path, *, expand_wildcards: bool = True):
         faithful=faith["passed"],
         n_requests=n,
         n_allow=n_allow,
-        non_degenerate=n_allow >= NON_DEGENERATE and n - n_allow >= NON_DEGENERATE,
+        **degeneracy(conv.policy),
+        n_actions=len(conv.policy.actions),
+        n_resources=sum(e.ref.type == RESOURCE_TYPE for e in conv.policy.entities),
+        n_principals=sum(e.ref.type == PRINCIPAL_TYPE for e in conv.policy.entities),
         n_rules=len(conv.policy.rules),
         tier=tier(conv.policy),
         semantic_sha256=semantic_hash(conv.policy),

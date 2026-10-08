@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Import the Quacky AWS IAM policies as canonical worlds (step P1.8). No model is loaded.
+"""Import the Quacky AWS IAM policies as canonical worlds (steps P1.8, P1.8.2). No model is loaded.
 
   uv run --extra engines python scripts/fetch_quacky.py
   uv run --extra engines python scripts/authinv_import_quacky.py --dataset-only
+  uv run --extra engines python scripts/authinv_import_quacky.py --dataset-only --importer quacky-import-v1
+
+The importer version comes from the manifest (`importer`); `--importer` selects
+another one, e.g. v1 to reproduce the P1.8 run.
 
 Verifies the pinned snapshot (configs/authinv/sources/quacky.yaml), translates
 every IAM file in the import set, differential-tests each translation against
@@ -50,11 +54,20 @@ TRACKED = [
 ]
 
 
-def run_import(samples: Path, globs: list[str], out: Path, *, expand_wildcards: bool = True) -> dict:
+def run_import(
+    samples: Path,
+    globs: list[str],
+    out: Path,
+    *,
+    expand_wildcards: bool = True,
+    version: str = quacky.IMPORTER_VERSION,
+) -> dict:
     """Translate every IAM file matched under `samples`; write artifacts into `out`; return the report."""
     records, proofs, shipped = [], [], {}
     for path in quacky.iter_policies(samples, globs):
-        rec, policy, proof = quacky.import_policy(path, samples, expand_wildcards=expand_wildcards)
+        rec, policy, proof = quacky.import_policy(
+            path, samples, expand_wildcards=expand_wildcards, version=version
+        )
         records.append(rec)
         if proof is not None:
             proofs.append(proof)
@@ -64,7 +77,7 @@ def run_import(samples: Path, globs: list[str], out: Path, *, expand_wildcards: 
     proof_sha = write_proofs(proofs, out / "equivalence.jsonl")
     worlds = sorted(shipped.values(), key=lambda pv: pv[0].policy_id)
     (out / "policies.jsonl").write_text("".join(canonical_json(p) + "\n" for p, _ in worlds))
-    report = summarize(records, worlds)
+    report = summarize(records, worlds, version)
     report["equivalence_sha256"] = proof_sha
     report["policies_sha256"] = provenance.sha256_file(out / "policies.jsonl")
     provenance.write_json(out / "import_report.json", report)
@@ -77,7 +90,7 @@ def _dist(xs: list[int]) -> dict:
     return {"min": min(xs), "median": statistics.median(xs), "max": max(xs), "n": len(xs)}
 
 
-def summarize(records: list[dict], worlds: list) -> dict:
+def summarize(records: list[dict], worlds: list, version: str = quacky.IMPORTER_VERSION) -> dict:
     excluded = [r for r in records if r["status"] == "excluded"]
     converted = [r for r in records if r["status"] == "converted"]
     shipped = [r for r in records if r.get("shipped")]
@@ -87,6 +100,11 @@ def summarize(records: list[dict], worlds: list) -> dict:
     for r in shipped:
         first_world.setdefault(r["semantic_sha256"], r)
     uniq = list(first_world.values())
+    # a unique world counts as "original" if any of its files is one of the 41 originals
+    world_subsets: dict[str, set[str]] = {}
+    for r in shipped:
+        world_subsets.setdefault(r["semantic_sha256"], set()).add(r["subset"])
+    world_subset = {h: "original" if "original" in s else "mutation" for h, s in world_subsets.items()}
 
     def by_subset(rows: list[dict]) -> dict:
         return dict(collections.Counter(r["subset"] for r in rows))
@@ -94,8 +112,12 @@ def summarize(records: list[dict], worlds: list) -> dict:
     def no_wild(r: dict) -> bool:
         return "wildcard_expanded" not in r.get("flags", [])
 
+    def uniq_by_subset(rows: list[dict]) -> dict:
+        return dict(collections.Counter(world_subset[r["semantic_sha256"]] for r in rows))
+
+    nd = [r for r in uniq if r["non_degenerate"]]
     return {
-        "importer": quacky.IMPORTER_VERSION,
+        "importer": version,
         "policy_files": len(records),
         "policy_files_by_subset": by_subset(records),
         "unique_source_texts": len({r["source_sha256"] for r in records}),
@@ -109,6 +131,7 @@ def summarize(records: list[dict], worlds: list) -> dict:
         "shipped_policy_files": len(shipped),
         "shipped_by_subset": by_subset(shipped),
         "shipped_unique_worlds": len(worlds),
+        "shipped_unique_worlds_by_subset": uniq_by_subset(uniq),
         "shipped_unique_source_texts": len({r["source_sha256"] for r in shipped}),
         "shipped_flags": dict(collections.Counter(f for r in shipped for f in r.get("flags", []))),
         "shipped_files_without_wildcard_expansion": sum(no_wild(r) for r in shipped),
@@ -116,9 +139,16 @@ def summarize(records: list[dict], worlds: list) -> dict:
         "shipped_tiers": dict(collections.Counter(r["tier"] for r in shipped)),
         "requests_per_file": _dist([r["n_requests"] for r in shipped]),
         "requests_per_unique_world": _dist([r["n_requests"] for r in uniq]),
+        "actions_per_unique_world": _dist([r["n_actions"] for r in uniq]),
+        "resources_per_unique_world": _dist([r["n_resources"] for r in uniq]),
+        "principals_per_unique_world": _dist([r["n_principals"] for r in uniq]),
+        "unique_worlds_with_at_least_4_requests": sum(r["n_requests"] >= 4 for r in uniq),
+        "unique_worlds_with_flag": dict(collections.Counter(f for r in uniq for f in r.get("flags", []))),
         "rules_per_unique_world": _dist([r["n_rules"] for r in uniq]),
         "non_degenerate_files": sum(r["non_degenerate"] for r in shipped),
-        "non_degenerate_unique_worlds": sum(r["non_degenerate"] for r in uniq),
+        "non_degenerate_unique_worlds": len(nd),
+        "non_degenerate_unique_worlds_by_subset": uniq_by_subset(nd),
+        "non_degenerate_counts_only_unique_worlds": sum(r["non_degenerate_counts"] for r in uniq),
         "non_degenerate_unique_worlds_without_wildcard_expansion": sum(
             r["non_degenerate"] and no_wild(r) for r in uniq
         ),
@@ -133,6 +163,7 @@ def main() -> None:
     p.add_argument("--manifest", type=Path, default=MANIFEST)
     p.add_argument("--data", type=Path, default=ROOT / "data" / "raw" / "quacky")
     p.add_argument("--output-root", type=Path, default=ROOT / "outputs")
+    p.add_argument("--importer", choices=quacky.IMPORTER_VERSIONS, help="override the manifest's importer")
     args = p.parse_args()
     import fetch_quacky
 
@@ -142,12 +173,14 @@ def main() -> None:
         raise SystemExit(
             "snapshot does not match the pin; run scripts/fetch_quacky.py:\n  " + "\n  ".join(problems)
         )
+    version = args.importer or m["importer"]
     run = args.output_root / f"{provenance.utc_stamp()}_quacky_import"
     run.mkdir(parents=True)
     provenance.write_json(
         run / "metadata.json",
         {
-            "step": "P1.8",
+            "step": "P1.8.2" if version == quacky.IMPORTER_V2 else "P1.8",
+            "importer": version,
             "invocation": sys.argv,
             "source": {k: m[k] for k in ("repo", "commit", "license", "tree_sha256", "n_files")},
             "manifest_sha256": provenance.sha256_file(args.manifest),
@@ -162,7 +195,11 @@ def main() -> None:
     provenance.write_run_status(run, "running", 0, m["expected_policies"])
     try:
         report = run_import(
-            args.data / "samples", m["import_globs"], run, expand_wildcards=m["expand_wildcards"]
+            args.data / "samples",
+            m["import_globs"],
+            run,
+            expand_wildcards=m["expand_wildcards"],
+            version=version,
         )
     except Exception as e:
         provenance.write_run_status(run, "failed", 0, m["expected_policies"], repr(e))

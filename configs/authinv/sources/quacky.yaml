@@ -32,6 +32,10 @@ import_globs:
 expected_policies: 587
 expected_originals: 41
 expand_wildcards: true  # wildcards expanded over the closed universe (see authinv.sources.quacky)
+# importer version (authinv.sources.quacky.IMPORTER_VERSIONS). v2 (P1.8.2) adds wildcard
+# witnesses and exact closed-world NotAction/NotResource/NotPrincipal(Service) complements;
+# `--importer quacky-import-v1` reproduces the P1.8 run.
+importer: quacky-import-v2
 tree_sha256: 99aab0cd2879a374d37daaad3a4c87cf05bdc9da1bb3adde89ea2cc97b235ca3
 n_files: 622
 file_sha256:
