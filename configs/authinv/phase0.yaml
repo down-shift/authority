@@ -1,0 +1,28 @@
+# Phase 0 kill test (docs/RESEARCH_PLAN.md §3 Phase 0; preregistration: docs/prereg/phase0.md).
+experiment: authinv_phase0_generation
+seed: 20261008
+# The Gemma 3 12B NF4 single-scope Stage-2 run. Its rendered prompts are used
+# verbatim (no re-rendering): 180 worlds x 2 name assignments x 5 renderings x
+# 2 tasks = 3,600 rows. Both files must match these hashes.
+source:
+  run_name: 20261001T203345458674Z_authorization_lexical_invariance_gemma3_12b_it_nf4
+  worlds_sha256: b7f5e1db10cedd990f1f49ba974c2379f02ee4165dce3df1b2854c77f78a6dd1
+  dataset_sha256: 5c3b7823f2b8433fcafca83238c5871495b65d0e4bd29055a99ab35eb744148d
+  expected: {worlds: 180, rows: 3600, assignments: 2, representations: 5, tasks: 2}
+models_set: phase0
+large_models: [qwen3_32b, gemma3_27b, llama3_3_70b_int8]  # the ">=27B" models Gate 0 counts
+generation:
+  seed: 20261008
+  temperature: 0.0  # greedy
+  max_tokens: 64
+  max_model_len: 2048
+  batch_size: 512  # rows per resumable chunk
+parser_version: strict-v1
+analysis:
+  primary_task: application
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261008
+gate0:
+  worst_case_gap_pp: 5.0
+  rendering_disagreement: 0.05
+  min_large_models_passing: 2
