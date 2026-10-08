@@ -225,9 +225,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 2 — Three evaluation tiers on the model sweep (Weeks 7–12)
 
 ### P2.0 — Parser strict-v2 (Unicode apostrophes)
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:26:51Z
 - deps: G0
 - source: P0.5 finding (curly-apostrophe refusals labelled parse_failure); approved by Jerzy 2026-10-08
 - done-when: PARSER_VERSION strict-v2 accepts typographic apostrophes/quotes in refusal and abstention patterns (and in normalization); docs/CHANGELOG.md entry; tests with the P0.5 refusal strings; strict-v1 remains importable so Phase-0 results stay reproducible; Phase 2+ configs use strict-v2; gate green.
