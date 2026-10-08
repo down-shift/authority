@@ -1,0 +1,19 @@
+# Tier T2 (structured generation) defaults. DRAFT for the harness (P2.2); the Phase-2
+# preregistration (P2.3) freezes the final values and the dataset hash before any sweep run.
+experiment: authinv_t2_structured_generation
+seed: 20261010
+generation:
+  seed: 20261010
+  temperature: 0.0
+  max_tokens: 96
+  max_model_len: 4096
+  batch_size: 512
+  constrained: false   # unconstrained + strict JSON parsing, so refusals stay observable
+generation_overrides:
+  gpt_oss_20b: {max_tokens: 4096, max_model_len: 8192}
+  gpt_oss_120b: {max_tokens: 4096, max_model_len: 8192}
+  qwen3_8_27b_thinking: {max_tokens: 4096, max_model_len: 8192}
+analysis:
+  primary_task: application
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261010
