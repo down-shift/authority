@@ -188,6 +188,25 @@ def non_degenerate(w: World, min_per_label: int) -> bool:
     return True
 
 
+def dedupe_conditions(policy: Policy) -> tuple[Policy, int]:
+    """Drop exact repeats of a condition within a rule, keeping order. Exact: conjunction is idempotent."""
+    removed, rules = 0, []
+    for r in policy.rules:
+        seen, kept = set(), []
+        for c in r.conditions:
+            if c in seen:
+                removed += 1
+                continue
+            seen.add(c)
+            kept.append(c)
+        rules.append(Rule(r.rule_id, r.effect, r.principal, r.actions, r.resource, tuple(kept)))
+    if not removed:
+        return policy, 0
+    return Policy(
+        policy.policy_id, policy.entities, policy.actions, tuple(rules), policy.context_schema, policy.meta
+    ), removed
+
+
 def dedupe(worlds: list[World]) -> tuple[list[World], int]:
     seen, out = set(), []
     for w in worlds:

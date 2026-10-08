@@ -25,7 +25,14 @@ sys.path.insert(0, str(ROOT / "src"))
 import yaml  # noqa: E402
 
 from authinv import provenance  # noqa: E402
-from authinv.benchmark import PROMPT_VERSION, World, dedupe, non_degenerate, world_rows  # noqa: E402
+from authinv.benchmark import (  # noqa: E402
+    PROMPT_VERSION,
+    World,
+    dedupe,
+    dedupe_conditions,
+    non_degenerate,
+    world_rows,
+)
 from authinv.equivalence.check import certify, write_proofs  # noqa: E402
 from authinv.policy import from_dict, policy_hash, semantic_hash, to_dict  # noqa: E402
 from authinv.render.renderers import RENDERINGS, VERSIONS  # noqa: E402
@@ -95,12 +102,37 @@ def main() -> None:
         info["selected"] = len(keep)
         audit["sources"][name] = info
         selected += keep
+    # After selection (so the world set matches selection on the source policies): drop exact repeated
+    # conditions, then certify every world under the current renderers, orig and swap alike.
+    deduped, removed_total = [], 0
+    for w in selected:
+        pol, removed = dedupe_conditions(w.policy)
+        removed_total += removed
+        deduped.append(
+            World(
+                pol,
+                w.principal_types,
+                w.resource_types,
+                w.source_kind,
+                w.source,
+                w.meta | ({"conditions_deduplicated": removed} if removed else {}),
+            )
+        )
+    selected = deduped
+    audit["conditions_deduplicated"] = {
+        "conditions_removed": removed_total,
+        "worlds": sum("conditions_deduplicated" in w.meta for w in selected),
+    }
     rows, worlds_out, proofs = [], [], []
     for w in selected:
+        orig_proof = certify(w.policy, w.principal_types, w.resource_types)
+        if not orig_proof["passed"]:
+            raise SystemExit(f"{w.policy.policy_id}: policy failed certification under the current renderers")
+        proofs.append({**orig_proof, "assignment": "orig"})
         r, extra = world_rows(w, cfg["per_label"], cfg["seed"])
         rows += r
         proof = certify(extra["swap_policy"], w.principal_types, w.resource_types)
-        proofs.append(proof)
+        proofs.append({**proof, "assignment": "swap"})
         if not proof["passed"]:
             raise SystemExit(f"{w.policy.policy_id}: swapped policy failed certification")
         worlds_out.append(
@@ -156,7 +188,11 @@ def main() -> None:
                 }
                 for g in RENDERINGS
             },
-            "swap_recertified": f"{sum(p['passed'] for p in proofs)}/{len(proofs)}",
+            "certified": {
+                a: f"{sum(p['passed'] for p in proofs if p['assignment'] == a)}/"
+                f"{sum(p['assignment'] == a for p in proofs)}"
+                for a in ("orig", "swap")
+            },
             "meets_target": len(selected) >= cfg["target_worlds"],
         }
     )
