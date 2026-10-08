@@ -1,0 +1,6 @@
+# Synthetic policy sources (P1.6): MCP tool allowlists and GitHub-style repo permissions.
+# 24 design cells per domain (src/authinv/sources/synthetic.py design_grid) x replicates.
+seed: 20261009
+domains: [repo, mcp]
+replicates: 15            # 24 cells x 15 x 2 domains = 720 worlds
+min_per_label: 4          # each world must offer >= 4 allow and >= 4 deny requests (>= 2 boundary each)
