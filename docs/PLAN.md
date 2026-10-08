@@ -152,7 +152,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: `engines` extra / documented install for the cedar-policy CLI or Python bindings; src/authinv/equivalence/engine.py evaluates (policy, request) via the real engine; request generator yields balanced allow/deny sets incl. boundary requests per policy; engine tests are skipped when the engine is absent and run in CI if it can be installed there (decision noted in the PR); gate green.
 
 ### P1.4 — Equivalence checker
-- status: claimed
+- status: in_review (#22)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:38:21Z
 - deps: P1.2 P1.3
