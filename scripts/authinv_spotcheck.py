@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Build the seeded 20-world spot-check packet for Gate 1 (P1.11).
 
-  uv run --extra engines python scripts/authinv_spotcheck.py --benchmark outputs/<benchmark run> --out spotcheck.json
+  uv run --extra engines python scripts/authinv_spotcheck.py --benchmark outputs/<run> --out spotcheck.json
 
-Picks 20 worlds stratified by source (cedarbench / quacky / synthetic repo / synthetic mcp) and tier, seeded, and
-writes, per world: the facts block, all six renderings of the `orig` policy, and two sample requests with their
-engine-certified labels. The packet feeds the human review form; it contains no model output.
+Picks 20 worlds stratified by source (cedarbench / quacky / synthetic repo / synthetic mcp) and tier,
+seeded, and writes, per world: the facts block, all six renderings of the `orig` policy, and two sample
+requests with their engine-certified labels. The packet feeds the human review form; no model output.
 """
 
 from __future__ import annotations
