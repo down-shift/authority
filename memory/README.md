@@ -23,6 +23,9 @@ the rest of the team's agents never see it. Committing it here fixes that.
 
 - `decision-autonomy-loop.md` — how the `/continue` loop works and its
   non-negotiable rules.
+- `reference-dgx-usage.md` — compute resources (A100, RTX PCs, H100, V100),
+  the claim priority, and each machine's rules (H100: compose only, files only
+  under `/data/storage/kaluzhnaya_jhub/`, GPU #7 only, clean up).
 - `lesson-preregistration-git-trail.md` — squash/rebase erase the
   rule-before-result evidence; merge experiment PRs with `--merge`; only say
   "pre-registered" with a timestamped commit (see `docs/prereg/`).
