@@ -257,7 +257,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: exact de-duplication of repeated conditions applied before rendering (recorded); benchmark rebuilt from the same source runs with the v2 renderers, every world and swap re-certified; P1.10 report updated with a v2 section (v1 kept as history, archived); a round-2 spot-check packet (same seed and strata) that shows each world's complete application prompt per rendering, published as a fresh review form; gate green.
 
 ### G1 — [HUMAN] Gate 1: benchmark sign-off
-- status: todo
+- status: done
+- note: passed by Jerzy 2026-10-08 (round 2; docs/experiments/g1-spotcheck-round2.md)
 - owner: —
 - claimed_at: —
 - deps: P1.13
