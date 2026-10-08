@@ -155,7 +155,7 @@ Gate 3: canonicalization closes ≥50% of the worst-case gap on the majority of 
 
 Following arXiv 2606.11643's recipe, applied to authorization:
 1. Training data: synthetic policies (not from the eval set) in **four** renderings; hold out one rendering entirely (Cedar) to test generalization to an unseen format.
-2. Models: Qwen3-8B and Gemma-3-12B, LoRA r=16–64, 3 seeds.
+2. Models: Qwen3-8B and Gemma-3-12B, LoRA r=16–64, 3 seeds. *(Amended 2026-10-08, Jerzy: Qwen3.5-9B and Gemma-4-12B-it.)*
 3. Controls: single-format SFT with matched token count; no-SFT.
 4. Report: worst-case gap on held-in and held-out renderings; any safety/utility regression on a general tool-use eval (e.g., a BFCL subset).
 
@@ -214,6 +214,17 @@ Reuse E2 design but hold constraint count fixed and vary semantic independence. 
 3. Should the T3 agent sandbox be built fresh or adapted from AgentDojo's harness? Adapting saves time but ties us to its task style.
 4. Co-authors / student allocation: who owns the benchmark, who owns the agent harness?
 5. Do we want to invite the PolicySummarizer (Eiers, Stevens) group as collaborators for the IAM/Quacky part, or keep it internal?
+
+**Answers (Jerzy, 2026-10-08):**
+1. Rego: add it as the sixth rendering (P1.5 proceeds).
+2. GPUs: the H100 (GPU #7) may be used as long as needed. The 235B question is moot after the roster amendment; the largest model, gpt-oss-120b, fits one H100.
+3. T3 sandbox: the agent's judgement. **Decision:** build it fresh: a minimal MCP-style tool sandbox whose only varied factor is the policy rendering, with tasks generated from the same benchmark policies as T2. It reuses AgentDojo/Prompts-Don't-Protect *metric definitions* (UIR, refusal rate, completion) but not their harness, which would tie the tasks to fixed natural-language policies.
+4. Ownership: deferred (a writing question).
+5. Eiers group: no collaboration; cite only.
+
+**G0 (Jerzy, 2026-10-08): waived — proceed to Phase 1.** The Gate-0 rule recommended FAIL (`docs/experiments/p0.4-phase0-kill-test.md`). Jerzy waived it: the toy worlds sit at ceiling for ≥27B models, gpt-oss-120b still shows a 7.5 pp effect (P0.5), and Phase 1's harder engine-certified policies are the real test. No pivot.
+
+**Approved changes (Jerzy, 2026-10-08):** parser strict-v2 before Phase 2 (step P2.0); pin the Quacky dataset in P1.8 (the "587 policies" figure is unverified per `docs/related_work.md`); a threat-model step for the format-choice claim (W0.1); Phase-4 SFT models refreshed to Qwen3.5-9B and Gemma-4-12B-it. Paper stays on the ACL template for now.
 
 ## 9. What success looks like
 

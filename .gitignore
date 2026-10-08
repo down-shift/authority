@@ -8,3 +8,4 @@ outputs/*
 .env
 .env.*
 .claude/worktrees/
+.DS_Store
