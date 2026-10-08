@@ -55,3 +55,4 @@ testing) are themselves experiments and get reports.
 ## Index
 
 - `p0.4-phase0-kill-test.md` — Phase 0, 4 models: Gate-0 recommendation FAIL (negative); 8B effect reproduced.
+- `p0.5-phase0-addendum.md` — current models (Qwen3.8-27B, Gemma-4-31B invariant; gpt-oss-120b 7.5 pp fail-closed on natural language); neutral, outside Gate 0.
