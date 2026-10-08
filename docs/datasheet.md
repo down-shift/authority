@@ -94,9 +94,9 @@ A release must carry:
 
 - Any renderer or prompt change gets a version bump, a `docs/CHANGELOG.md`
   entry, and a rebuild.
-- Raw artifacts are git-ignored. The long-term copy is on V100 storage
-  `…/authinv/phase1/`; the archive was pending at build time (cluster
-  unreachable).
+- Raw artifacts are git-ignored. The long-term copy is on V100 storage at
+  `/var/dockerstorage/docker-jkaminskii-202512171636/authinv/phase1/`
+  (benchmark plus its source runs; hash-verified).
 
 ## Known limitations
 
