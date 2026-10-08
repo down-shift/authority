@@ -26,6 +26,7 @@ the rest of the team's agents never see it. Committing it here fixes that.
 - `reference-dgx-usage.md` — compute resources (A100, RTX PCs, H100, V100),
   the claim priority, and each machine's rules (H100: compose only, files only
   under `/data/storage/kaluzhnaya_jhub/`, GPU #7 only, clean up).
+- `lesson-gate-exit-status.md` — a piped gate and an unprotected `main` let a red PR merge; check exit codes and CI conclusion before merging.
 - `lesson-preregistration-git-trail.md` — squash/rebase erase the
   rule-before-result evidence; merge experiment PRs with `--merge`; only say
   "pre-registered" with a timestamped commit (see `docs/prereg/`).
