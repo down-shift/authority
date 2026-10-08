@@ -214,3 +214,32 @@ def test_aggregate_markdown_and_holm_family(tmp_path):
     assert set(result["holm_adjusted_gap_p"]) == {"qwen3_32b", "gemma3_27b"}
     assert result["gate0"]["recommendation"] == "INCOMPLETE"
     assert "| qwen3_32b |" in md.read_text() and "Recommendation: INCOMPLETE" in md.read_text()
+
+
+def test_split_harmony_takes_final_channel():
+    from authinv.eval.generation import split_harmony
+
+    raw = (
+        "<|channel|>analysis<|message|>The listed owner is Agent F05.<|end|>"
+        "<|start|>assistant<|channel|>final<|message|>Agent F05<|return|>"
+    )
+    out = split_harmony(raw)
+    assert out["text"] == "Agent F05" and out["harmony_final_found"]
+    assert out["reasoning"] == "The listed owner is Agent F05." and out["raw_text"] == raw
+    truncated = split_harmony("<|channel|>analysis<|message|>Thinking about it")
+    assert truncated["text"] == "" and not truncated["harmony_final_found"]
+    assert parse_answer(truncated["text"], CANDS, "Agent F05")["category"] == "parse_failure"
+
+
+def test_addendum_config_only_differs_where_intended():
+    import yaml
+
+    from authinv import models
+
+    base = yaml.safe_load((ROOT / "configs" / "authinv" / "phase0.yaml").read_text())
+    add = yaml.safe_load((ROOT / "configs" / "authinv" / "phase0_addendum.yaml").read_text())
+    assert "gate0" not in add and add["source"] == base["source"] and add["analysis"] == base["analysis"]
+    assert add["generation"] == base["generation"] and add["parser_version"] == base["parser_version"]
+    reg = models.load_registry()
+    assert set(add["large_models"]) == set(reg["sets"][add["models_set"]])
+    assert set(add["generation_overrides"]) <= set(reg["sets"][add["models_set"]])
