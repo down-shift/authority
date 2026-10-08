@@ -1,1 +1,854 @@
 % Bibliography. Prefer ACL Anthology BibTeX (https://aclanthology.org) with doi/url fields.
+%
+% Related work verified in step R0.1 (docs/related_work.md), 2026-10-08.
+% arXiv entries: title, authors, latest version and withdrawal status were read
+% from each paper's arXiv abstract page on 2026-10-08. The `note` field records
+% the version checked. Keys are stable; do not rename them once cited.
+% Re-check monthly (see "Last re-searched" in docs/related_work.md).
+
+% --- Non-arXiv policy sources (verified against publisher / conference pages) ---
+
+@inproceedings{eiers2022quacky,
+  title = {{Quacky: Quantitative Access Control Permissiveness Analyzer}},
+  author = {Eiers, William and Sankaran, Ganesh and Li, Albert and O'Mahony, Emily and Prince, Benjamin and Bultan, Tevfik},
+  booktitle = {Proceedings of the 37th IEEE/ACM International Conference on Automated Software Engineering (ASE '22)},
+  year = {2022},
+  publisher = {ACM},
+  doi = {10.1145/3551349.3559530}
+}
+
+@inproceedings{slankas2014relation,
+  title = {{Relation Extraction for Inferring Access Control Rules from Natural Language Artifacts}},
+  author = {Slankas, John and Xiao, Xusheng and Williams, Laurie and Xie, Tao},
+  booktitle = {Annual Computer Security Applications Conference (ACSAC)},
+  year = {2014},
+  note = {Source of the ACRE access-control-statement corpus as used by Prose2Policy (arXiv:2603.15799) and Structured Decomposition (arXiv:2609.24036); the name ``ACRE'' itself is not on the ACSAC program page}
+}
+
+% --- arXiv papers (RESEARCH_PLAN section 2 first, then novelty_check.md extras) ---
+
+@misc{sclar2024quantifying,
+  title = {{Quantifying Language Models' Sensitivity to Spurious Features in Prompt Design or: How I learned to start worrying about prompt formatting}},
+  author = {Sclar, Melanie and Choi, Yejin and Tsvetkov, Yulia and Suhr, Alane},
+  year = {2024},
+  eprint = {2310.11324},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2310.11324},
+  note = {arXiv:2310.11324v2, 1 Jul 2024. ICLR 2024 Camera Ready version}
+}
+
+@misc{he2024prompt,
+  title = {{Does Prompt Formatting Have Any Impact on LLM Performance?}},
+  author = {He, Jia and Rungta, Mukund and Koleczek, David and Sekhon, Arshdeep and Wang, Franklin X and Hasan, Sadid},
+  year = {2024},
+  eprint = {2411.10541},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2411.10541},
+  note = {arXiv:2411.10541v1, 15 Nov 2024. Submitted to NAACL 2025}
+}
+
+@misc{zhang2026notassweet,
+  title = {{Not as Sweet by Another Name: An Empirical Study of Format Robustness in LLM Document Workflows}},
+  author = {Zhang, Xiaoyu and Cheng, Xianyun and Li, Tianlin and Zheng, Yuwei and Yang, Yue and Liu, Yang},
+  year = {2026},
+  eprint = {2607.27648},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2607.27648},
+  doi = {10.1145/3832783.3837456},
+  note = {arXiv:2607.27648v1, 30 Jul 2026. 41st IEEE/ACM International Conference on Automated Software Engineering (ASE 2026)}
+}
+
+@misc{liu2026crossformat,
+  title = {{Improving Cross-Format Robustness in Language Models with Multi-Format Training}},
+  author = {Liu, June M. and Zheng, Shaomian and Cao, He and Jin, Dingnan and Cui, Qing and Zhou, Jun},
+  year = {2026},
+  eprint = {2606.11643},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2606.11643},
+  note = {arXiv:2606.11643v1, 10 Jun 2026}
+}
+
+@misc{park2026policyguard,
+  title = {{PolicyGuard: Prompt-Configurable Semantic DLP for LLM Coding Agents}},
+  author = {Park, Kyutae and Kim, Jungwon and Shim, Daeyeol},
+  year = {2026},
+  eprint = {2608.02687},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2608.02687},
+  note = {arXiv:2608.02687v3, 6 Aug 2026. Withdrawn by the authors (arXiv abstract page)}
+}
+
+@misc{vatsa2025neurosymbolic,
+  title = {{Neurosymbolic Characterization for Reliable Access Control Policy Analysis}},
+  author = {Vatsa, Adarsh and Hall, Bethel and Eiers, William},
+  year = {2025},
+  eprint = {2510.20692},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2510.20692},
+  note = {arXiv:2510.20692v3, 3 Jul 2026. Accepted to ISSRE 2026}
+}
+
+@misc{uppala2026prompts,
+  title = {{Prompts Don't Protect: Architectural Enforcement via MCP Proxy for LLM Tool Access Control}},
+  author = {Uppala, Rohith},
+  year = {2026},
+  eprint = {2605.18414},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2605.18414},
+  note = {arXiv:2605.18414v3, 27 Aug 2026. Camera-ready, EMNLP 2026 Industry Track}
+}
+
+@misc{karamchandani2026threat,
+  title = {{Threat-Preserving Representation Sensitivity in Agent-Security Benchmarks}},
+  author = {Karamchandani, Neeraj and Nagasubramaniam, Piyush and Xie, Xinhong and Zhu, Sencun and Wu, Dinghao},
+  year = {2026},
+  eprint = {2610.03585},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2610.03585},
+  note = {arXiv:2610.03585v1, 2 Oct 2026}
+}
+
+@misc{nair2026policyaslogic,
+  title = {{Policy-as-logic for robust reasoning over rules}},
+  author = {Nair, Rahul and Lipka, Bastian and Daly, Elizabeth},
+  year = {2026},
+  eprint = {2608.11905},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2608.11905},
+  note = {arXiv:2608.11905v1, 12 Aug 2026. RobustifAI Workshop at IJCAI-ECAI '26}
+}
+
+@misc{santosgrueiro2026ghost,
+  title = {{Ghost in the Context: Policy-Carriage Integrity in LLM Agents}},
+  author = {Santos-Grueiro, Igor},
+  year = {2026},
+  eprint = {2605.12535},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2605.12535},
+  note = {arXiv:2605.12535v3, 1 Jul 2026}
+}
+
+@misc{ma2026metapermit,
+  title = {{MetaPermit: Scalable and Auditable Access Control for AI Agents via LLM-Inferred Meta-Attributes}},
+  author = {Ma, Hanzhang and Hariri, Ali and Shen, Tianxiang and Zou, Bohua and Zheng, Qianjun and Wang, Ji and Yi, Li and Jia, Ning and Liu, Yutao and Chen, Haibo and Wang, Lin and Roy, Debayan},
+  year = {2026},
+  eprint = {2609.31039},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2609.31039},
+  note = {arXiv:2609.31039v1, 25 Sep 2026}
+}
+
+@misc{gupta2026structured,
+  title = {{Structured Decomposition for Reliable LLM-Generated Access Control Policies}},
+  author = {Gupta, Vatsal and Sreenivasamurthy, Darshan},
+  year = {2026},
+  eprint = {2609.24036},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2609.24036},
+  note = {arXiv:2609.24036v1, 21 Sep 2026}
+}
+
+@misc{vatsa2026autocedar,
+  title = {{AutoCedar: An Agentic Framework for Verifier-Guided Access Control Policy Synthesis}},
+  author = {Vatsa, Adarsh and Shome, Sachi and Zhou, Yingming and Eiers, William},
+  year = {2026},
+  eprint = {2607.03656},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2607.03656},
+  note = {arXiv:2607.03656v1, 4 Jul 2026}
+}
+
+@misc{gupta2026prose2policy,
+  title = {{Prose2Policy (P2P): A Practical LLM Pipeline for Translating Natural-Language Access Policies into Executable Rego}},
+  author = {Gupta, Vatsal and Sreenivasamurthy, Darshan},
+  year = {2026},
+  eprint = {2603.15799},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2603.15799},
+  note = {arXiv:2603.15799v1, 16 Mar 2026}
+}
+
+@misc{balpstraffon2026choosing,
+  title = {{How Language Models Choose Sides: Internal Representations of Instruction Hierarchy}},
+  author = {Balp-Straffon, Enrique and Hsu, Chih-Hao and Gadhvi, Rushiraj and Dev, Sunishchal and McDougall, Callum Stuart and Mujumdar, Anusha},
+  year = {2026},
+  eprint = {2608.28648},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2608.28648},
+  note = {arXiv:2608.28648v1, 16 Aug 2026. Published at the ICML 2026 Mechanistic Interpretability workshop}
+}
+
+@misc{usama2026system,
+  title = {{The System Prompt Illusion: How Instruction Preambles Modify Computation in Language Models}},
+  author = {Usama, Muhammad and Chang, Dong Eui},
+  year = {2026},
+  eprint = {2609.38205},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2609.38205},
+  note = {arXiv:2609.38205v1, 23 Sep 2026}
+}
+
+@misc{vasileva2026phase,
+  title = {{Large Language Models Can Follow Instructions, But Not Many at Once: Phase Transitions in Compositional Constraint Satisfaction}},
+  author = {Vasileva, Mariya I.},
+  year = {2026},
+  eprint = {2608.12426},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2608.12426},
+  note = {arXiv:2608.12426v1, 12 Aug 2026}
+}
+
+@misc{debenedetti2024agentdojo,
+  title = {{AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents}},
+  author = {Debenedetti, Edoardo and Zhang, Jie and Balunović, Mislav and Beurer-Kellner, Luca and Fischer, Marc and Tramèr, Florian},
+  year = {2024},
+  eprint = {2406.13352},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2406.13352},
+  note = {arXiv:2406.13352v3, 24 Nov 2024}
+}
+
+@misc{zhang2024asb,
+  title = {{Agent Security Bench (ASB): Formalizing and Benchmarking Attacks and Defenses in LLM-based Agents}},
+  author = {Zhang, Hanrong and Huang, Jingyuan and Mei, Kai and Yao, Yifei and Wang, Zhenting and Zhan, Chenlu and Wang, Hongwei and Zhang, Yongfeng},
+  year = {2024},
+  eprint = {2410.02644},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2410.02644},
+  note = {arXiv:2410.02644v4, 30 May 2025. Accepted by ICLR 2025}
+}
+
+@misc{zhang2026grantbox,
+  title = {{Evaluating Privilege Usage of Agents with Real-World Tools}},
+  author = {Zhang, Quan and Fu, Lianhang and Lian, Lvsi and Go, Gwihwan and Wang, Yujue and Zhou, Chijin and Jiang, Yu and Pu, Geguang},
+  year = {2026},
+  eprint = {2603.28166},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2603.28166},
+  note = {arXiv:2603.28166v2, 20 Apr 2026. Accepted to the FSE 2026 Ideas, Visions, and Reflections track}
+}
+
+@misc{yan2026authbench,
+  title = {{Do Coding Agents Understand Least-Privilege Authorization?}},
+  author = {Yan, Zheng and Weng, Jingxiang and Chen, Charles and Peng, Dengyun and Qin, Ethan and Guan, Jiannan and Liu, Jinhao and Yu, Qiming and Yuan, Yixin and Meng, Fanqing and Che, Carl and Hu, Mengkang},
+  year = {2026},
+  eprint = {2605.14859},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2605.14859},
+  note = {arXiv:2605.14859v2, 15 May 2026}
+}
+
+@misc{pan2023logic,
+  title = {{Logic-LM: Empowering Large Language Models with Symbolic Solvers for Faithful Logical Reasoning}},
+  author = {Pan, Liangming and Albalak, Alon and Wang, Xinyi and Wang, William Yang},
+  year = {2023},
+  eprint = {2305.12295},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2305.12295},
+  note = {arXiv:2305.12295v2, 19 Oct 2023. EMNLP 2023 (Findings, long paper)}
+}
+
+@misc{olausson2023linc,
+  title = {{LINC: A Neurosymbolic Approach for Logical Reasoning by Combining Language Models with First-Order Logic Provers}},
+  author = {Olausson, Theo X. and Gu, Alex and Lipkin, Benjamin and Zhang, Cedegao E. and Solar-Lezama, Armando and Tenenbaum, Joshua B. and Levy, Roger},
+  year = {2023},
+  eprint = {2310.15164},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2310.15164},
+  note = {arXiv:2310.15164v2, 14 Feb 2024. EMNLP Main 2023 (Outstanding Paper Award)}
+}
+
+@misc{mu2023rules,
+  title = {{Can LLMs Follow Simple Rules?}},
+  author = {Mu, Norman and Chen, Sarah and Wang, Zifan and Chen, Sizhe and Karamardian, David and Aljeraisy, Lulwa and Alomair, Basel and Hendrycks, Dan and Wagner, David},
+  year = {2023},
+  eprint = {2311.04235},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2311.04235},
+  note = {arXiv:2311.04235v3, 8 Mar 2024}
+}
+
+@misc{subramaniam2024deploi,
+  title = {{DePLOI: Applying NL2SQL to Synthesize and Audit Database Access Control}},
+  author = {Subramaniam, Pranav and Krishnan, Sanjay},
+  year = {2024},
+  eprint = {2402.07332},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.DB},
+  url = {https://arxiv.org/abs/2402.07332},
+  note = {arXiv:2402.07332v4, 22 May 2025}
+}
+
+@misc{lyu2024aligned,
+  title = {{Keeping LLMs Aligned After Fine-tuning: The Crucial Role of Prompt Templates}},
+  author = {Lyu, Kaifeng and Zhao, Haoyu and Gu, Xinran and Yu, Dingli and Goyal, Anirudh and Arora, Sanjeev},
+  year = {2024},
+  eprint = {2402.18540},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url = {https://arxiv.org/abs/2402.18540},
+  note = {arXiv:2402.18540v2, 17 Jan 2025. NeurIPS 2024}
+}
+
+@misc{wallace2024instruction,
+  title = {{The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions}},
+  author = {Wallace, Eric and Xiao, Kai and Leike, Reimar and Weng, Lilian and Heidecke, Johannes and Beutel, Alex},
+  year = {2024},
+  eprint = {2404.13208},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2404.13208},
+  note = {arXiv:2404.13208v1, 19 Apr 2024}
+}
+
+@misc{yao2024taubench,
+  title = {{$\tau$-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains}},
+  author = {Yao, Shunyu and Shinn, Noah and Razavi, Pedram and Narasimhan, Karthik},
+  year = {2024},
+  eprint = {2406.12045},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2406.12045},
+  note = {arXiv:2406.12045v1, 17 Jun 2024}
+}
+
+@misc{wen2024complex,
+  title = {{Benchmarking Complex Instruction-Following with Multiple Constraints Composition}},
+  author = {Wen, Bosi and Ke, Pei and Gu, Xiaotao and Wu, Lindong and Huang, Hao and Zhou, Jinfeng and Li, Wenchuang and Hu, Binxin and Gao, Wendy and Xu, Jiaxin and Liu, Yiming and Tang, Jie and Wang, Hongning and Huang, Minlie},
+  year = {2024},
+  eprint = {2407.03978},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2407.03978},
+  note = {arXiv:2407.03978v3, 31 Oct 2024. NeurIPS 2024 Datasets and Benchmarks Track}
+}
+
+@misc{sun2024rulebench,
+  title = {{Beyond Instruction Following: Evaluating Inferential Rule Following of Large Language Models}},
+  author = {Sun, Wangtao and Zhang, Chenxiang and Zhang, XueYou and Yu, Xuanqing and Huang, Ziyang and Chen, Pei and Xu, Haotian and He, Shizhu and Zhao, Jun and Liu, Kang},
+  year = {2024},
+  eprint = {2407.08440},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2407.08440},
+  note = {arXiv:2407.08440v4, 17 Oct 2024}
+}
+
+@misc{tam2024speak,
+  title = {{Let Me Speak Freely? A Study on the Impact of Format Restrictions on Performance of Large Language Models}},
+  author = {Tam, Zhi Rui and Wu, Cheng-Kuang and Tsai, Yi-Lin and Lin, Chieh-Yen and Lee, Hung-yi and Chen, Yun-Nung},
+  year = {2024},
+  eprint = {2408.02442},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2408.02442},
+  note = {arXiv:2408.02442v3, 14 Oct 2024}
+}
+
+@misc{ferraz2024decrim,
+  title = {{LLM Self-Correction with DeCRIM: Decompose, Critique, and Refine for Enhanced Following of Instructions with Multiple Constraints}},
+  author = {Ferraz, Thomas Palmeira and Mehta, Kartik and Lin, Yu-Hsiang and Chang, Haw-Shiuan and Oraby, Shereen and Liu, Sijia and Subramanian, Vivek and Chung, Tagyoung and Bansal, Mohit and Peng, Nanyun},
+  year = {2024},
+  eprint = {2410.06458},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2410.06458},
+  note = {arXiv:2410.06458v2, 30 Jul 2026. EMNLP 2024}
+}
+
+@misc{zhou2024rulearena,
+  title = {{RuleArena: A Benchmark for Rule-Guided Reasoning with LLMs in Real-World Scenarios}},
+  author = {Zhou, Ruiwen and Hua, Wenyue and Pan, Liangming and Cheng, Sitao and Wu, Xiaobao and Yu, En and Wang, William Yang},
+  year = {2024},
+  eprint = {2412.08972},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2412.08972},
+  note = {arXiv:2412.08972v2, 30 May 2025. ACL 2025 Main Conference}
+}
+
+@misc{zhang2025iheval,
+  title = {{IHEval: Evaluating Language Models on Following the Instruction Hierarchy}},
+  author = {Zhang, Zhihan and Li, Shiyang and Zhang, Zixuan and Liu, Xin and Jiang, Haoming and Tang, Xianfeng and Gao, Yifan and Li, Zheng and Wang, Haodong and Tan, Zhaoxuan and Li, Yichuan and Yin, Qingyu and Yin, Bing and Jiang, Meng},
+  year = {2025},
+  eprint = {2502.08745},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2502.08745},
+  note = {arXiv:2502.08745v2, 26 Mar 2025. Accepted to NAACL 2025 for oral presentation}
+}
+
+@misc{vatsa2025synthesizing,
+  title = {{Synthesizing Access Control Policies using Large Language Models}},
+  author = {Vatsa, Adarsh and Patel, Pratyush and Eiers, William},
+  year = {2025},
+  eprint = {2503.11573},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2503.11573},
+  note = {arXiv:2503.11573v1, 14 Mar 2025. to be published in the NLBSE Workshop at ICSE 2025}
+}
+
+@misc{ngweta2025robustness,
+  title = {{Towards LLMs Robustness to Changes in Prompt Format Styles}},
+  author = {Ngweta, Lilian and Kate, Kiran and Tsay, Jason and Rizk, Yara},
+  year = {2025},
+  eprint = {2504.06969},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2504.06969},
+  note = {arXiv:2504.06969v1, 9 Apr 2025. NAACL Student Research Workshop (SRW) 2025}
+}
+
+@misc{shi2025progent,
+  title = {{Progent: Securing AI Agents with Privilege Control}},
+  author = {Shi, Tianneng and He, Jingxuan and Wang, Zhun and Li, Hongwei and Wu, Linyu and Guo, Wenbo and Song, Dawn},
+  year = {2025},
+  eprint = {2504.11703},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2504.11703},
+  note = {arXiv:2504.11703v3, 14 May 2026}
+}
+
+@misc{guo2025recast,
+  title = {{RECAST: Expanding the Boundaries of LLMs' Complex Instruction Following with Multi-Constraint Data}},
+  author = {Guo, Zhengkang and Liu, Wenhao and Xie, Mingchen and Xu, Jingwen and Huang, Zisu and Tian, Muzhao and Xu, Jianhan and Shen, Yuanzhe and Qian, Qi and Wu, Muling and Wang, Xiaohua and Lv, Changze and Wang, He-Da and Yao, Hu and Zheng, Xiaoqing and Huang, Xuanjing},
+  year = {2025},
+  eprint = {2505.19030},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2505.19030},
+  note = {arXiv:2505.19030v5, 3 Sep 2026}
+}
+
+@misc{cheng2025say,
+  title = {{Say What You Mean: Natural Language Access Control with Large Language Models for Internet of Things}},
+  author = {Cheng, Ye and Xu, Minghui and Zhang, Yue and Li, Kun and Wu, Hao and Zhang, Yechao and Guo, Shaoyong and Qiu, Wangjie and Yu, Dongxiao and Cheng, Xiuzhen},
+  year = {2025},
+  eprint = {2505.23835},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2505.23835},
+  note = {arXiv:2505.23835v1, 28 May 2025}
+}
+
+@misc{romeo2025arpaccino,
+  title = {{ARPaCCino: An Agentic-RAG for Policy as Code Compliance}},
+  author = {Romeo, Francesco and Arena, Luigi and Blefari, Francesco and Pironti, Francesco Aurelio and Lupinacci, Matteo and Furfaro, Angelo},
+  year = {2025},
+  eprint = {2507.10584},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2507.10584},
+  note = {arXiv:2507.10584v2, 4 Nov 2025}
+}
+
+@misc{kholkar2025policyasprompt,
+  title = {{Policy-as-Prompt: Turning AI Governance Rules into Guardrails for AI Agents}},
+  author = {Kholkar, Gauri and Ahuja, Ratinder},
+  year = {2025},
+  eprint = {2509.23994},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2509.23994},
+  note = {arXiv:2509.23994v2, 7 Nov 2025}
+}
+
+@misc{miculicich2025veriguard,
+  title = {{VeriGuard: Enhancing LLM Agent Safety via Verified Code Generation}},
+  author = {Miculicich, Lesly and Parmar, Mihir and Palangi, Hamid and Dvijotham, Krishnamurthy Dj and Montanari, Mirko and Pfister, Tomas and Le, Long T.},
+  year = {2025},
+  eprint = {2510.05156},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2510.05156},
+  note = {arXiv:2510.05156v1, 3 Oct 2025}
+}
+
+@misc{klisura2025role,
+  title = {{Role-Conditioned Refusals: Evaluating Access Control Reasoning in Large Language Models}},
+  author = {Klisura, Đorđe and Khoury, Joseph and Kundu, Ashish and Krishnan, Ram and Rios, Anthony},
+  year = {2025},
+  eprint = {2510.07642},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2510.07642},
+  note = {arXiv:2510.07642v1, 9 Oct 2025}
+}
+
+@misc{zheng2025audagent,
+  title = {{AudAgent: Automated Auditing of Privacy Policy Compliance in AI Agents}},
+  author = {Zheng, Ye and Chen, Yimin and Hu, Yidan},
+  year = {2025},
+  eprint = {2511.07441},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2511.07441},
+  note = {arXiv:2511.07441v5, 4 Mar 2026. Accepted by PETS'26 (issue 3)}
+}
+
+@misc{babasaheb2025harnessing,
+  title = {{Towards Harnessing the Power of LLMs for ABAC Policy Mining}},
+  author = {Babasaheb, More Aayush and Sural, Shamik},
+  year = {2025},
+  eprint = {2511.18098},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2511.18098},
+  note = {arXiv:2511.18098v1, 22 Nov 2025}
+}
+
+@misc{groschupp2025make,
+  title = {{Can LLMs Make (Personalized) Access Control Decisions?}},
+  author = {Groschupp, Friederike and Lain, Daniele and Dhar, Aritra and Lazier, Lara Magdalena and Čapkun, Srdjan},
+  year = {2025},
+  eprint = {2511.20284},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2511.20284},
+  note = {arXiv:2511.20284v2, 5 May 2026}
+}
+
+@misc{datla2025executable,
+  title = {{Executable Governance for AI: Translating Policies into Rules Using LLMs}},
+  author = {Datla, Gautam Varma and Vurity, Anudeep and Dash, Tejaswani and Ahmad, Tazeem and Adnan, Mohd and Rafi, Saima},
+  year = {2025},
+  eprint = {2512.04408},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2512.04408},
+  note = {arXiv:2512.04408v1, 4 Dec 2025. Accepted to AAAI-26 AI Governance Workshop }
+}
+
+@misc{zhu2025miniscope,
+  title = {{MiniScope: Authorizing Agents with Least-Privilege Permissions}},
+  author = {Zhu, Jinhao and Huang, Xiao and Tseng, Kevin and Vernik, Gil and Patil, Shishir G. and Fang, Vivian and Popa, Raluca Ada},
+  year = {2025},
+  eprint = {2512.11147},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2512.11147},
+  note = {arXiv:2512.11147v2, 6 Oct 2026}
+}
+
+@misc{song2025chess,
+  title = {{Beyond Accuracy: A Geometric Stability Analysis of Large Language Models in Chess Evaluation}},
+  author = {Song, Xidan and Wang, Weiqi and Cao, Ruifeng and Hu, Qingya},
+  year = {2025},
+  eprint = {2512.15033},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2512.15033},
+  note = {arXiv:2512.15033v1, 17 Dec 2025}
+}
+
+@misc{zisad2026llmac,
+  title = {{LLMAC: A Global and Explainable Access Control Framework with Large Language Model}},
+  author = {Zisad, Sharif Noor and Hasan, Ragib},
+  year = {2026},
+  eprint = {2602.09392},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2602.09392},
+  note = {arXiv:2602.09392v1, 10 Feb 2026. This paper is accepted and presented in IEEE Consumer Communications \& Networking Conference (CCNC 2026)}
+}
+
+@misc{palumbo2026formal,
+  title = {{Formal Policy Enforcement for Real-World Agentic Systems}},
+  author = {Palumbo, Nils and Choudhary, Sarthak and Choi, Jihye and Amir, Guy and Chalasani, Prasad and Jha, Somesh},
+  year = {2026},
+  eprint = {2602.16708},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2602.16708},
+  note = {arXiv:2602.16708v3, 8 May 2026}
+}
+
+@misc{ye2026roleconfusion,
+  title = {{Prompt Injection as Role Confusion}},
+  author = {Ye, Charles and Cui, Jasmine and Hadfield-Menell, Dylan},
+  year = {2026},
+  eprint = {2603.12277},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2603.12277},
+  note = {arXiv:2603.12277v6, 27 Jun 2026. ICML 2026}
+}
+
+@misc{sigdel2026schema,
+  title = {{Schema First Tool APIs for LLM Agents: A Controlled Study of Tool Misuse, Recovery, and Budgeted Performance}},
+  author = {Sigdel, Akshey and Baral, Rista},
+  year = {2026},
+  eprint = {2603.13404},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2603.13404},
+  note = {arXiv:2603.13404v1, 12 Mar 2026}
+}
+
+@misc{dou2026deonticbench,
+  title = {{DeonticBench: A Benchmark for Reasoning over Rules}},
+  author = {Dou, Guangyao and Brena, Luis and Deo, Akhil and Jurayj, William and Zhang, Jingyu and Holzenberger, Nils and Van Durme, Benjamin},
+  year = {2026},
+  eprint = {2604.04443},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2604.04443},
+  note = {arXiv:2604.04443v1, 6 Apr 2026}
+}
+
+@misc{li2026clawsbench,
+  title = {{ClawsBench: Evaluating Capability and Safety of LLM Productivity Agents in Simulated Workspaces}},
+  author = {Li, Xiangyi and Choe, Kyoung Whan and Liu, Yimin and Chen, Xiaokun and Tao, Chujun and You, Bingran and Chen, Wenbo and Di, Zonglin and Sun, Jiankai and Zheng, Shenghan and Bao, Jiajun and Wang, Yuanli and Yan, Weixiang and Li, Yiyuan and Lee, Han-chung},
+  year = {2026},
+  eprint = {2604.05172},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2604.05172},
+  note = {arXiv:2604.05172v2, 8 Apr 2026}
+}
+
+@misc{rao2026correct,
+  title = {{Correct Chains, Wrong Answers: Dissociating Reasoning from Output in LLM Logic}},
+  author = {Rao, Abinav and Rachuri, Sujan and Vemuri, Nikhil},
+  year = {2026},
+  eprint = {2604.13065},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2604.13065},
+  note = {arXiv:2604.13065v1, 19 Mar 2026. ICLR 2026 Workshop on Logical Reasoning of LLMs}
+}
+
+@misc{choi2026policybank,
+  title = {{PolicyBank: Evolving Policy Understanding for LLM Agents}},
+  author = {Choi, Jihye and Yoon, Jinsung and Le, Long T. and Jha, Somesh and Pfister, Tomas},
+  year = {2026},
+  eprint = {2604.15505},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2604.15505},
+  note = {arXiv:2604.15505v1, 16 Apr 2026}
+}
+
+@misc{jawandhia2026representation,
+  title = {{Measuring Representation Robustness in Large Language Models for Geometry}},
+  author = {Jawandhia, Vedant and Sinha, Yash and Mandal, Murari and Pal, Ankan and Kumar, Dhruv},
+  year = {2026},
+  eprint = {2604.16421},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2604.16421},
+  note = {arXiv:2604.16421v1, 3 Apr 2026}
+}
+
+@misc{alpay2026agentsecbench,
+  title = {{AgentSecBench: Measuring Prompt Injection, Privacy Leakage, and Tool-Use Integrity in LLM Agents}},
+  author = {Alpay, Faruk and Alpay, Taylan},
+  year = {2026},
+  eprint = {2605.26269},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2605.26269},
+  note = {arXiv:2605.26269v1, 25 May 2026}
+}
+
+@misc{wessner2026natural,
+  title = {{Natural Language Access Control (NLAC): From Help Desk Requests to Structured Policies}},
+  author = {Wessner, Jonas and Meuser, Tobias and Schoffit, Janek and Eisermann, Dennis and Deger, Johannes and Scheuermann, Björn and Kargl, Frank},
+  year = {2026},
+  eprint = {2606.06726},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.NI},
+  url = {https://arxiv.org/abs/2606.06726},
+  note = {arXiv:2606.06726v1, 4 Jun 2026}
+}
+
+@misc{zhou2026shield,
+  title = {{From Shield to Target: Denial-of-Service Attacks on LLM-Based Agent Guardrails}},
+  author = {Zhou, Yuguang and Wang, Xunguang and Ma, Pingchuan and Xue, Zhantong and Wang, Zhaoyu and Wang, Shuai},
+  year = {2026},
+  eprint = {2606.14517},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2606.14517},
+  note = {arXiv:2606.14517v2, 16 Jun 2026}
+}
+
+@misc{hu2026toolprivacybench,
+  title = {{ToolPrivacyBench: Benchmarking Purpose-Bound Privacy in Tool-Using LLM Agents}},
+  author = {Hu, Shijing and Liu, Liang and Meng, Zhu and Zhao, Zhicheng},
+  year = {2026},
+  eprint = {2606.28061},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2606.28061},
+  note = {arXiv:2606.28061v1, 26 Jun 2026}
+}
+
+@misc{zuvic2026capability,
+  title = {{Capability Gates Are Not Authorization: Confused-Deputy Failures in LLM Agent Frameworks}},
+  author = {Zuvic, David Mellafe},
+  year = {2026},
+  eprint = {2606.28679},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2606.28679},
+  note = {arXiv:2606.28679v1, 27 Jun 2026}
+}
+
+@misc{kang2026policyguard,
+  title = {{PolicyGuard: A Dialogue-Grounded Sub-Agent Verifier for Policy Adherence in LLM Agents}},
+  author = {Kang, Seongjae and Yu, Taehyung and Hwang, Sung Ju},
+  year = {2026},
+  eprint = {2606.29225},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2606.29225},
+  note = {arXiv:2606.29225v1, 28 Jun 2026}
+}
+
+@misc{nath2026representation,
+  title = {{Representation Robustness Under Executable Reasoning Constraints in Large Language Models for Mathematical Problem Solving}},
+  author = {Nath, Sagnik and Graf, Edith Aurora and Zhang, Liang and Zapata-Rivera, Diego},
+  year = {2026},
+  eprint = {2607.20520},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2607.20520},
+  note = {arXiv:2607.20520v1, 8 Jul 2026. presented at the 28th International Conference on Human-Computer Interaction (2026), Montreal, Canada}
+}
+
+@misc{kravchenko2026appa,
+  title = {{APPA: Recoverable Information-Flow Control for Real-World LLM Agents}},
+  author = {Kravchenko, Arseny and Liventsev, Vadim and Konstantinov, Innokentii and Iskhakov, Ildar and Kukuy, Matvey},
+  year = {2026},
+  eprint = {2607.24625},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2607.24625},
+  note = {arXiv:2607.24625v2, 26 Aug 2026}
+}
+
+@misc{feng2026know,
+  title = {{Know It, Act on It: Investigating Memory Utilization in LLM Personalization}},
+  author = {Feng, Zhaoxin and Ma, Jianfei and Chersoni, Emmanuele},
+  year = {2026},
+  eprint = {2607.29433},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2607.29433},
+  note = {arXiv:2607.29433v1, 31 Jul 2026}
+}
+
+@misc{bai2026tsugo,
+  title = {{TsuGO: Probing Search Efficiency in LLM Reasoning via Go Life-and-Death Problems}},
+  author = {Bai, Shunwen and Ma, Ziping and Zhang, Chaoyang and Wang, Yarong and Liu, Jiale and Qin, Zhen and Guo, Qingpei},
+  year = {2026},
+  eprint = {2608.13221},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2608.13221},
+  note = {arXiv:2608.13221v1, 13 Aug 2026}
+}
+
+@misc{huang2026wronglaw,
+  title = {{When Do LLMs Apply the Wrong Law? Diagnosing LLM Failures in Temporal Legal Reasoning}},
+  author = {Huang, Yiqian and Zheng, Shuyuan and Liu, Qianying and Peng, Shaowen and Kong, Yuntao and Funakoshi, Kotaro and Xiao, Chuan and Okumura, Manabu and Cao, Yang},
+  year = {2026},
+  eprint = {2608.14610},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2608.14610},
+  note = {arXiv:2608.14610v1, 8 Jul 2026}
+}
+
+@misc{dong2026claws,
+  title = {{The Claws in Plain Sight: Unauthorized Context Disclosure through LLM Agent Tool Calls}},
+  author = {Dong, Ben and Guo, Zhonghao and Lu, Tianyi and Wang, Qian},
+  year = {2026},
+  eprint = {2608.20658},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2608.20658},
+  note = {arXiv:2608.20658v1, 21 Aug 2026}
+}
+
+@misc{ahad2026influence,
+  title = {{Influence Is Not Authority: When Causal Guardrail Signals Make Legitimate Tool Use Look Like an Attack in Tool-Using LLM Agents}},
+  author = {Ahad, Tanzim and Hossain, Ismail and Alam, Md Jahangir and Puppala, Sai and Alam, Syed Bahauddin and Talukder, Sajedul},
+  year = {2026},
+  eprint = {2608.29942},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url = {https://arxiv.org/abs/2608.29942},
+  note = {arXiv:2608.29942v1, 30 Aug 2026}
+}
+
+@misc{attaduncan2026quantity,
+  title = {{Same Quantity, Different Answer: Numerical Representation Invariance in Language Models}},
+  author = {Atta-Duncan, Ephraim},
+  year = {2026},
+  eprint = {2609.25009},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2609.25009},
+  note = {arXiv:2609.25009v1, 27 Jul 2026}
+}
+
+@misc{mohsenzadegan2026policyasskill,
+  title = {{Policy-as-Skill: Governed LLM Decision Support with Evidence, Deterministic Control, and Audit}},
+  author = {Mohsenzadegan, Kabeh and Tavakkoli, Vahid and Kyamakya, Kyandoghere},
+  year = {2026},
+  eprint = {2609.27087},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2609.27087},
+  note = {arXiv:2609.27087v1, 22 Sep 2026}
+}
+
+@misc{zhou2026raise,
+  title = {{RAISE: Reinforcing Access Control Policy Synthesis in LLMs via Symbolic Evaluation}},
+  author = {Zhou, Yingming and Vatsa, Adarsh and Eiers, William},
+  year = {2026},
+  eprint = {2609.33796},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  url = {https://arxiv.org/abs/2609.33796},
+  note = {arXiv:2609.33796v1, 27 Sep 2026}
+}
+
+@misc{zhao2026rgdt,
+  title = {{RGDT-Bench: Benchmarking LLM Reasoning for Rule-Governed Decisions and Their Justifications}},
+  author = {Zhao, Jianpeng and Xu, Haihua and Zhang, Haoyang and Qian, Shuang and Tang, Yixiang and Wang, Xintao and Sun, Kun and Wu, Pei and Zhong, Shuhan and Wang, Pengyang},
+  year = {2026},
+  eprint = {2609.34455},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2609.34455},
+  note = {arXiv:2609.34455v1, 28 Sep 2026}
+}
