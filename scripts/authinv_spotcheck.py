@@ -71,6 +71,15 @@ def main() -> None:
             {"request": r["prompt"].split("Request: ", 1)[1].split("\n")[0], "label": r["label"]}
             for r in reqs[:2]
         ]
+        # Round 2+: the complete prompt a model receives, per rendering (first sampled request, orig names).
+        first = {
+            r["rendering"]: r["prompt"]
+            for r in rows
+            if r["world_id"] == w["world_id"]
+            and r["assignment"] == "orig"
+            and r["task"] == "application"
+            and r["instance"] == "q0"
+        }
         packet.append(
             {
                 "n": i,
@@ -81,6 +90,7 @@ def main() -> None:
                 "facts": render_facts(pol),
                 "renderings": {g: render(pol, g) for g in RENDERINGS},
                 "sample_requests": sample,
+                "full_prompts": {g: first[g] for g in RENDERINGS},
             }
         )
     meta = {
