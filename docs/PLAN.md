@@ -99,9 +99,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: docs/prereg/phase0.md states hypotheses, models (Qwen3-8B bf16, Qwen3-32B bf16, Gemma-3-27B bf16, Llama-3.3-70B int8), metrics, exclusion rules, the flip definition, and Gate 0 verbatim (PASS iff on ≥2 of the 3 ≥27B models worst-case accuracy is ≥5 pp below the best rendering with 95% CI excluding zero, or per-world rendering disagreement ≥5%; FAIL → SFT pivot); committed and pushed to main before any Phase-0 inference; MANIFEST row added.
 
 ### P0.4 — [GPU: H100] Phase-0 run and report
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T00:47:38Z
 - deps: P0.3
 - source: RESEARCH_PLAN §3 Phase 0 task 2
 - done-when: all four models run on the frozen Phase-0 dataset with full provenance; docs/experiments/p0.4-phase0-kill-test.md (result positive/neutral/negative) reports every preregistered metric with CIs per model, per rendering, and ends with the Gate 0 recommendation for Jerzy (not a decision); docs/PROGRESS.md entry added.
