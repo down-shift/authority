@@ -16,3 +16,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — P0.3 Phase 0 preregistered (`89b91c0`); Phase-0 inference may start.
 2026-10-08 — Jerzy approved the model-roster refresh: Phase-2 sweep amended to current releases (Qwen3.5/3.8, Gemma 4, gpt-oss, Ministral 3; Llama-3.3-70B W8A8 kept as anchor); new step P0.5 (Phase-0 addendum on Qwen3.8-27B, Gemma-4-31B, gpt-oss-120b), G0 now waits for it.
 2026-10-08 — P0.5 harness: smoke-tested on H100 with gpt_oss_20b and gemma4_e4b (not addendum models, 20 rows each, discarded).
+2026-10-08 — P0.5 addendum preregistered (`64b3b52`).
