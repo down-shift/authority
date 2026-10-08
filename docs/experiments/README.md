@@ -61,3 +61,4 @@ testing) are themselves experiments and get reports.
 - `p1.10-benchmark.md` — frozen Phase-1 benchmark: 1,984 certified worlds (544 real), 172,296 rows (data audit).
 - `p1.11-benchmark-audit.md` — certification summary (0 mismatches/errors) and the G1 spot-check packet.
 - `g1-spotcheck-round1.md` — G1 human review, round 1: not passed (20/20 worlds flagged; Cedar and Rego clean).
+- `g1-spotcheck-round2.md` — G1 human review, round 2: **passed** (all renderings read the same in all 20 worlds).
