@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::111122223333:user/alice"},
+      "Action": "s3:Get*",
+      "Resource": ["arn:aws:s3:::reports/*", "arn:aws:s3:::reports/q1.csv"],
+      "Condition": {"StringEquals": {"aws:RequestedRegion": ["eu-west-1", "us-east-1"]}}
+    },
+    {
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "*",
+      "Condition": {"StringNotEquals": {"aws:SourceVpc": ["vpc-1", "vpc-2"]}}
+    }
+  ]
+}

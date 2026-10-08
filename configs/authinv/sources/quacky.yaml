@@ -1,0 +1,38 @@
+# Quacky AWS IAM source pin (step P1.8). Read by scripts/fetch_quacky.py and
+# scripts/authinv_import_quacky.py. Re-pinning is a deliberate change:
+# update commit + hashes together and log it in docs/PROGRESS.md.
+name: Quacky
+paper: "Eiers, Sankaran, Li, O'Mahony, Prince, Bultan. Quacky: Quantitative Access Control Permissiveness Analyzer. ASE '22, DOI 10.1145/3551349.3559530"
+repo: https://github.com/vlab-cs-ucsb/quacky
+commit: 31c13eed9256d426a994787fb11356e835623f20  # master as of 2026-05-11T16:39:26Z
+archive_url: https://codeload.github.com/vlab-cs-ucsb/quacky/tar.gz/{commit}
+license: BSD-2-Clause  # repo LICENSE ("Copyright (c) 2015, The Regents of the University of California"); extracted with the data
+retrieved: 2026-10-08
+# repo path -> path under data/raw/quacky/ (a trailing slash extracts a subtree)
+extract:
+  LICENSE: LICENSE
+  README.md: README.md
+  samples/README.md: samples/README.md
+  samples/mutate.py: samples/mutate.py
+  samples/ec2/exp_single/: samples/ec2/exp_single/
+  samples/iam/exp_single/: samples/iam/exp_single/
+  samples/s3/exp_single/: samples/s3/exp_single/
+  samples/mutations/: samples/mutations/
+# The import set, relative to data/raw/quacky/samples/. The 41 exp_single files
+# are the AWS policies the ASE '22 paper analyzes (13 ec2 + 8 iam + 20 s3); the
+# 546 mutations are generated from them by samples/mutate.py and match the
+# "546 AWS policies" of PolicySummarizer (arXiv 2510.20692 v3). 41 + 546 = 587,
+# the figure RESEARCH_PLAN cites. Not imported (counted in the P1.8 report):
+# exp_multiple copies, Azure/GCP, and the vlab/william/og/manual_*/benchmark sets.
+import_globs:
+  - "ec2/exp_single/**/*.json"
+  - "iam/exp_single/**/*.json"
+  - "s3/exp_single/**/*.json"
+  - "mutations/**/*.json"
+expected_policies: 587
+expected_originals: 41
+expand_wildcards: true  # wildcards expanded over the closed universe (see authinv.sources.quacky)
+tree_sha256: 99aab0cd2879a374d37daaad3a4c87cf05bdc9da1bb3adde89ea2cc97b235ca3
+n_files: 622
+file_sha256:
+  LICENSE: d8b9b4007ece8913e02a0a7cce0ddff9309bb45a329c1565331240098983e136
