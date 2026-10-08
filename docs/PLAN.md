@@ -243,9 +243,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: the existing candidate log-prob scorer copied and adapted into src/authinv/eval/ (no imports from legacy packages), scoring authinv rendered prompts; candidate token-count audit; tests with a fake tokenizer/logits; gate green.
 
 ### P2.2 — T2 structured-generation harness
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:53:12Z
 - deps: P0.2 P1.2 P2.0
 - source: RESEARCH_PLAN §3 Phase 2 T2, headline tables
 - done-when: vLLM greedy decoding with a strict JSON answer schema over authinv datasets; parse failures / refusals / abstains as separate categories; metrics extended with dissociation rate (interpretation correct ∧ application wrong, by rendering) and deny→allow flip rate on engine-labelled requests; scripts/authinv_eval.py with --dataset-only / --tokenizer-audit-only / --resume and full provenance; tests; gate green.
