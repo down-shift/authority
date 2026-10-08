@@ -1,0 +1,10 @@
+# Phase-1 frozen benchmark (P1.10). Source run directories are passed on the command line;
+# their equivalence proofs are re-checked against the policies they ship.
+seed: 20261011
+per_label: 2               # requests per world: 2 allow + 2 deny, boundary-first (>= 4 requests/world)
+min_per_label: 4           # non-degeneracy bar applied to every source (>= 4 allow, >= 4 deny, >= 2 boundary each)
+target_worlds: 1000
+sources:
+  synthetic: {kind: synthetic}
+  cedarbench: {kind: real, cap_per_group: 25, group_from_records: scenario}  # records.jsonl scenario; caps stress
+  quacky: {kind: real, group_from_records: subset}   # original vs mutation, reported in the audit
