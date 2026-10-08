@@ -102,3 +102,16 @@ uv run --extra inference --extra quantization python scripts/run_authorization_c
 ## Development workflow
 
 Work advances through an autonomous, human-checkpointed loop: `docs/PLAN.md` is the step ledger, `/continue` in Claude Code (or «продолжи») claims and ships one step per invocation, and `bash scripts/check.sh` is the mandatory gate (also run in CI). The research spec is [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md); see also [CLAUDE.md](CLAUDE.md) and [docs/AUTONOMY.md](docs/AUTONOMY.md). Experiment reports, including negative results, go in `docs/experiments/`. The paper is in `paper/` (ACL template; `cd paper && latexmk -pdf main`).
+
+## authinv Phase 0: generation kill test
+
+Spec: `docs/RESEARCH_PLAN.md` §3 Phase 0; preregistration: `docs/prereg/phase0.md`. The runner consumes the pilot's Gemma Stage-2 run (pinned by hash in `configs/authinv/phase0.yaml`) and needs vLLM 0.29.0 (the `vllm/vllm-openai:v0.29.0` image, or a separate venv; vLLM is not in `uv.lock`).
+
+```sh
+python scripts/authinv_phase0.py run --config configs/authinv/phase0.yaml \
+  --source-run outputs/20261001T203345458674Z_authorization_lexical_invariance_gemma3_12b_it_nf4 \
+  --model qwen3_8b                       # add --tensor-parallel N, --model-dir DIR (verified mirror), --resume RUN
+python scripts/authinv_phase0.py aggregate --config configs/authinv/phase0.yaml --runs outputs/<run> ...
+```
+
+`--dataset-only` validates and freezes the 3,600-row dataset without loading a model. On hosts whose system `nvcc` is older than FlashInfer requires, set `VLLM_USE_FLASHINFER_SAMPLER=0` (greedy decoding does not use it).
