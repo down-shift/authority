@@ -135,9 +135,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/policy/ defines the canonical policy (principal, action, resource, effect, conditions, owner) with difficulty tiers (single rule; multi-rule deny-overrides; attribute-conditioned), deterministic serialization + SHA-256 hash, and a reference evaluator for requests; unit tests cover each tier incl. deny-overrides precedence; gate green.
 
 ### P1.2 — Five versioned renderers + decoders
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:30:37Z
 - deps: P1.1
 - source: RESEARCH_PLAN §3 Phase 1 task 2
 - done-when: src/authinv/render/ has pure functions nl_statement, owner_statement, table (Markdown), json_policy, executable (Cedar), each with a RENDERER_VERSION string and a decoder back to the canonical object; round-trip tests (canonical → rendering → decode == canonical) over all tiers; renderer versions logged in docs/CHANGELOG.md; gate green.
