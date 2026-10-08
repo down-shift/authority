@@ -192,9 +192,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: the Quacky policy dataset pinned (source URL/commit, license, and the **actual** policy count: the "587 policies" figure is unverified per docs/related_work.md, so the size is whatever the pinned source contains) and fetched; either local SMT equivalence (if it runs without pain) or IAM→Cedar translation validated by request-level differential testing against an IAM evaluator; method choice and failure counts documented; tests on fixtures; gate green.
 
 ### P1.9 — ACRE import (NL → canonical, engine-checked)
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:40:12Z
 - deps: P1.4
 - source: RESEARCH_PLAN §3 Phase 1 task 4 (real); arXiv 2603.15799
 - done-when: ACRE statements fetched with pinned source + license; mapped to canonical objects (mapping rules deterministic and tested; ambiguous statements excluded with counts reported); engine-checked; gate green.
