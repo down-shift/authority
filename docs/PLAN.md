@@ -168,7 +168,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: if H0.1 answered "no", the human marks this step cut. Otherwise a versioned Rego renderer + decoder, `opa eval` wrapper, and Rego included in equivalence checks with tests; gate green.
 
 ### P1.6 — Synthetic policy sources (MCP allowlists, repo permissions)
-- status: claimed
+- status: in_review (#23)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:40:07Z
 - deps: P1.4
