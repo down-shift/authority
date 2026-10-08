@@ -233,7 +233,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: worlds drawn from CedarBench v2, Quacky v2, and synthetic sources, with source kind (real / synthetic) carried on every row and reported separately in every table; interpretation and application queries per world; name-swap, option-position, request-order, and rendering-order balancing; tokenizer length audit recorded as a covariate (not equalized); scripts/authinv_build.py --dataset-only produces a frozen benchmark of ≥1,000 worlds across tiers, ≥5 renderings, ≥4 requests/world (≥20k application rows/model) with dataset hash + manifest; balance and size audits pass; tests; gate green.
 
 ### P1.11 — Datasheet and spot-check packet
-- status: claimed
+- status: in_review (#35)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T11:32:21Z
 - deps: P1.10
