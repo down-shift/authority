@@ -59,8 +59,8 @@ def test_flipping_an_effect_is_caught(rendering):
     p = policies(10)[0]
     texts = _texts(p)
     swaps = {
-        "nl_statement": (" may ", " must never "),
-        "owner_statement": (" decides whether", " never decides whether"),
+        "nl_statement": (" allows ", " forbids "),
+        "owner_statement": (" decides whether to ", " may never "),
         "table": ("| allow |", "| deny |"),
         "json_policy": ('"effect": "allow"', '"effect": "deny"'),
         "executable": ("permit (", "forbid ("),
