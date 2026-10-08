@@ -209,7 +209,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: configs/authinv/synthetic.yaml replicates raised to 30 (1,440 worlds), regenerated and certified on all six renderings (incl. Rego); report docs/experiments/p1.6-synthetic-sources.md updated with the new counts (old counts kept as history); gate green.
 
 ### P1.7.2 — CedarBench importer v2: enlarged universes + exact `||` split
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T11:06:47Z
 - deps: P1.7
