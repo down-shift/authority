@@ -128,6 +128,10 @@ def cmd_run(args) -> None:
     spec = models.model_spec(args.model)
     rows, validation = load_dataset(args.dataset)
     dataset_sha = validation["manifest"]["sha256"]
+    if cfg.get("dataset_sha256") and dataset_sha != cfg["dataset_sha256"]:
+        raise SystemExit(f"dataset {dataset_sha} is not the preregistered benchmark {cfg['dataset_sha256']}")
+    if cfg.get("parser_version") and cfg["parser_version"] != JSON_PARSER_VERSION:
+        raise SystemExit(f"config parser {cfg['parser_version']} != code {JSON_PARSER_VERSION}")
     if args.resume:
         run = args.resume
         old = json.loads((run / "config.json").read_text())

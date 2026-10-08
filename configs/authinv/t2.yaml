@@ -1,18 +1,20 @@
-# Tier T2 (structured generation) defaults. DRAFT for the harness (P2.2); the Phase-2
-# preregistration (P2.3) freezes the final values and the dataset hash before any sweep run.
+# Tier T2 (structured generation) + T1 settings for the Phase-2 sweep. Frozen by the Phase-2
+# preregistration (docs/prereg/phase2.md); any change after its commit needs a dated amendment.
 experiment: authinv_t2_structured_generation
 seed: 20261010
+dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
+parser_version: json-strict-v2
 generation:
   seed: 20261010
   temperature: 0.0
-  max_tokens: 96
-  max_model_len: 8192   # longest P1.10 prompt is ~16k chars (~5k tokens)
+  max_tokens: 256       # interpretation answers list principal ids
+  max_model_len: 8192   # longest benchmark prompt ~5k tokens
   batch_size: 512
   constrained: false   # unconstrained + strict JSON parsing, so refusals stay observable
 generation_overrides:
-  gpt_oss_20b: {max_tokens: 4096, max_model_len: 8192}
-  gpt_oss_120b: {max_tokens: 4096, max_model_len: 8192}
-  qwen3_8_27b_thinking: {max_tokens: 4096, max_model_len: 8192}
+  gpt_oss_20b: {max_tokens: 4096, max_model_len: 12288}
+  gpt_oss_120b: {max_tokens: 4096, max_model_len: 12288}
+  qwen3_8_27b_thinking: {max_tokens: 4096, max_model_len: 12288}
 analysis:
   primary_task: application
   bootstrap_replicates: 4000
