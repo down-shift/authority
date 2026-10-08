@@ -127,7 +127,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 1 — Benchmark with engine-certified equivalence (Weeks 3–8)
 
 ### P1.1 — Canonical policy object
-- status: claimed
+- status: in_review (#18)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:26:49Z
 - deps: G0
