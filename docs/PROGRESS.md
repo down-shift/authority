@@ -13,3 +13,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — P0.1 authinv skeleton: package boundaries, pinned model registry (12 models), Gemma upstream manifests (gated repos reproduced from byte-identical mirrors; Llama mirrors are not identical, so the Llama bf16 access path is open for Phase 2).
 2026-10-08 — R0.1 related-work doc: 77 papers verified, 7 mismatches flagged.
 2026-10-08 — P0.2 Phase-0 harness merged; end-to-end smoke test on A100 with Qwen3-0.6B (not a Phase-0 model, 20 rows, discarded).
+2026-10-08 — P0.3 Phase 0 preregistered (`89b91c0`); Phase-0 inference may start.
