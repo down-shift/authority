@@ -201,9 +201,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: ACRE statements fetched with pinned source + license; mapped to canonical objects (mapping rules deterministic and tested; ambiguous statements excluded with counts reported); engine-checked; gate green.
 
 ### P1.6.2 — Synthetic top-up
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T11:06:46Z
 - deps: P1.6
 - source: Jerzy 2026-10-08 (fill the ≥1,000-world target synthetically, alongside enlarged real sources)
 - done-when: configs/authinv/synthetic.yaml replicates raised to 30 (1,440 worlds), regenerated and certified on all six renderings (incl. Rego); report docs/experiments/p1.6-synthetic-sources.md updated with the new counts (old counts kept as history); gate green.
