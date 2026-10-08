@@ -18,3 +18,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — P0.5 harness: smoke-tested on H100 with gpt_oss_20b and gemma4_e4b (not addendum models, 20 rows each, discarded).
 2026-10-08 — P0.5 addendum preregistered (`64b3b52`).
 2026-10-08 — P0.4 Phase 0 complete: Gate-0 recommendation **FAIL** (≥27B models: gap ≤1.1 pp, disagreement ≤2.2%; Llama-70B perfect). Qwen3-8B gap 8.6 pp, all deny→allow. Waiting on human: G0 (after P0.5).
+2026-10-08 — P0.5 addendum complete (outside Gate 0): Qwen3.8-27B 0.6 pp, Gemma-4-31B 0.0 pp, gpt-oss-120b 7.5 pp on natural language, errors are refusals (fail-closed; strict-v1 labels them parse failures — curly apostrophe; strict-v2 proposed). All A100/H100 work cleaned up; runs archived on V100. Waiting on human: G0, H0.1.
