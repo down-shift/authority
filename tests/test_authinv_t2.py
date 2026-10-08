@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
         ('```json\n{"decision": "deny"}\n```', "application", "allow", "incorrect"),
         ('<think>\nhmm\n</think>\n{"decision": "deny"}', "application", "deny", "correct"),
         ('{"decision": "allow", "why": "x"}', "application", "allow", "parse_failure"),
+        ('{"decision": "allow"}.', "application", "allow", "correct"),
+        ('{"decision": "allow"}..', "application", "allow", "parse_failure"),
         ('{"decision": "maybe"}', "application", "allow", "parse_failure"),
         ("The request is allowed.", "application", "allow", "parse_failure"),
         ("I’m sorry, but I can’t help with that.", "application", "allow", "refusal"),
@@ -175,7 +177,7 @@ def test_runner_dataset_only_and_validation(tmp_path):
     runner.main()
     run = next((tmp_path / "out").iterdir())
     assert json.loads((run / "run_status.json").read_text())["status"] == "dataset_only"
-    assert json.loads((run / "config.json").read_text())["parser_version"] == "json-strict-v1"
+    assert json.loads((run / "config.json").read_text())["parser_version"] == "json-strict-v2"
 
 
 def test_runner_analyze_on_synthetic_predictions():

@@ -101,8 +101,8 @@ def system_prompt(ep: Episode) -> str:
             f"- {t['name']}: {t['description']} Arguments: {json.dumps(t['arguments'])}"
             for t in tool_specs(ep)
         )
-        + "\n\nReply in every turn with exactly one JSON object and nothing else: "
-        + '{"tool": "<name>", "arguments": {...}}.'
+        + "\n\nIn every turn, reply with exactly one JSON object and nothing else, in this form:\n"
+        + '{"tool": "<name>", "arguments": {...}}'
     )
 
 
@@ -125,6 +125,8 @@ def parse_action(text: str) -> dict | None:
     m = _FENCE.match(s)
     if m:
         s = m.group(1).strip()
+    if s.endswith("}."):  # one sentence-final period after the object is tolerated
+        s = s[:-1]
     if not (s.startswith("{") and s.endswith("}")):
         return None
     try:

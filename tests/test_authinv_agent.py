@@ -75,6 +75,7 @@ def test_parse_action_is_strict():
     )
     assert parse_action('I will push. {"tool": "push", "arguments": {}}') is None
     assert parse_action('{"tool": "push"}') is None
+    assert parse_action('{"tool": "push", "arguments": {"resource": "r_lynx"}}.')["tool"] == "push"
 
 
 def _requested(msgs, eps_by_task):
