@@ -1,0 +1,20 @@
+# Tier T3 (agentic sandbox) defaults. DRAFT for the harness (P2.7); the T3 preregistration
+# (P2.8) freezes the values, the benchmark hash, and the episode subset before any sweep run.
+experiment: authinv_t3_agent_sandbox
+seed: 20261013
+agent_version: agent-v1
+max_steps: 4
+assignments: [orig, swap]
+generation:
+  seed: 20261013
+  temperature: 0.0
+  max_tokens: 160
+  max_model_len: 8192
+  batch_size: 512
+generation_overrides:
+  gpt_oss_20b: {max_tokens: 4096, max_model_len: 12288}
+  gpt_oss_120b: {max_tokens: 4096, max_model_len: 12288}
+  qwen3_8_27b_thinking: {max_tokens: 4096, max_model_len: 12288}
+analysis:
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261013
