@@ -308,9 +308,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: gpt-oss-120b and the Llama-3.3-70B W8A8 anchor complete T1 (where applicable) and T2; optional models (Qwen3.6-35B-A3B, Gemma-4-26B-A4B, Granite-4.2) only if H0.1 allows the GPU time; docs/experiments/p2.6-sweep-c.md. (Roster amended 2026-10-08.)
 
 ### P2.7 — T3 agent sandbox
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T12:20:11Z
 - deps: P1.10 H0.1
 - source: RESEARCH_PLAN §3 Phase 2 T3, §8.3
 - done-when: src/authinv/agent/ minimal MCP tool sandbox (file ops, repo ops, HTTP stubs) built fresh (H0.1 decision 2026-10-08), reusing only the UIR / refusal / completion metric definitions; tasks derived from the same policies as T2, with forbidden tools/resources; policy in the system prompt in one rendering; metrics UIR (as in arXiv 2605.18414), authorized-action refusal rate, task completion; tests with a scripted mock agent covering each metric; gate green.
