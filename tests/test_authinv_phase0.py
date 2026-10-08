@@ -173,3 +173,44 @@ def test_read_head_without_git_binary(tmp_path):
     assert provenance._read_head(tmp_path) == "a" * 40
     (git / "refs" / "heads" / "main").write_text("b" * 40 + "\n")
     assert provenance._read_head(tmp_path) == "b" * 40
+
+
+def test_aggregate_markdown_and_holm_family(tmp_path):
+    import yaml
+
+    runner = _load_runner()
+    cfg_path = ROOT / "configs" / "authinv" / "phase0.yaml"
+    cfg = yaml.safe_load(cfg_path.read_text())
+    cfg["analysis"]["bootstrap_replicates"] = 200
+    small_cfg = tmp_path / "phase0.yaml"
+    small_cfg.write_text(yaml.safe_dump(cfg))
+    runs = []
+    for key, bad in (("qwen3_8b", 0), ("qwen3_32b", 12), ("gemma3_27b", 0)):
+        rows = [dict(r, lenient_selected=None) for r in _rows(bad_worlds=bad)]
+        rows += [dict(r, task="interpretation") for r in rows]
+        run = tmp_path / key
+        run.mkdir()
+        provenance.write_json(
+            run / "config.json", {"config_sha256": provenance.sha256_json(cfg), "model": {"key": key}}
+        )
+        provenance.write_json(run / "run_status.json", {"status": "complete"})
+        provenance.write_json(run / "metrics.json", runner.analyze(rows, cfg))
+        runs.append(run)
+    md = tmp_path / "agg.md"
+    sys.argv = [
+        "x",
+        "aggregate",
+        "--config",
+        str(small_cfg),
+        "--runs",
+        *map(str, runs),
+        "--markdown",
+        str(md),
+        "--out",
+        str(tmp_path / "agg.json"),
+    ]
+    runner.main()
+    result = json.loads((tmp_path / "agg.json").read_text())
+    assert set(result["holm_adjusted_gap_p"]) == {"qwen3_32b", "gemma3_27b"}
+    assert result["gate0"]["recommendation"] == "INCOMPLETE"
+    assert "| qwen3_32b |" in md.read_text() and "Recommendation: INCOMPLETE" in md.read_text()
