@@ -217,9 +217,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: importer version bump (recorded in each world's meta and docs/CHANGELOG.md): the request universe adds every schema action as a probe and extra deterministic entities per type so worlds are non-degenerate where the policy allows; `||` at the top of a when-clause is split exactly into separate rules (DNF over the disjunction only; anything else still excluded); every world re-certified (all six renderings) and faithful to the original Cedar text on the enlarged universe; report updated with v1-vs-v2 counts incl. the number meeting the ≥4 allow / ≥4 deny bar, split by the paper's 221 tasks vs the 5 stress scenarios; gate green.
 
 ### P1.8.2 — Quacky importer v2: wildcard witnesses + exact Not* complements
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T11:06:49Z
 - deps: P1.8
 - source: Jerzy 2026-10-08 (approved universe enlargement); docs/experiments/p1.8-quacky-import.md finding
 - done-when: importer version bump: one deterministic concrete witness per wildcard pattern added to the closed universe; NotAction / NotResource translated as exact complements over the closed universe (NotPrincipal only if exact); every world faithful to the original IAM JSON under the independent IAM evaluator and certified on all six renderings; report updated with v1-vs-v2 counts incl. the non-degenerate count; gate green.
