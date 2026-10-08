@@ -136,3 +136,12 @@ uv run --extra engines python scripts/fetch_quacky.py                # or --veri
 uv run --extra engines python scripts/authinv_import_quacky.py --dataset-only
 uv run --extra engines python scripts/authinv_import_quacky.py --dataset-only --importer quacky-import-v1
 ```
+
+## authinv Phase 1: frozen benchmark
+
+```sh
+uv run --extra engines python scripts/authinv_build_benchmark.py --config configs/authinv/benchmark.yaml \
+  --source synthetic=outputs/<synthetic run> --source cedarbench=outputs/<cedarbench v2 run> --source quacky=outputs/<quacky v2 run>
+```
+
+Writes `dataset.jsonl` + `dataset_manifest.json` (input to `scripts/authinv_eval.py`), `worlds.jsonl`, `equivalence.jsonl`, and `audit.json`. See `docs/experiments/p1.10-benchmark.md`.

@@ -6,7 +6,7 @@ generation:
   seed: 20261010
   temperature: 0.0
   max_tokens: 96
-  max_model_len: 4096
+  max_model_len: 8192   # longest P1.10 prompt is ~16k chars (~5k tokens)
   batch_size: 512
   constrained: false   # unconstrained + strict JSON parsing, so refusals stay observable
 generation_overrides:
