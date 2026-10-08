@@ -107,7 +107,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: all four models run on the frozen Phase-0 dataset with full provenance; docs/experiments/p0.4-phase0-kill-test.md (result positive/neutral/negative) reports every preregistered metric with CIs per model, per rendering, and ends with the Gate 0 recommendation for Jerzy (not a decision); docs/PROGRESS.md entry added.
 
 ### P0.5 — [GPU: H100] Phase-0 addendum on current models
-- status: in_review (#16)
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T01:16:10Z
 - deps: P0.3
