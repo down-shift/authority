@@ -16,11 +16,11 @@ files="$( { git diff --name-only --diff-filter=ACMR "$mb" -- '*.py'
 if [ -n "$files" ]; then
   echo "ruff on changed files:"; printf '  %s\n' $files
   # shellcheck disable=SC2086
-  uv run --extra dev ruff check $files
+  uv run --extra dev --extra engines ruff check $files
   # shellcheck disable=SC2086
-  uv run --extra dev ruff format --check $files
+  uv run --extra dev --extra engines ruff format --check $files
 else
   echo "ruff: no changed Python files vs $base"
 fi
-uv run --extra dev pytest -q
+uv run --extra dev --extra engines pytest -q
 echo "gate: OK"

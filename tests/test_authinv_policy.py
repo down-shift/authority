@@ -98,6 +98,36 @@ def test_conditions_on_attributes_and_context():
     )
 
 
+def test_is_in_scope_allows_member_attribute_conditions():
+    rule = Rule(
+        "r1",
+        "permit",
+        Scope("is_in", ENG, "User"),
+        ("read",),
+        Scope("is", type="Repo"),
+        (Condition(AttrRef("principal", "level"), ">=", 3),),
+    )
+    p = policy([rule])
+    validate(p)  # `in` alone would reach Group::eng, which has no `level`
+    with pytest.raises(PolicyError, match="lacks attribute"):
+        validate(
+            policy(
+                [
+                    Rule(
+                        "r1",
+                        "permit",
+                        Scope("in", ENG),
+                        ("read",),
+                        Scope("is", type="Repo"),
+                        (Condition(AttrRef("principal", "level"), ">=", 3),),
+                    )
+                ]
+            )
+        )
+    assert decision_owners(p, "read", REPO) == [ALICE, CAROL]
+    assert evaluate(p, req(BOB, "read", REPO, hour=1))["decision"] == "deny"
+
+
 def test_decision_owners_is_derived_from_rules():
     p = policy([PERMIT_ENG_READ, FORBID_DELETE])
     assert decision_owners(p, "push", REPO) == []  # forbid wins for everyone
