@@ -1,4 +1,4 @@
-"""Versioned renderers (nl_statement, owner_statement, table, json_policy, executable).
+"""Versioned renderers (nl_statement, owner_statement, table, json_policy, executable) and decoders.
 
-Each is a pure function of the canonical policy; filled by P1.2.
+Each is a pure function of the canonical policy; see renderers.py.
 """
