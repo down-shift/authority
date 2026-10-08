@@ -225,9 +225,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: importer version bump: one deterministic concrete witness per wildcard pattern added to the closed universe; NotAction / NotResource translated as exact complements over the closed universe (NotPrincipal only if exact); every world faithful to the original IAM JSON under the independent IAM evaluator and certified on all six renderings; report updated with v1-vs-v2 counts incl. the non-degenerate count; gate green.
 
 ### P1.10 — Query builder, balancing audits, frozen benchmark
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T11:26:20Z
 - deps: P1.6.2 P1.7.2 P1.8.2
 - source: RESEARCH_PLAN §3 Phase 1 tasks 5–7; Jerzy 2026-10-08 (ACRE dropped; real/synthetic split reported separately)
 - done-when: worlds drawn from CedarBench v2, Quacky v2, and synthetic sources, with source kind (real / synthetic) carried on every row and reported separately in every table; interpretation and application queries per world; name-swap, option-position, request-order, and rendering-order balancing; tokenizer length audit recorded as a covariate (not equalized); scripts/authinv_build.py --dataset-only produces a frozen benchmark of ≥1,000 worlds across tiers, ≥5 renderings, ≥4 requests/world (≥20k application rows/model) with dataset hash + manifest; balance and size audits pass; tests; gate green.
