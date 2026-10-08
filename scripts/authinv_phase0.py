@@ -219,9 +219,9 @@ def cmd_run(args) -> None:
                 raise SystemExit(f"model dir does not match the pinned upstream: {verification}")
         from authinv.eval.generation import VLLMChat
 
-        chat = VLLMChat(
-            spec, str(args.model_dir) if args.model_dir else None, cfg["generation"], args.tensor_parallel
-        )
+        engine = {"gpu_memory_utilization": args.gpu_memory_utilization, "enforce_eager": args.enforce_eager}
+        gen = {**cfg["generation"], **engine}  # engine knobs are recorded, not part of the frozen config
+        chat = VLLMChat(spec, str(args.model_dir) if args.model_dir else None, gen, args.tensor_parallel)
         provenance.write_json(
             run / "metadata.json",
             {
@@ -229,6 +229,7 @@ def cmd_run(args) -> None:
                 "model_dir": str(args.model_dir) if args.model_dir else None,
                 "model_dir_verified": bool(verification and verification["passed"]),
                 "runtime": chat.provenance(),
+                "engine": {**engine, "tensor_parallel": args.tensor_parallel},
                 "git": provenance.git_state(),
                 "source_sha256": provenance.source_hashes(TRACKED),
                 "dataset_sha256": provenance.sha256_json(rows),
@@ -304,6 +305,8 @@ def main() -> None:
     r.add_argument("--output-root", type=Path, default=ROOT / "outputs")
     r.add_argument("--dataset-only", action="store_true")
     r.add_argument("--resume", type=Path)
+    r.add_argument("--gpu-memory-utilization", type=float, default=0.9)
+    r.add_argument("--enforce-eager", action="store_true")
     r.add_argument("--limit", type=int, help="engineering smoke test: first N rows only; never aggregated")
     r.set_defaults(func=cmd_run)
     a = sub.add_parser("aggregate")
