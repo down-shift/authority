@@ -485,11 +485,11 @@ Rows are the Novelty Assessment table of `docs/novelty_check.md`; step ids are f
 
 ## Open items for a human
 
-- **P1.8 source count.** The plan and P1.8 say "Quacky (AWS IAM, 587 policies)"; the verified
-  PolicySummarizer abstract says 546 AWS policies (plus 100 Azure, 100 GCP), and the Quacky tool
-  paper analyzes 41 AWS policies. Pin the actual dataset and its size when P1.8 runs; no plan text
-  was changed here.
-- **Threat-model step.** The "exploitable through format choice" claim has no dedicated step; it
-  falls to W1.1. Raise it if the paper should state the threat model earlier.
+- ~~**P1.8 source count.**~~ **Resolved by P1.8 (2026-10-08).** The pinned Quacky repo
+  (`vlab-cs-ucsb/quacky@31c13ee`, BSD-2-Clause) contains exactly 587 policies: the 41 originals the
+  tool paper analyzes (`samples/{ec2,iam,s3}/exp_single`) plus 546 `mutate.py` mutations, which are the
+  "546 AWS" PolicySummarizer counts. The two figures count different sets; only 197 texts are
+  distinct. See `docs/experiments/p1.8-quacky-import.md`.
+- ~~**Threat-model step.**~~ **Resolved:** step W0.1 wrote `docs/threat_model.md` (2026-10-08).
 - **Full-text checks before citing numbers.** Every *not in abstract* claim above needs a full-text
   read before it appears in `paper/`.
