@@ -65,7 +65,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: Jerzy records answers in docs/RESEARCH_PLAN.md §8 (or docs/PROGRESS.md): (1) Rego as a sixth rendering yes/no; (2) GPUs + hours for 70B bf16 runs, and whether Qwen3-235B-A22B is in; (3) T3 sandbox fresh vs adapted from AgentDojo; (4) owners of benchmark / agent harness; (5) Eiers group collaboration yes/no. Then `mark.py H0.1 done`.
 
 ### R0.1 — Related-work doc with verified citations
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T00:27:11Z
 - deps: —
