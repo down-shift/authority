@@ -34,6 +34,18 @@ other people's processes, except where a rule below explicitly allows it.
   in vLLM, or `device_map`).
 - **Clean up when done:** delete model caches, venvs, and run directories you
   created, after copying the distilled results back. Disk is shared and nearly full.
+- **The account is shared** (another user ran jobs in it on 2026-10-08). Delete
+  only what you created (your work dir, vLLM/Triton/FlashInfer caches). Leave
+  shared tooling (`~/.local/bin/uv`, `~/.local/share/uv`, shell rc files) alone
+  once someone else uses it. Kill processes **by PID**: `pkill -f <pattern>`
+  matches your own ssh shell and kills the session.
+- **Tensor parallelism hangs here.** vLLM TP=2 across the PCIe A100s stalled in
+  NCCL twice (once at init; once with `NCCL_P2P_DISABLE=1`, right after CUDA
+  graph capture). Use A100s only for single-GPU models (≤ ~30 GB weights) and
+  put 27B+ bf16 models on the H100.
+- System `nvcc` is too old for FlashInfer's JIT sampler: run vLLM with
+  `VLLM_USE_FLASHINFER_SAMPLER=0` (greedy decoding doesn't use it), and put
+  `ninja` in the venv.
 
 ## RTX workstations — `ssh gpubox`, `ssh NSSLabPC`
 
@@ -70,6 +82,16 @@ other people's processes, except where a rule below explicitly allows it.
   are copied off. Disk space is limited.
 - *Superseded 2026-10-08:* "the human runs the compose file" — agents now run
   compose themselves.
+- **The storage dir is root-owned**: our user can't write to it from the host.
+  Do every file operation (staging, unpacking, deleting) inside a compose
+  container that bind-mounts it. Stream bundles in on stdin, and pass the
+  compose YAML through process substitution so nothing lands outside storage:
+  `docker compose -p NAME -f <(echo $B64 | base64 -d) run --rm -T svc '<cmd>' < bundle.tgz`
+  (the remote shell is bash). `vllm/vllm-openai:v0.29.0` is already on the
+  host and works for both staging and runs. Don't remove pre-existing images.
+- One H100 fits every model up to about 70 GB of weights on a single GPU:
+  Llama-3.3-70B W8A8 needs `--gpu-memory-utilization 0.98 --enforce-eager`;
+  at 0.95 it fails startup with 0.61 GiB of KV cache.
 
 ## V100 cluster — docker contexts `adgx` / `bdgx`
 
