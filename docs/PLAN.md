@@ -57,7 +57,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: docs/PLAN.md + docs/AUTONOMY.md + .claude/commands/continue.md + scripts/{bootstrap,agent_id,check}.sh + scripts/{claim,mark}.py + tests/test_loop.py + .github/workflows/gate.yml + memory/ + paper/ committed; gate green.
 
 ### H0.1 — [HUMAN] Answer the open questions in RESEARCH_PLAN §8
-- status: todo
+- status: done
+- note: answered by Jerzy 2026-10-08; see RESEARCH_PLAN §8
 - owner: —
 - claimed_at: —
 - deps: —
