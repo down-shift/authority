@@ -168,9 +168,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: if H0.1 answered "no", the human marks this step cut. Otherwise a versioned Rego renderer + decoder, `opa eval` wrapper, and Rego included in equivalence checks with tests; gate green.
 
 ### P1.6 — Synthetic policy sources (MCP allowlists, repo permissions)
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:40:07Z
 - deps: P1.4
 - source: RESEARCH_PLAN §3 Phase 1 task 4 (synthetic)
 - done-when: grammar-based generators for MCP tool allowlists and GitHub-style repo permissions, seeded from config, balanced over effect, role count, condition count, and tier; all generated worlds pass the equivalence checker; balance table emitted by --dataset-only; tests; gate green.
