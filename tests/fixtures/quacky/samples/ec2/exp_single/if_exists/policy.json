@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ec2:StartInstances",
+      "Resource": "arn:aws:ec2:us-east-1:111122223333:instance/i-1",
+      "Condition": {
+        "BoolIfExists": {"aws:MultiFactorAuthPresent": "true"},
+        "ForAllValues:StringEquals": {"aws:TagKeys": ["env"]}
+      }
+    }
+  ]
+}

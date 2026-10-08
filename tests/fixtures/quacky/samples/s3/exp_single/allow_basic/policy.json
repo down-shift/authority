@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOverTls",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::reports/q1.csv",
+      "Condition": {
+        "Bool": {"aws:SecureTransport": "true"},
+        "NumericLessThan": {"s3:max-keys": "10"}
+      }
+    }
+  ]
+}
