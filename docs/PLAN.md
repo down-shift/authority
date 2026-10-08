@@ -91,7 +91,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: scripts/authinv_phase0.py + configs/authinv/phase0.yaml read the Gemma Stage-2 worlds.jsonl (path in config, hash verified), build generation prompts for all 180 worlds × both name assignments × five renderings × interpretation/application, decode greedily via vLLM (lazy import, temperature 0, vLLM version + GPU type recorded), and parse with a strict parser whose failures/refusals/abstains are their own category; src/authinv/eval/metrics.py computes mean accuracy per rendering, worst-case accuracy, per-world rendering disagreement, deny→allow vs allow→deny flip counts (mapping for the toy worlds defined in the config: selecting the non-owner's value = allow of an unauthorized action), world-clustered bootstrap CIs (≥2,000 resamples), Holm-corrected p-values; --dataset-only, --resume, config.json, metadata.json, run_status.json, SHA-256 manifest as in the existing runners; unit tests for parser and metrics on synthetic rows; gate green.
 
 ### P0.3 — Preregister Phase 0
-- status: claimed
+- status: in_review (#6)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T00:46:50Z
 - deps: P0.2
