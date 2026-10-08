@@ -201,7 +201,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: ACRE statements fetched with pinned source + license; mapped to canonical objects (mapping rules deterministic and tested; ambiguous statements excluded with counts reported); engine-checked; gate green.
 
 ### P1.6.2 — Synthetic top-up
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T11:06:46Z
 - deps: P1.6
