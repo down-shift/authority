@@ -143,7 +143,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/render/ has pure functions nl_statement, owner_statement, table (Markdown), json_policy, executable (Cedar), each with a RENDERER_VERSION string and a decoder back to the canonical object; round-trip tests (canonical → rendering → decode == canonical) over all tiers; renderer versions logged in docs/CHANGELOG.md; gate green.
 
 ### P1.3 — Cedar engine + request-set generator
-- status: claimed
+- status: in_review (#21)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:30:39Z
 - deps: P1.1
