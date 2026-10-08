@@ -16,5 +16,5 @@ hash of the code that produced it.
 
 | rule (paper location) | pre-registration commit | committed (UTC) | first result (UTC) | file |
 |---|---|---|---|---|
-| Phase 0 kill test: Gate-0 rule, strict-v1 parser, worst-case gap, disagreement, flip definitions | `89b91c0` | 2026-10-08 00:47:05 | — (P0.4) | `phase0.md` |
+| Phase 0 kill test: Gate-0 rule, strict-v1 parser, worst-case gap, disagreement, flip definitions | `89b91c0` | 2026-10-08 00:47:05 | 2026-10-08 00:48:38 (qwen3_8b run dir) | `phase0.md` |
 | Phase 0 addendum (current models; outside Gate 0): harmony final-channel answer, text-only loading, Holm over 3 models | `64b3b52` | 2026-10-08 01:26:29 | — (P0.5) | `phase0-addendum.md` |

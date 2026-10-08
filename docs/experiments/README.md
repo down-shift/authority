@@ -54,4 +54,4 @@ testing) are themselves experiments and get reports.
 
 ## Index
 
-(populated as steps complete)
+- `p0.4-phase0-kill-test.md` — Phase 0, 4 models: Gate-0 recommendation FAIL (negative); 8B effect reproduced.
