@@ -22,3 +22,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — GATE G0: **waived** by Jerzy: proceed to Phase 1 (Gate-0 rule recommended FAIL; toy worlds at ceiling for ≥27B, gpt-oss-120b 7.5 pp; Phase 1 is the real test). H0.1 answered: Rego in; H100 unlimited; T3 sandbox built fresh; ownership deferred; Eiers cite only. Approved: strict-v2 parser (P2.0), Quacky pinning (P1.8), threat model (W0.1), Phase-4 models refreshed; paper stays ACL. .DS_Store untracked.
 2026-10-08 — P1.1 canonical policy object (Cedar semantics: default deny, forbid overrides; scopes any/eq/is/in; schema-checked conditions; derived decision ownership; canonical + semantic hashes).
 2026-10-08 — P2.0 parser strict-v2 (typographic apostrophes); Phase 0 stays on strict-v1.
+2026-10-08 — W0.1 threat model written (docs/threat_model.md).
