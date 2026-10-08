@@ -96,3 +96,64 @@ def test_hf_scorer_matches_reference_on_a_tiny_model():
             logits = model(input_ids=torch.tensor([e["input_ids"]])).logits[0].numpy()
         ref, _ = sum_logprob(logits, e["input_ids"], e["continuation_start"])
         assert np.isclose(s["sum_logprob"], ref, atol=1e-4)
+
+
+def test_score_many_matches_score_on_a_tiny_model():
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("transformers")
+    import transformers
+
+    from authinv.eval.logprob import HFScorer
+
+    tok = transformers.AutoTokenizer.from_pretrained("sshleifer/tiny-gpt2")
+    tok.chat_template = "{% for m in messages %}{{ m['content'] }}{% endfor %}"
+    model = transformers.AutoModelForCausalLM.from_pretrained("sshleifer/tiny-gpt2")
+    scorer = HFScorer.__new__(HFScorer)
+    scorer.torch, scorer.spec, scorer.tokenizer, scorer.model = (
+        torch,
+        {"precision": "float32"},
+        tok,
+        model.eval(),
+    )
+    scorer.device, scorer.template_kwargs = torch.device("cpu"), {}
+    items = [
+        ("Owner: Agent", [" A", " Bob the builder"]),
+        ("A much longer prompt about policies", [" allow", " deny"]),
+    ]
+    many = scorer.score_many(items, max_batch_tokens=40)
+    for (prompt, cands), got in zip(items, many, strict=True):
+        one = scorer.score(prompt, cands)
+        for c in cands:
+            assert np.isclose(got[c]["sum_logprob"], one[c]["sum_logprob"], atol=1e-4)
+
+
+def test_t1_prediction_and_applicability():
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("authinv_t1_eval", root / "scripts" / "authinv_t1_eval.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["authinv_t1_eval"] = mod
+    spec.loader.exec_module(mod)
+    assert not mod.t1_applicable({"thinking": True}) and not mod.t1_applicable({"output_format": "harmony"})
+    assert mod.t1_applicable({"thinking": False})
+    row = {
+        "row_id": "r",
+        "world_id": "w",
+        "assignment": "orig",
+        "instance": "q0",
+        "rendering": "table",
+        "task": "application",
+        "label": "deny",
+        "source": "s",
+        "source_kind": "synthetic",
+        "pair_key": "k",
+    }
+    sc = {
+        mod.CANDIDATES["allow"]: {"sum_logprob": -1.0, "token_count": 6, "boundary_overlap": False},
+        mod.CANDIDATES["deny"]: {"sum_logprob": -3.0, "token_count": 6, "boundary_overlap": False},
+    }
+    p = mod.to_prediction(row, sc)
+    assert p["margin"] == -2.0 and p["category"] == "incorrect" and p["value"] == "allow"

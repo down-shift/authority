@@ -168,4 +168,18 @@ No sweep model was run on the benchmark before this commit.
 
 ## Amendments
 
-(none)
+- **2026-10-08, before any sweep run: T1 backend.** T1 log-probabilities are
+  computed with vLLM 0.29.0 prompt log-probabilities (`VLLMScorer` in
+  `src/authinv/eval/logprob.py`). It uses the exact joint-tokenization token
+  ids and the same continuation sum as the HF scorer, with prefix caching
+  shared between a row's two candidates. This replaces the plan's
+  engineering note "HF transformers for T1": the HF path costs hours per
+  model on ~133M prompt tokens.
+
+  Equivalence check on H100 with the smoke-only model (`smoke_qwen3_0_6b`;
+  100 benchmark rows, outputs discarded): the two backends agree on
+  T1-correct in **100 / 100** rows. Margins differ by 0.21 nats on average
+  (0.75 at most, bf16 kernel numerics) against margins spanning −13 to +14.
+
+  Every T1 run in the sweep uses the vLLM backend, so no comparison mixes
+  backends. The metric definitions are unchanged.
