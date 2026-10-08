@@ -243,7 +243,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: the existing candidate log-prob scorer copied and adapted into src/authinv/eval/ (no imports from legacy packages), scoring authinv rendered prompts; candidate token-count audit; tests with a fake tokenizer/logits; gate green.
 
 ### P2.2 — T2 structured-generation harness
-- status: claimed
+- status: in_review (#27)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:53:12Z
 - deps: P0.2 P1.2 P2.0
