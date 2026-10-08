@@ -78,6 +78,7 @@ README.md                # how to run — never results
 docs/RESEARCH_PLAN.md    # the frozen research spec (read before research code)
 docs/novelty_check.md    # prior-work scan the plan positions against
 docs/related_work.md     # verified related work (step R0.1)
+docs/threat_model.md     # attacker model + claim→evidence map (step W0.1)
 docs/CHANGELOG.md        # renderer / prompt version changes
 docs/PROGRESS.md         # phase log: one line per day + every gate decision
 docs/PLAN.md             # step ledger driving the autonomous loop
