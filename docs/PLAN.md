@@ -116,7 +116,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: harness supports the new models (multimodal checkpoints loaded text-only; gpt-oss harmony output with the answer taken from the final channel); docs/prereg/phase0-addendum.md committed and pushed before any addendum inference (same frozen data, parser, metrics; per-model generation settings fixed in configs/authinv/phase0_addendum.yaml); Qwen3.8-27B, Gemma-4-31B-it, gpt-oss-120b run with full provenance; docs/experiments/p0.5-phase0-addendum.md reports them next to Phase 0, explicitly outside the Gate-0 rule.
 
 ### G0 — [HUMAN] Gate 0 decision: proceed or pivot
-- status: todo
+- status: done
+- note: waived by Jerzy 2026-10-08: proceed to Phase 1
 - owner: —
 - claimed_at: —
 - deps: P0.4 P0.5
