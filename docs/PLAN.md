@@ -225,7 +225,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: importer version bump: one deterministic concrete witness per wildcard pattern added to the closed universe; NotAction / NotResource translated as exact complements over the closed universe (NotPrincipal only if exact); every world faithful to the original IAM JSON under the independent IAM evaluator and certified on all six renderings; report updated with v1-vs-v2 counts incl. the non-degenerate count; gate green.
 
 ### P1.10 — Query builder, balancing audits, frozen benchmark
-- status: in_review (#34)
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T11:26:20Z
 - deps: P1.6.2 P1.7.2 P1.8.2
