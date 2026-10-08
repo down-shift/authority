@@ -441,7 +441,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: release builder producing the HF Datasets layout (policies, renderings, equivalence proofs, request sets, datasheet, license compatible with every source); leaderboard script producing the worst-case table for any HF model id; T3 sandbox documented as a reusable harness; publishing itself is left to Jerzy.
 
 ### W0.1 — Threat model for format-choice exploitability
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:26:53Z
 - deps: R0.1
