@@ -26,6 +26,33 @@ A converted world ships only if (1) `certify` passes on every rendering and
 request universe with the synthesized entities, agrees with the canonical
 policy's reference decision on every request (conversion faithfulness).
 
+Importer v2 (`cedarbench-import-v2`, step P1.7.2; v1 stays selectable with
+`importer="cedarbench-import-v1"`) changes only the universe and one exact
+rewrite, never a policy's meaning:
+
+- **action probes**: every schema action whose `appliesTo` admits the
+  policy's principal and resource types (and declares every context key the
+  policy reads, with the same type) joins `actions`. A rule still lists only
+  the actions it names, so requests for the other actions are probes the
+  policy denies by default. An unconstrained `action` covers exactly these
+  actions (the schema-valid ones for the world's types);
+- **extra entities**: every synthesized combination of attribute values and
+  group memberships is instantiated `ENTITY_REPLICAS` times, so each side of
+  each literal, threshold, and membership has two witnesses. Falls back to one
+  copy when the caps would be exceeded;
+- **exact `||` split**: a `when` clause whose top-level expression is a
+  disjunction of supported conjunctions becomes one rule per disjunct (same
+  effect, scopes, and actions; rule ids get `_or<k>` suffixes). This is exact
+  for `permit` (a request matches some disjunct iff it matches the clause)
+  and for `forbid` (deny-overrides: forbid(A or B) denies iff forbid(A) or
+  forbid(B) does). Several `when` clauses multiply out (at most
+  `MAX_SPLIT_RULES` rules per reference rule). A `||` anywhere below the
+  top level (`A && (B || C)`) is still excluded, counted as `nested_||`.
+
+Every v2 world records `n_allow`, `n_deny`, boundary counts, and whether it
+meets P1.6's non-degeneracy bar (`degeneracy`), but non-degeneracy does not
+gate shipping; P1.10 filters on it.
+
 Requires the `engines` extra (`cedarpy`), imported lazily.
 """
 
@@ -53,7 +80,21 @@ from authinv.policy import (
 )
 from authinv.render.renderers import SAFE, RenderError, check_safe
 
-IMPORTER_VERSION = "cedarbench-import-v1"
+IMPORTER_V1 = "cedarbench-import-v1"
+IMPORTER_V2 = "cedarbench-import-v2"
+IMPORTER_VERSION = IMPORTER_V2  # default for new imports
+IMPORTERS = (IMPORTER_V1, IMPORTER_V2)
+ENTITY_REPLICAS = 2  # v2: copies of every synthesized attribute/membership combination
+MAX_SPLIT_RULES = 32  # v2: rules one reference rule may split into
+MIN_PER_LABEL = 4  # P1.6 non-degeneracy bar: >= 4 allow and >= 4 deny, >= 2 boundary each
+# The pinned tree has 226 scenarios; the paper's 221 tasks are all but these harness-stress ones.
+STRESS_SCENARIOS = (
+    "realworld/fifty_role_matrix",
+    "realworld/hundred_check_scale",
+    "realworld/hundred_tenant_isolation",
+    "realworld/mega_scale_1000_checks",
+    "realworld/mega_scale_500_checks",
+)
 MAX_ENTITIES_PER_TYPE = 64
 MAX_REQUESTS = 20_000
 OTHER_STR = "__unseen__"  # same unseen value authinv.equivalence.requests uses for context strings
@@ -325,6 +366,7 @@ class Conversion:
     principal_types: tuple[str, ...] = ()
     resource_types: tuple[str, ...] = ()
     detail: str | None = None
+    split_rules: int = 0  # v2: reference rules split at a top-level `||`
 
 
 class _Unsupported(Exception):
@@ -393,10 +435,20 @@ def _construct_name(key: str) -> str:
     return {"in": "in_expression", "is": "is_expression", "Record": "record"}.get(key, key)
 
 
-def _conjuncts(d: dict, found: set[str]) -> list[Condition]:
+def _disjuncts(d: dict) -> list[dict]:
+    """Operands of a top-level `||` chain (any association); [d] when d is not a disjunction."""
+    if "||" in d:
+        return _disjuncts(d["||"]["left"]) + _disjuncts(d["||"]["right"])
+    return [d]
+
+
+def _conjuncts(d: dict, found: set[str], nested_or: str = "||") -> list[Condition]:
     if "&&" in d:
-        return _conjuncts(d["&&"]["left"], found) + _conjuncts(d["&&"]["right"], found)
+        return _conjuncts(d["&&"]["left"], found, nested_or) + _conjuncts(d["&&"]["right"], found, nested_or)
     ((key, body),) = d.items()
+    if key == "||":
+        found.add(nested_or)
+        return []
     if key in _OPS:
         left, right = _operand(body["left"], found), _operand(body["right"], found)
         if left is None or right is None:
@@ -444,9 +496,30 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def convert(text: str, schema: Schema, policy_id: str) -> Conversion:
+def _compatible_actions(
+    schema: Schema, ptypes: tuple[str, ...], rtypes: tuple[str, ...], ctx_types: dict[str, str]
+) -> list[str]:
+    """Schema actions a request over (ptypes, rtypes) with the policy's context keys is valid for."""
+    out = []
+    for name, a in sorted(schema.actions.items()):
+        if not (set(ptypes) <= set(a.principals) and set(rtypes) <= set(a.resources)):
+            continue
+        ok = True
+        for k, t in ctx_types.items():
+            ty, req = a.context.get(k, (None, False))
+            ok = ok and req and _prim(ty) == t
+        if ok:
+            out.append(name)
+    return out
+
+
+def convert(text: str, schema: Schema, policy_id: str, importer: str = IMPORTER_VERSION) -> Conversion:
     """Convert one Cedar policy set to a canonical Policy, or explain why not."""
     import cedarpy
+
+    if importer not in IMPORTERS:
+        raise ValueError(f"unknown importer {importer!r}; expected one of {IMPORTERS}")
+    v2 = importer == IMPORTER_V2
 
     try:
         est = json.loads(cedarpy.policies_to_json_str(text))
@@ -461,9 +534,12 @@ def convert(text: str, schema: Schema, policy_id: str) -> Conversion:
     if not pols:
         found.add("empty_policy_set")
     rules = []
+    unconstrained: set[str] = set()  # v2: ids of rules whose action is unconstrained
+    split = 0  # v2: reference rules split at a top-level `||`
     for key in sorted(pols):
         pol = pols[key]
         act = pol["action"]
+        rid = pol.get("annotations", {}).get("id", key)
         if act["op"] == "All":
             acts = sorted(schema.actions)
         elif act["op"] == "==":
@@ -473,19 +549,30 @@ def convert(text: str, schema: Schema, policy_id: str) -> Conversion:
         else:
             found.add("action_group")
             acts = []
-        conds: list[Condition] = []
+        alts: list[list[Condition]] = [[]]  # the rule's conditions in DNF (v1: one conjunction)
         for c in pol["conditions"]:
             if c["kind"] != "when":
                 found.add("unless")
                 continue
-            conds += _conjuncts(c["body"], found)
-        rid = pol.get("annotations", {}).get("id", key)
+            if not v2:
+                alts[0] += _conjuncts(c["body"], found)
+                continue
+            parts = [_conjuncts(x, found, "nested_||") for x in _disjuncts(c["body"])]
+            alts = [a + b for a in alts for b in parts]
+        if len(alts) > MAX_SPLIT_RULES:
+            found.add("disjunction_too_large")
         principal, resource = _scope(pol["principal"], found), _scope(pol["resource"], found)
-        rules.append(Rule(rid, pol["effect"], principal, tuple(acts), resource, tuple(conds)))
+        ids = [rid] if len(alts) == 1 else [f"{rid}_or{k}" for k in range(1, len(alts) + 1)]
+        if v2 and act["op"] == "All":
+            unconstrained.update(ids)
+        split += len(alts) > 1
+        for rule_id, conds in zip(ids, alts, strict=True):
+            rules.append(Rule(rule_id, pol["effect"], principal, tuple(acts), resource, tuple(conds)))
     if found:
         return Conversion("excluded", sorted(found))
 
-    actions = sorted({a for r in rules for a in r.actions})
+    named = [r for r in rules if r.rule_id not in unconstrained] or rules
+    actions = sorted({a for r in named for a in r.actions})
     unknown = [a for a in actions if a not in schema.actions]
     if unknown:
         return Conversion("excluded", ["unknown_action"], detail=str(unknown))
@@ -496,7 +583,9 @@ def convert(text: str, schema: Schema, policy_id: str) -> Conversion:
     if not ptypes or not rtypes:
         return Conversion("excluded", ["action_without_applies_to"])
     try:
-        policy = _build_world(policy_id, rules, actions, schema, tuple(ptypes), tuple(rtypes), text)
+        policy = _build_world(
+            policy_id, rules, actions, schema, tuple(ptypes), tuple(rtypes), text, importer, unconstrained
+        )
     except _Unsupported as e:
         return Conversion("excluded", [e.args[0]], detail=e.args[1] if len(e.args) > 1 else None)
     try:
@@ -511,7 +600,7 @@ def convert(text: str, schema: Schema, policy_id: str) -> Conversion:
             raise RenderError(f"identifiers outside {SAFE.pattern}: {bad}")
     except RenderError as e:
         return Conversion("excluded", ["unsafe_identifier"], detail=str(e)[:200])
-    return Conversion("converted", [], policy, tuple(ptypes), tuple(rtypes))
+    return Conversion("converted", [], policy, tuple(ptypes), tuple(rtypes), split_rules=split)
 
 
 def _build_world(
@@ -522,11 +611,18 @@ def _build_world(
     ptypes: tuple[str, ...],
     rtypes: tuple[str, ...],
     text: str,
+    importer: str = IMPORTER_V1,
+    unconstrained: set[str] = frozenset(),
 ) -> Policy:
-    """Deterministic entity universe: every combination of attribute values and group memberships."""
+    """Deterministic entity universe: every combination of attribute values and group memberships.
+
+    v2 also adds the schema's other compatible actions as probes and instantiates each
+    combination ENTITY_REPLICAS times (once when that would exceed the caps).
+    """
     for t in ptypes + rtypes:
         if t not in schema.entities:
             raise _Unsupported("unknown_entity_type", t)
+    v2 = importer == IMPORTER_V2
     ctx_decl = schema.actions[actions[0]].context
     reach = {"principal": ptypes, "resource": rtypes}
     # attribute keys: ("context", attr) or (type, attr); types from the schema
@@ -603,6 +699,54 @@ def _build_world(
         if e.type not in schema.entities:
             raise _Unsupported("unknown_entity_type", e.type)
     types = sorted(set(ptypes) | set(rtypes) | {e.type for e in literal})
+    ctx_schema = tuple(sorted((a, attr_type[("context", a)]) for (s, a) in attr_type if s == "context"))
+    probes: list[str] = []
+    if v2:
+        universe_actions = _compatible_actions(schema, ptypes, rtypes, dict(ctx_schema))
+        if not set(actions) <= set(universe_actions):  # not expected for a validating source
+            raise _Unsupported("incompatible_action", str(sorted(set(actions) - set(universe_actions))))
+        probes = [a for a in universe_actions if a not in actions]
+        rules = [
+            Rule(r.rule_id, r.effect, r.principal, tuple(universe_actions), r.resource, r.conditions)
+            if r.rule_id in unconstrained
+            else r
+            for r in rules
+        ]
+        actions = list(universe_actions)
+    from authinv.equivalence.requests import universe
+
+    why: tuple[str, str] = ("universe_too_large", "")
+    for replicas in (ENTITY_REPLICAS, 1) if v2 else (1,):
+        entities = _entities(types, ptypes, rtypes, literal, attr_type, schema, domain, replicas, v2)
+        if entities is None:
+            continue  # too many entities of some type with this many replicas
+        meta = (
+            ("source", "cedarbench"),
+            ("importer", importer),
+            ("entities_synthesized", True),
+            ("source_sha256", _sha(text)),
+            ("principal_types", ",".join(ptypes)),
+            ("resource_types", ",".join(rtypes)),
+        )
+        if v2:
+            meta += (("entity_replicas", replicas), ("probe_actions", ",".join(probes)))
+        policy = Policy(
+            policy_id=policy_id,
+            entities=tuple(entities),
+            actions=tuple(actions),
+            rules=tuple(rules),
+            context_schema=ctx_schema,
+            meta=meta,
+        )
+        n = len(universe(policy, ptypes, rtypes))
+        if n <= MAX_REQUESTS:
+            return policy
+        why = ("universe_too_large", f"{n} requests")
+    raise _Unsupported(*why)
+
+
+def _entities(types, ptypes, rtypes, literal, attr_type, schema, domain, replicas: int, v2: bool):
+    """Entities for one replica count; None (v2 only) when a type would exceed MAX_ENTITIES_PER_TYPE."""
     entities: list[Entity] = []
     for t in types:
         attrs = sorted(a for (tt, a) in attr_type if tt == t)
@@ -615,11 +759,14 @@ def _build_world(
                 tuple(g for g, m in zip(groups, bits, strict=True) if m)
                 for bits in itertools.product((False, True), repeat=len(groups))
             ]
-            if len(combos) * len(members) > MAX_ENTITIES_PER_TYPE:
-                raise _Unsupported("universe_too_large", f"{t}: {len(combos) * len(members)} entities")
+            n = len(combos) * len(members) * replicas
+            if n > MAX_ENTITIES_PER_TYPE:
+                if v2 and replicas > 1:
+                    return None
+                raise _Unsupported("universe_too_large", f"{t}: {n} entities")
             taken = {e.id for e in literal if e.type == t}
             i = 0
-            for combo, mem in itertools.product(combos, members):
+            for _, combo, mem in itertools.product(range(replicas), combos, members):
                 while f"{t}_{i}" in taken:
                     i += 1
                 made.append(Entity(EntityRef(t, f"{t}_{i}"), tuple(zip(attrs, combo, strict=True)), mem))
@@ -627,28 +774,7 @@ def _build_world(
         for lit in (e for e in literal if e.type == t):
             made.append(Entity(lit, tuple(zip(attrs, combos[0], strict=True)), ()))
         entities += made
-    ctx_schema = tuple(sorted((a, attr_type[("context", a)]) for (s, a) in attr_type if s == "context"))
-    policy = Policy(
-        policy_id=policy_id,
-        entities=tuple(entities),
-        actions=tuple(actions),
-        rules=tuple(rules),
-        context_schema=ctx_schema,
-        meta=(
-            ("source", "cedarbench"),
-            ("importer", IMPORTER_VERSION),
-            ("entities_synthesized", True),
-            ("source_sha256", _sha(text)),
-            ("principal_types", ",".join(ptypes)),
-            ("resource_types", ",".join(rtypes)),
-        ),
-    )
-    from authinv.equivalence.requests import universe
-
-    n = len(universe(policy, ptypes, rtypes))
-    if n > MAX_REQUESTS:
-        raise _Unsupported("universe_too_large", f"{n} requests")
-    return policy
+    return entities
 
 
 # ---- checks ---------------------------------------------------------------------
@@ -686,6 +812,43 @@ def faithfulness(
     }
 
 
+def degeneracy(
+    policy: Policy,
+    principal_types: tuple[str, ...],
+    resource_types: tuple[str, ...],
+    min_per_label: int = MIN_PER_LABEL,
+) -> dict:
+    """P1.6's non-degeneracy bar on the world's universe (recorded, not a shipping gate).
+
+    `non_degenerate`: >= min_per_label allow and deny requests with >= min_per_label // 2
+    boundary requests each (as `synthetic.is_non_degenerate`); `dead_rules` counts rules
+    whose removal changes no decision (reported separately).
+    """
+    from authinv.equivalence.requests import label_universe
+
+    labelled = label_universe(policy, principal_types, resource_types)
+    out: dict = {}
+    for label in ("allow", "deny"):
+        pool = [x for x in labelled if x["decision"] == label]
+        out[f"n_{label}"] = len(pool)
+        out[f"boundary_{label}"] = sum(x["boundary"] for x in pool)
+    out["non_degenerate"] = all(
+        out[f"n_{x}"] >= min_per_label and out[f"boundary_{x}"] >= min_per_label // 2
+        for x in ("allow", "deny")
+    )
+    reqs = [x["request"] for x in labelled]
+    base = [x["decision"] for x in labelled]
+    dead = 0
+    for r in policy.rules:
+        rest = tuple(q for q in policy.rules if q is not r)
+        if not rest:
+            continue
+        reduced = Policy(policy.policy_id, policy.entities, policy.actions, rest, policy.context_schema)
+        dead += [evaluate(reduced, q)["decision"] for q in reqs] == base
+    out["dead_rules"] = dead
+    return out
+
+
 # ---- dataset walk ---------------------------------------------------------------
 
 
@@ -699,15 +862,32 @@ def scenario_dirs(scenarios: Path) -> list[Path]:
     return sorted(p.parent for p in scenarios.rglob("schema.cedarschema"))
 
 
+def is_stress(scenario: str) -> bool:
+    """True for the five harness-stress scenarios outside the paper's 221 tasks."""
+    return scenario in STRESS_SCENARIOS
+
+
 def import_reference(
-    scenario: str, ref: Path, schema: Schema | None, schema_text: str, schema_error: str | None
+    scenario: str,
+    ref: Path,
+    schema: Schema | None,
+    schema_text: str,
+    schema_error: str | None,
+    importer: str = IMPORTER_VERSION,
 ):
     """Full pipeline for one reference file; returns (record, policy | None, proof | None)."""
     from authinv.equivalence.check import certify
 
     text = ref.read_text()
     pid = f"cedarbench/{scenario}/{ref.stem}"
-    rec: dict = {"policy_id": pid, "scenario": scenario, "reference": ref.name, "source_sha256": _sha(text)}
+    rec: dict = {
+        "policy_id": pid,
+        "scenario": scenario,
+        "stress": is_stress(scenario),
+        "reference": ref.name,
+        "importer": importer,
+        "source_sha256": _sha(text),
+    }
     if schema is None:
         rec.update(status="excluded", constructs=["schema_parse_error"], detail=schema_error)
         return rec, None, None
@@ -715,7 +895,7 @@ def import_reference(
     rec["source_validates"] = src["passed"]
     if not src["passed"]:
         rec["source_errors"] = src["errors"]
-    conv = convert(text, schema, pid)
+    conv = convert(text, schema, pid, importer)
     rec.update(status=conv.status, constructs=conv.constructs)
     if conv.detail:
         rec["detail"] = conv.detail
@@ -733,6 +913,11 @@ def import_reference(
         n_requests=proof["n_requests"],
         tier=tier(conv.policy),
         semantic_sha256=semantic_hash(conv.policy),
+        n_rules=len(conv.policy.rules),
+        n_actions=len(conv.policy.actions),
+        split_rules=conv.split_rules,
     )
+    if importer == IMPORTER_V2:
+        rec.update(degeneracy(conv.policy, conv.principal_types, conv.resource_types))
     rec["shipped"] = bool(proof["passed"] and faith["passed"] and src["passed"])
     return rec, conv.policy, proof

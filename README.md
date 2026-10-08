@@ -123,6 +123,8 @@ Fetches the pinned CedarBench snapshot (`configs/authinv/sources/cedarbench.yaml
 ```sh
 uv run --extra engines python scripts/fetch_cedarbench.py            # or --verify-only
 uv run --extra engines python scripts/authinv_import_cedarbench.py --dataset-only
+# importer v1 (P1.7) instead of the default v2 (P1.7.2):
+uv run --extra engines python scripts/authinv_import_cedarbench.py --dataset-only --importer cedarbench-import-v1
 ```
 
 ## authinv Phase 1: Quacky AWS IAM import
