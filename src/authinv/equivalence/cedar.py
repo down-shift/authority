@@ -123,10 +123,17 @@ def validate_with_schema(
     policy: Policy, principal_types: tuple[str, ...], resource_types: tuple[str, ...]
 ) -> dict:
     """Cedar's strict typechecker on the rendered policies; {"passed", "errors"}."""
+    return validate_with_schema_text(policy, cedar_policy_text(policy), principal_types, resource_types)
+
+
+def validate_with_schema_text(
+    policy: Policy, text: str, principal_types: tuple[str, ...], resource_types: tuple[str, ...]
+) -> dict:
+    """Typecheck the given Cedar text (e.g. the exact executable rendering) against the generated schema."""
     import cedarpy
 
     result = cedarpy.validate_policies(
-        cedar_policy_text(policy), json.dumps(cedar_schema(policy, principal_types, resource_types))
+        text, json.dumps(cedar_schema(policy, principal_types, resource_types))
     )
     errors = [str(e) for e in (result.errors or [])]
     return {"passed": bool(result.validation_passed) and not errors, "errors": errors}
