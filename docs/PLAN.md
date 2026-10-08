@@ -176,7 +176,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: grammar-based generators for MCP tool allowlists and GitHub-style repo permissions, seeded from config, balanced over effect, role count, condition count, and tier; all generated worlds pass the equivalence checker; balance table emitted by --dataset-only; tests; gate green.
 
 ### P1.7 — CedarBench import
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:40:09Z
 - deps: P1.4
