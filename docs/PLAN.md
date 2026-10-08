@@ -186,7 +186,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - claimed_at: —
 - deps: P1.7
 - source: RESEARCH_PLAN §3 Phase 1 [DECISION] IAM handling
-- done-when: Quacky's 587 policies fetched with pinned source + license; either local SMT equivalence (if it runs without pain) or IAM→Cedar translation validated by request-level differential testing against an IAM evaluator; method choice and failure counts documented; tests on fixtures; gate green.
+- done-when: the Quacky policy dataset pinned (source URL/commit, license, and the **actual** policy count: the "587 policies" figure is unverified per docs/related_work.md, so the size is whatever the pinned source contains) and fetched; either local SMT equivalence (if it runs without pain) or IAM→Cedar translation validated by request-level differential testing against an IAM evaluator; method choice and failure counts documented; tests on fixtures; gate green.
 
 ### P1.9 — ACRE import (NL → canonical, engine-checked)
 - status: todo
@@ -222,6 +222,14 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 
 ## Phase 2 — Three evaluation tiers on the model sweep (Weeks 7–12)
 
+### P2.0 — Parser strict-v2 (Unicode apostrophes)
+- status: todo
+- owner: —
+- claimed_at: —
+- deps: G0
+- source: P0.5 finding (curly-apostrophe refusals labelled parse_failure); approved by Jerzy 2026-10-08
+- done-when: PARSER_VERSION strict-v2 accepts typographic apostrophes/quotes in refusal and abstention patterns (and in normalization); docs/CHANGELOG.md entry; tests with the P0.5 refusal strings; strict-v1 remains importable so Phase-0 results stay reproducible; Phase 2+ configs use strict-v2; gate green.
+
 ### P2.1 — T1 log-prob scorer for authinv
 - status: todo
 - owner: —
@@ -234,7 +242,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - status: todo
 - owner: —
 - claimed_at: —
-- deps: P0.2 P1.2
+- deps: P0.2 P1.2 P2.0
 - source: RESEARCH_PLAN §3 Phase 2 T2, headline tables
 - done-when: vLLM greedy decoding with a strict JSON answer schema over authinv datasets; parse failures / refusals / abstains as separate categories; metrics extended with dissociation rate (interpretation correct ∧ application wrong, by rendering) and deny→allow flip rate on engine-labelled requests; scripts/authinv_eval.py with --dataset-only / --tokenizer-audit-only / --resume and full provenance; tests; gate green.
 
@@ -276,7 +284,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - claimed_at: —
 - deps: P1.10 H0.1
 - source: RESEARCH_PLAN §3 Phase 2 T3, §8.3
-- done-when: src/authinv/agent/ minimal MCP tool sandbox (file ops, repo ops, HTTP stubs) built fresh or adapted from AgentDojo per H0.1; tasks derived from the same policies as T2, with forbidden tools/resources; policy in the system prompt in one rendering; metrics UIR (as in arXiv 2605.18414), authorized-action refusal rate, task completion; tests with a scripted mock agent covering each metric; gate green.
+- done-when: src/authinv/agent/ minimal MCP tool sandbox (file ops, repo ops, HTTP stubs) built fresh (H0.1 decision 2026-10-08), reusing only the UIR / refusal / completion metric definitions; tasks derived from the same policies as T2, with forbidden tools/resources; policy in the system prompt in one rendering; metrics UIR (as in arXiv 2605.18414), authorized-action refusal rate, task completion; tests with a scripted mock agent covering each metric; gate green.
 
 ### P2.8 — [GPU: H100] T3 runs over the sweep
 - status: todo
@@ -360,7 +368,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - claimed_at: —
 - deps: P4.1
 - source: RESEARCH_PLAN §3 Phase 4 task 2
-- done-when: config-driven LoRA trainer (Qwen3-8B, Gemma-3-12B; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
+- done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
 ### P4.3 — Preregister Phase 4
 - status: todo
@@ -430,10 +438,18 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - source: RESEARCH_PLAN §6 deliverables 1–3
 - done-when: release builder producing the HF Datasets layout (policies, renderings, equivalence proofs, request sets, datasheet, license compatible with every source); leaderboard script producing the worst-case table for any HF model id; T3 sandbox documented as a reusable harness; publishing itself is left to Jerzy.
 
+### W0.1 — Threat model for format-choice exploitability
+- status: todo
+- owner: —
+- claimed_at: —
+- deps: R0.1
+- source: docs/novelty_check.md §5 and Novelty Assessment ("exploitable through format choice: open but needs a threat model"); approved by Jerzy 2026-10-08
+- done-when: docs/threat_model.md defines the attacker who chooses a *legitimate* policy's rendering (tenant-written MCP allowlists, repo-synced policy files) vs one who injects fake policy text (Policy Puppetry, role confusion), states assumptions/capabilities/goals, maps each claim to the experiments that can support it (P2.x deny→allow / fail-closed rates, T3 UIR), and lists what the paper must not claim; cited related work from docs/related_work.md.
+
 ### W1.1 — Paper draft
 - status: todo
 - owner: —
 - claimed_at: —
-- deps: R0.1 P2.9 P3.4 P4.4
+- deps: R0.1 W0.1 P2.9 P3.4 P4.4
 - source: RESEARCH_PLAN §6 deliverable 4, §9
-- done-when: paper/sections/* drafted from committed reports only (no numbers absent from docs/experiments), figures from scripts/authinv_figures.py, prereg appendix table mirroring docs/prereg/MANIFEST.md; compiles with latexmk. Venue style per Jerzy's decision (paper/ is currently ACL; plan says NeurIPS).
+- done-when: paper/sections/* drafted from committed reports only (no numbers absent from docs/experiments), figures from scripts/authinv_figures.py, prereg appendix table mirroring docs/prereg/MANIFEST.md; compiles with latexmk. ACL template (Jerzy 2026-10-08: keep ACL for now).
