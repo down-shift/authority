@@ -97,6 +97,16 @@ class VLLMChat:
             rows.append(row)
         return rows
 
+    def chat_texts(self, conversations: list[list[dict]]) -> list[str]:
+        """Greedy reply text for multi-turn conversations (T3); harmony models return their final channel."""
+        outs = self.llm.chat(
+            conversations, self.params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs
+        )
+        texts = [o.outputs[0].text for o in outs]
+        if self.harmony:
+            texts = [split_harmony(t)["text"] for t in texts]
+        return texts
+
     def provenance(self) -> dict:
         import torch
         import transformers

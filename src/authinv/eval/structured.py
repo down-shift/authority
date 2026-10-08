@@ -19,7 +19,7 @@ import re
 
 from authinv.eval.parse import _ABSTAIN, _REFUSAL, _THINK, fold_typographic
 
-JSON_PARSER_VERSION = "json-strict-v1"
+JSON_PARSER_VERSION = "json-strict-v2"  # v2: tolerate one period right after the object (v1 never used)
 _FENCE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```$", re.S)
 
 
@@ -28,6 +28,8 @@ def extract_object(text: str) -> dict | None:
     m = _FENCE.match(s)
     if m:
         s = m.group(1).strip()
+    if s.endswith("}."):  # prompt-v1's instruction ends with a period after the JSON template
+        s = s[:-1]
     if not (s.startswith("{") and s.endswith("}")):
         return None
     try:
