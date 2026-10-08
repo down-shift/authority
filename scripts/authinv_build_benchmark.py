@@ -27,12 +27,18 @@ import yaml  # noqa: E402
 from authinv import provenance  # noqa: E402
 from authinv.benchmark import PROMPT_VERSION, World, dedupe, non_degenerate, world_rows  # noqa: E402
 from authinv.equivalence.check import certify, write_proofs  # noqa: E402
-from authinv.policy import from_dict, policy_hash, to_dict  # noqa: E402
+from authinv.policy import from_dict, policy_hash, semantic_hash, to_dict  # noqa: E402
 from authinv.render.renderers import RENDERINGS, VERSIONS  # noqa: E402
 
 
 def load_source(name: str, run: Path, spec: dict) -> tuple[list[World], dict]:
     proofs = {p["policy_id"]: p for p in provenance.read_jsonl(run / "equivalence.jsonl")}
+    groups = {}
+    if spec.get("group_from_records"):
+        groups = {
+            r["policy_id"]: r[spec["group_from_records"]]
+            for r in provenance.read_jsonl(run / "records.jsonl")
+        }
     worlds, skipped = [], collections.Counter()
     for d in provenance.read_jsonl(run / "policies.jsonl"):
         pol = from_dict(d)
@@ -50,7 +56,7 @@ def load_source(name: str, run: Path, spec: dict) -> tuple[list[World], dict]:
                 tuple(proof["resource_types"]),
                 spec["kind"],
                 name,
-                dict(pol.meta),
+                dict(pol.meta) | ({"group": groups[pol.policy_id]} if groups else {}),
             )
         )
     return worlds, {"run": str(run), "loaded": len(worlds), "skipped": dict(skipped)}
@@ -77,12 +83,14 @@ def main() -> None:
         if spec.get("cap_per_group"):
             per = collections.Counter()
             capped = []
-            for w in keep:
-                g = str(w.meta.get(spec["group_meta"], "?"))
+            # Within a group, select by semantic hash: deterministic and independent of file order.
+            for w in sorted(keep, key=lambda w: (w.meta["group"], semantic_hash(w.policy))):
+                g = w.meta["group"]
                 if per[g] < spec["cap_per_group"]:
                     per[g] += 1
                     capped.append(w)
             info["capped_out"] = len(keep) - len(capped)
+            info["groups"] = len(per)
             keep = capped
         info["selected"] = len(keep)
         audit["sources"][name] = info
@@ -124,6 +132,11 @@ def main() -> None:
             "worlds": len(selected),
             "worlds_by_source_kind": dict(collections.Counter(w.source_kind for w in selected)),
             "worlds_by_source": dict(collections.Counter(w.source for w in selected)),
+            "worlds_by_source_group": {
+                src: dict(collections.Counter(str(w.meta.get("group")) for w in selected if w.source == src))
+                for src in sorted({w.source for w in selected})
+                if any("group" in w.meta for w in selected if w.source == src)
+            },
             "worlds_by_tier": dict(
                 collections.Counter(
                     r["tier"]

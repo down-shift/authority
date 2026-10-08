@@ -124,11 +124,28 @@ def interpretation_prompt(
 # ---- name swap ---------------------------------------------------------------------
 
 
-def swap_map(policy: Policy, principal_types: tuple[str, ...]) -> dict[EntityRef, EntityRef]:
-    ids = sorted((e.ref for e in policy.entities if e.ref.type in principal_types), key=EntityRef.key)
-    if len(ids) < 2:
-        raise ValueError(f"{policy.policy_id}: name swap needs at least two principals")
-    return {ids[i]: EntityRef(ids[i].type, ids[(i + 1) % len(ids)].id) for i in range(len(ids))}
+def swap_axis(
+    policy: Policy, principal_types: tuple[str, ...], resource_types: tuple[str, ...]
+) -> tuple[str, ...]:
+    """Rename principals when there are >= 2; otherwise resources (single-caller IAM identity policies)."""
+    n_p = sum(e.ref.type in principal_types for e in policy.entities)
+    if n_p >= 2:
+        return principal_types
+    if sum(e.ref.type in resource_types for e in policy.entities) >= 2:
+        return resource_types
+    raise ValueError(f"{policy.policy_id}: name swap needs >= 2 principals or >= 2 resources")
+
+
+def swap_map(policy: Policy, types: tuple[str, ...]) -> dict[EntityRef, EntityRef]:
+    """Fixed derangement: rotate the sorted ids of the given entity types (within each type)."""
+    m = {}
+    for t in sorted(set(types)):
+        ids = sorted((e.ref for e in policy.entities if e.ref.type == t), key=EntityRef.key)
+        if len(ids) >= 2:
+            m.update({ids[i]: EntityRef(t, ids[(i + 1) % len(ids)].id) for i in range(len(ids))})
+    if not m:
+        raise ValueError(f"{policy.policy_id}: nothing to swap")
+    return m
 
 
 def _rename_ref(r: EntityRef | None, m: dict) -> EntityRef | None:
@@ -164,7 +181,11 @@ def non_degenerate(w: World, min_per_label: int) -> bool:
         pool = [x for x in labelled if x["decision"] == label]
         if len(pool) < min_per_label or sum(x["boundary"] for x in pool) < min_per_label // 2:
             return False
-    return len([e for e in w.policy.entities if e.ref.type in w.principal_types]) >= 2
+    try:
+        swap_axis(w.policy, w.principal_types, w.resource_types)
+    except ValueError:
+        return False
+    return True
 
 
 def dedupe(worlds: list[World]) -> tuple[list[World], int]:
@@ -183,7 +204,8 @@ def dedupe(worlds: list[World]) -> tuple[list[World], int]:
 def world_rows(w: World, per_label: int, seed: int) -> tuple[list[dict], dict]:
     """Rows for one world under both assignments; returns (rows, the swapped policy for re-certification)."""
     picked = sample_requests(w.policy, w.principal_types, w.resource_types, per_label, seed)
-    m = swap_map(w.policy, w.principal_types)
+    axis = swap_axis(w.policy, w.principal_types, w.resource_types)
+    m = swap_map(w.policy, axis)
     variants = {"orig": (w.policy, {}), "swap": (rename(w.policy, m), m)}
     rows = []
     for ai, (assignment, (pol, mapping)) in enumerate(variants.items()):
@@ -209,6 +231,7 @@ def world_rows(w: World, per_label: int, seed: int) -> tuple[list[dict], dict]:
                 "boundary": item["boundary"],
                 "pair_key": pair_key,
                 "prompt_version": PROMPT_VERSION,
+                "swap_axis": "principal" if axis == w.principal_types else "resource",
             }
             principal_ids = sorted(e.ref.id for e in pol.entities if e.ref.type in w.principal_types)
             for g in RENDERINGS:

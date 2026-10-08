@@ -22,7 +22,7 @@ def worlds(n=6):
 
 def test_swap_is_a_derangement_and_preserves_decisions():
     for w in worlds():
-        m = swap_map(w.policy, w.principal_types)
+        m = swap_map(w.policy, w.principal_types)  # synthetic worlds have >= 2 principals
         assert all(k != v for k, v in m.items()) and len(set(m.values())) == len(m)
         swapped = rename(w.policy, m)
         for req in universe(w.policy, w.principal_types, w.resource_types):
@@ -75,3 +75,25 @@ def test_swapped_policy_is_recertified():
         assert certify(extra["swap_policy"], w.principal_types, w.resource_types)["passed"]
     except FileNotFoundError:
         pytest.skip("OPA binary not installed")
+
+
+def test_single_principal_worlds_swap_resources():
+    from authinv.benchmark import rename_request, swap_axis
+    from authinv.policy import Entity, EntityRef, Policy, Rule, Scope, validate
+
+    me = EntityRef("Caller", "c1")
+    b1, b2, b3 = (EntityRef("Bucket", x) for x in ("b1", "b2", "b3"))
+    p = Policy(
+        "iam",
+        (Entity(me), Entity(b1), Entity(b2), Entity(b3)),
+        ("get", "put"),
+        (Rule("r1", "permit", Scope("eq", me), ("get",), Scope("eq", b1)),),
+        (),
+    )
+    validate(p)
+    axis = swap_axis(p, ("Caller",), ("Bucket",))
+    assert axis == ("Bucket",)
+    m = swap_map(p, axis)
+    q = rename(p, m)
+    for req in universe(p, ("Caller",), ("Bucket",)):
+        assert evaluate(q, rename_request(req, m))["decision"] == evaluate(p, req)["decision"]
