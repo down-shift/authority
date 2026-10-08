@@ -127,9 +127,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 1 — Benchmark with engine-certified equivalence (Weeks 3–8)
 
 ### P1.1 — Canonical policy object
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:26:49Z
 - deps: G0
 - source: RESEARCH_PLAN §3 Phase 1 task 1
 - done-when: src/authinv/policy/ defines the canonical policy (principal, action, resource, effect, conditions, owner) with difficulty tiers (single rule; multi-rule deny-overrides; attribute-conditioned), deterministic serialization + SHA-256 hash, and a reference evaluator for requests; unit tests cover each tier incl. deny-overrides precedence; gate green.
