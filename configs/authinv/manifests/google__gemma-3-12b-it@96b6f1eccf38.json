@@ -1,0 +1,74 @@
+{
+ "files": {
+  "README.md": {
+   "git_blob_sha1": "83dba03ddca6dff78d9c0bb6f9f93bb8eabd6410",
+   "size": 25126
+  },
+  "added_tokens.json": {
+   "git_blob_sha1": "e17bde03d42feda32d1abfca6d3b598b9a020df7",
+   "size": 35
+  },
+  "chat_template.json": {
+   "git_blob_sha1": "719b0cd0d7a373a400b0c119ee0e051f41ea88d9",
+   "size": 1615
+  },
+  "config.json": {
+   "git_blob_sha1": "0fbe1ff508fb71af7056eed3397faaa0349a8f09",
+   "size": 916
+  },
+  "generation_config.json": {
+   "git_blob_sha1": "37a4c871d263a349f50e4a313db3e72164950702",
+   "size": 215
+  },
+  "model-00001-of-00005.safetensors": {
+   "sha256": "4847447e92599833e8dbaa3067cd201c3bb5c052efa91f11ba891e43234f7832",
+   "size": 4979902192
+  },
+  "model-00002-of-00005.safetensors": {
+   "sha256": "891bd54eed03cba9ee1e705533a02a8217fcc29f356e4a1f53e5fd0d178883ad",
+   "size": 4931296592
+  },
+  "model-00003-of-00005.safetensors": {
+   "sha256": "7cee411d9d57324e50ce064a192cc5a858276d508611b12fc599e0c9767112e0",
+   "size": 4931296656
+  },
+  "model-00004-of-00005.safetensors": {
+   "sha256": "8bc75a29a730c9e743cad013feda3b0991a913fafe787c58a1c6e20afad97723",
+   "size": 4931296656
+  },
+  "model-00005-of-00005.safetensors": {
+   "sha256": "ed14bd4908c98fed9f61e8cd410167e0846de9abd78e0452ab092072e5d9252d",
+   "size": 4601000928
+  },
+  "model.safetensors.index.json": {
+   "git_blob_sha1": "c5eb054c21efb5496f4623aeb619a750c9ed9357",
+   "size": 108605
+  },
+  "preprocessor_config.json": {
+   "git_blob_sha1": "b1e00fc184f61b698181821169c6374cd5813e5c",
+   "size": 570
+  },
+  "processor_config.json": {
+   "git_blob_sha1": "453c7966d4b5d0b4a317c585989f64c58c2a6bf0",
+   "size": 70
+  },
+  "special_tokens_map.json": {
+   "git_blob_sha1": "1a6193244714d3d78be48666cb02cdbfac62ad86",
+   "size": 662
+  },
+  "tokenizer.json": {
+   "sha256": "4667f2089529e8e7657cfb6d1c19910ae71ff5f28aa7ab2ff2763330affad795",
+   "size": 33384568
+  },
+  "tokenizer.model": {
+   "sha256": "1299c11d7cf632ef3b4e11937501358ada021bbdf7c47638d13c0ee982f2e79c",
+   "size": 4689074
+  },
+  "tokenizer_config.json": {
+   "git_blob_sha1": "7bdd14f0eaec30c8d2c56bc9d543587676e19c0f",
+   "size": 1156999
+  }
+ },
+ "repo": "google/gemma-3-12b-it",
+ "revision": "96b6f1eccf38110c56df3a15bffe176da04bfd80"
+}

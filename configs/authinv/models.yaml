@@ -1,0 +1,106 @@
+# authinv model registry (RESEARCH_PLAN §3 Phase 0 and Phase 2 sweep).
+# Revisions are HF commit SHAs resolved 2026-10-08 via the HF API; every run
+# must load exactly this revision. Gated upstream repos are not downloaded
+# with anyone's token on shared machines: `weights_from` names an ungated
+# mirror whose LFS weight files are byte-identical to the pinned upstream
+# revision (sha256-verified), and the runner fetches the upstream's small
+# non-LFS files separately and verifies every file against
+# `upstream_manifest` before loading (see authinv.models).
+# precision: dtype for loading. quantization: null or the checkpoint's scheme.
+models:
+  qwen3_4b:
+    name: Qwen/Qwen3-4B
+    revision: 1cfa9a7208912126459214e8b04321603b3df60c
+    params_b: 4
+    precision: bfloat16
+    quantization: null
+    thinking: false
+  qwen3_8b:
+    name: Qwen/Qwen3-8B
+    revision: b968826d9c46dd6066d109eabc6255188de91218
+    params_b: 8
+    precision: bfloat16
+    quantization: null
+    thinking: false
+  qwen3_14b:
+    name: Qwen/Qwen3-14B
+    revision: 40c069824f4251a91eefaf281ebe4c544efd3e18
+    params_b: 14
+    precision: bfloat16
+    quantization: null
+    thinking: false
+  qwen3_32b:
+    name: Qwen/Qwen3-32B
+    revision: 9216db5781bf21249d130ec9da846c4624c16137
+    params_b: 32
+    precision: bfloat16
+    quantization: null
+    thinking: false
+  qwen3_32b_thinking:
+    name: Qwen/Qwen3-32B
+    revision: 9216db5781bf21249d130ec9da846c4624c16137
+    params_b: 32
+    precision: bfloat16
+    quantization: null
+    thinking: true
+  qwen3_235b_a22b_fp8:
+    name: Qwen/Qwen3-235B-A22B-FP8
+    revision: 39eb2b067ea6b8e3e1dd97d3cd0c7ffeaf3e1a35
+    params_b: 235
+    precision: bfloat16
+    quantization: fp8
+    thinking: false
+  llama3_1_8b:
+    name: meta-llama/Llama-3.1-8B-Instruct
+    revision: 0e9e39f249a16976918f6564b8830bc894c89659
+    params_b: 8
+    precision: bfloat16
+    quantization: null
+    gated: true  # no byte-identical ungated mirror; access path decided before Phase 2
+  llama3_3_70b:
+    name: meta-llama/Llama-3.3-70B-Instruct
+    revision: 6f6073b423013f6a7d4d9f39144961bfbfbc386b
+    params_b: 70
+    precision: bfloat16
+    quantization: null
+    gated: true  # no byte-identical ungated mirror (unsloth reshards); access path decided before Phase 2
+  llama3_3_70b_int8:
+    # Phase-0 "Llama-3.3-70B (int8)": RedHatAI's INT8 W8A8 (weights and
+    # activations) checkpoint of the same base model, served natively by vLLM.
+    name: RedHatAI/Llama-3.3-70B-Instruct-quantized.w8a8
+    revision: b1e1d82e583519be4aefe6252c992c8d6e6d24d6
+    base_model: meta-llama/Llama-3.3-70B-Instruct
+    params_b: 70
+    precision: bfloat16
+    quantization: int8_w8a8
+  gemma3_12b:
+    name: google/gemma-3-12b-it
+    revision: 96b6f1eccf38110c56df3a15bffe176da04bfd80
+    params_b: 12
+    precision: bfloat16
+    quantization: null
+    gated: true
+    weights_from: {name: unsloth/gemma-3-12b-it, revision: 9478e665381f42974aa06177b019352fb6291876}
+    upstream_manifest: manifests/google__gemma-3-12b-it@96b6f1eccf38.json
+  gemma3_27b:
+    name: google/gemma-3-27b-it
+    revision: 005ad3404e59d6023443cb575daa05336842228a
+    params_b: 27
+    precision: bfloat16
+    quantization: null
+    gated: true
+    weights_from: {name: unsloth/gemma-3-27b-it, revision: 7a5a3053dbd5d1d58e48159e87b9df2fc545a49a}
+    upstream_manifest: manifests/google__gemma-3-27b-it@005ad3404e59.json
+  mistral_small_24b:
+    name: mistralai/Mistral-Small-3.2-24B-Instruct-2506
+    revision: 95a6d26c4bfb886c58daf9d3f7332c857cb27b43
+    params_b: 24
+    precision: bfloat16
+    quantization: null
+
+# Model sets referenced by phase configs.
+sets:
+  phase0: [qwen3_8b, qwen3_32b, gemma3_27b, llama3_3_70b_int8]
+  phase2_sweep: [qwen3_4b, qwen3_8b, qwen3_14b, qwen3_32b, qwen3_32b_thinking, llama3_1_8b,
+                 llama3_3_70b, llama3_3_70b_int8, gemma3_12b, gemma3_27b, mistral_small_24b]
+  phase2_optional: [qwen3_235b_a22b_fp8]
