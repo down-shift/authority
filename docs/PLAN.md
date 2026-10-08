@@ -107,9 +107,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: all four models run on the frozen Phase-0 dataset with full provenance; docs/experiments/p0.4-phase0-kill-test.md (result positive/neutral/negative) reports every preregistered metric with CIs per model, per rendering, and ends with the Gate 0 recommendation for Jerzy (not a decision); docs/PROGRESS.md entry added.
 
 ### P0.5 — [GPU: H100] Phase-0 addendum on current models
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T01:16:10Z
 - deps: P0.3
 - source: Jerzy 2026-10-08 (model roster refresh); RESEARCH_PLAN §3 Phase 0 addendum
 - done-when: harness supports the new models (multimodal checkpoints loaded text-only; gpt-oss harmony output with the answer taken from the final channel); docs/prereg/phase0-addendum.md committed and pushed before any addendum inference (same frozen data, parser, metrics; per-model generation settings fixed in configs/authinv/phase0_addendum.yaml); Qwen3.8-27B, Gemma-4-31B-it, gpt-oss-120b run with full provenance; docs/experiments/p0.5-phase0-addendum.md reports them next to Phase 0, explicitly outside the Gate-0 rule.
