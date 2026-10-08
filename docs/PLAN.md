@@ -83,7 +83,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/__init__.py (+ subpackages policy/, render/, equivalence/, eval/, agent/ as empty modules with docstrings); configs/authinv/models.yaml listing the Phase-0 and Phase-2 sweep models with pinned HF revisions (revision: null + a TODO only where a revision can't be resolved offline, flagged in the PR); pyproject extras `engines`, `probing`, `agent` declared (vllm in `inference`, lazily imported); docs/CHANGELOG.md (renderer/prompt version log) created; a test asserts authinv imports nothing from authorization_invariance / authorization_competence; gate green.
 
 ### P0.2 — Phase-0 generation harness (greedy + strict parser)
-- status: claimed
+- status: in_review (#5)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T00:31:56Z
 - deps: P0.1
