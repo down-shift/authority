@@ -161,6 +161,8 @@ def cmd_run(args) -> None:
     done_path = run / "predictions.jsonl"
     done = {r["row_id"] for r in provenance.read_jsonl(done_path)} if done_path.exists() else set()
     todo = [r for r in rows if r["row_id"] not in done]
+    if args.limit:  # engineering smoke test only; never analysed or aggregated
+        todo = todo[: args.limit]
     try:
         from authinv.eval.generation import VLLMChat
 
@@ -204,6 +206,11 @@ def cmd_run(args) -> None:
                 out.flush()
                 provenance.write_run_status(run, "running", len(done) + start + len(chunk), total)
         preds = provenance.read_jsonl(done_path)
+        if args.limit:
+            provenance.write_run_status(run, "smoke", len(preds), total)
+            provenance.finalize(run)
+            print(run)
+            return
         provenance.write_json(run / "metrics.json", analyze(preds, cfg))
         provenance.write_run_status(run, "complete", len(preds), total)
         provenance.finalize(run)
@@ -256,6 +263,7 @@ def main() -> None:
     r.add_argument("--resume", type=Path)
     r.add_argument("--dataset-only", action="store_true")
     r.add_argument("--tokenizer-audit-only", action="store_true")
+    r.add_argument("--limit", type=int, help="engineering smoke test: first N rows only; never analysed")
     r.set_defaults(func=cmd_run)
     a = sub.add_parser("aggregate")
     a.add_argument("--config", type=Path, required=True)
