@@ -135,7 +135,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/policy/ defines the canonical policy (principal, action, resource, effect, conditions, owner) with difficulty tiers (single rule; multi-rule deny-overrides; attribute-conditioned), deterministic serialization + SHA-256 hash, and a reference evaluator for requests; unit tests cover each tier incl. deny-overrides precedence; gate green.
 
 ### P1.2 — Five versioned renderers + decoders
-- status: claimed
+- status: done
+- note: landed on main as b5d929f without a PR (process slip); gate + CI green
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T07:30:37Z
 - deps: P1.1
