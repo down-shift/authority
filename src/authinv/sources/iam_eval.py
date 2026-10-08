@@ -23,13 +23,22 @@ action, its resource, and every condition hold.
   together. A list of values for a positive operator is an OR over the values;
   for a negated operator (`StringNotEquals`, `NumericNotEquals`) it holds when
   the request value equals none of them, as AWS documents.
+- `NotAction` / `NotResource` (v2, step P1.8.2): the statement applies to every
+  action / resource that matches **none** of the listed patterns, with the same
+  case rules as `Action` / `Resource`.
+- `NotPrincipal` (v2): the statement applies to every caller that is **not**
+  listed. Only `Service` principals are supported. AWS evaluates a user or role
+  together with its account ARN, so `NotPrincipal` naming an AWS identity is
+  not a single-identity check and is refused.
 - A request supplies every condition key the policy reads. Missing-key
   behaviour (`...IfExists`, `Null`) is outside the supported subset.
 
 Only the subset below is supported. Anything else raises `Unsupported`, so the
-oracle never silently guesses: `NotAction`, `NotResource`, `NotPrincipal`,
+oracle never silently guesses: `NotPrincipal` with a non-`Service` value,
 operators other than those in `OPERATORS`, set qualifiers (`ForAnyValue:`,
-`ForAllValues:`), `IfExists`, and policy variables (`${...}`).
+`ForAllValues:`), `IfExists`, and policy variables (`${...}`). (The v1 oracle
+also refused `NotAction`, `NotResource` and every `NotPrincipal`; on documents
+without them the two agree, since nothing else changed.)
 """
 
 from __future__ import annotations
@@ -108,6 +117,21 @@ def _principal_matches(spec, caller: tuple[str, str] | None) -> bool:
     return False
 
 
+def _not_principal_listed(spec, caller: tuple[str, str] | None) -> bool:
+    """True when the caller is one of the principals a `NotPrincipal` element lists."""
+    if not isinstance(spec, dict) or not spec:
+        raise Unsupported(f"NotPrincipal {spec!r}")
+    for ptype, values in spec.items():
+        if ptype != "Service":
+            raise Unsupported(f"NotPrincipal of type {ptype!r}")
+        for v in _as_list(values):
+            if not isinstance(v, str) or "*" in v or "?" in v:
+                raise Unsupported(f"NotPrincipal value {v!r}")
+            if caller is not None and caller == (ptype, v):
+                return True
+    return False
+
+
 def _parse(value, kind: str):
     if kind == "str":
         if not isinstance(value, str):
@@ -164,13 +188,18 @@ def check_supported(stmt: dict) -> None:
         raise Unsupported("statement is not an object")
     if stmt.get("Effect") not in ("Allow", "Deny"):
         raise Unsupported(f"Effect {stmt.get('Effect')!r}")
-    for bad in ("NotAction", "NotResource", "NotPrincipal"):
-        if bad in stmt:
-            raise Unsupported(bad)
-    if "Action" not in stmt or "Resource" not in stmt:
-        raise Unsupported("statement without Action or Resource")
+    for pos, neg in (("Action", "NotAction"), ("Resource", "NotResource")):
+        if (pos in stmt) == (neg in stmt):
+            raise Unsupported(f"statement needs exactly one of {pos} / {neg}")
+        for v in _as_list(stmt.get(pos, stmt.get(neg))):
+            if not isinstance(v, str):
+                raise Unsupported(f"{pos} value {v!r}")
+    if "Principal" in stmt and "NotPrincipal" in stmt:
+        raise Unsupported("both Principal and NotPrincipal")
     if "Principal" in stmt:
         _principal_matches(stmt["Principal"], None)
+    if "NotPrincipal" in stmt:
+        _not_principal_listed(stmt["NotPrincipal"], None)
     cond = stmt.get("Condition", {})
     if not isinstance(cond, dict):
         raise Unsupported("Condition is not an object")
@@ -188,13 +217,22 @@ def check_supported(stmt: dict) -> None:
                 _parse(v, OPERATORS[op])
 
 
+def _hits(stmt: dict, pos: str, neg: str, value: str, *, case_sensitive: bool) -> bool:
+    """`pos` matches when any pattern matches; `neg` (NotAction / NotResource) when none does."""
+    if pos in stmt:
+        return any(glob_match(p, value, case_sensitive=case_sensitive) for p in _as_list(stmt[pos]))
+    return not any(glob_match(p, value, case_sensitive=case_sensitive) for p in _as_list(stmt[neg]))
+
+
 def statement_matches(stmt: dict, req: IamRequest) -> bool:
     check_supported(stmt)
     if "Principal" in stmt and not _principal_matches(stmt["Principal"], req.principal):
         return False
-    if not any(glob_match(p, req.action, case_sensitive=False) for p in _as_list(stmt["Action"])):
+    if "NotPrincipal" in stmt and _not_principal_listed(stmt["NotPrincipal"], req.principal):
         return False
-    if not any(glob_match(p, req.resource, case_sensitive=True) for p in _as_list(stmt["Resource"])):
+    if not _hits(stmt, "Action", "NotAction", req.action, case_sensitive=False):
+        return False
+    if not _hits(stmt, "Resource", "NotResource", req.resource, case_sensitive=True):
         return False
     return _condition_holds(stmt.get("Condition", {}), req.context)
 
