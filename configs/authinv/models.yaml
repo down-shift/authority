@@ -106,9 +106,129 @@ models:
     precision: bfloat16
     quantization: null
 
+  # --- Current roster, approved by Jerzy 2026-10-08 (RESEARCH_PLAN §3 Phase 2 amendment) ---
+  qwen3_5_4b:
+    name: Qwen/Qwen3.5-4B
+    revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+    params_b: 4.7
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  qwen3_5_9b:
+    name: Qwen/Qwen3.5-9B
+    revision: c202236235762e1c871ad0ccb60c8ee5ba337b9a
+    params_b: 9.7
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  qwen3_8_27b:
+    name: Qwen/Qwen3.8-27B
+    revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+    params_b: 27.8
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  qwen3_8_27b_thinking:
+    name: Qwen/Qwen3.8-27B
+    revision: 1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0
+    params_b: 27.8
+    precision: bfloat16
+    quantization: null
+    thinking: true
+    multimodal: true
+  qwen3_8_27b_fp8:
+    # Quantization control: Qwen's official FP8 checkpoint of qwen3_8_27b.
+    name: Qwen/Qwen3.8-27B-FP8
+    revision: 017b9c7af6b5689d5dd426a76e0bc077eb5ca20a
+    base_model: Qwen/Qwen3.8-27B
+    params_b: 27.8
+    precision: bfloat16
+    quantization: fp8
+    thinking: false
+    multimodal: true
+  gemma4_e4b:
+    name: google/gemma-4-E4B-it
+    revision: ee0ef6023621cff504d758262d4e04895a5af4a2
+    params_b: 8.0
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  gemma4_12b:
+    name: google/gemma-4-12B-it
+    revision: 707f0a3b8a3c7ad586ed01e27eafbad8a27dd0f7
+    params_b: 12.0
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  gemma4_31b:
+    name: google/gemma-4-31B-it
+    revision: 842da3794eaa0b77d5f08bae87a17459d91ff475
+    params_b: 31.3
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  gpt_oss_20b:
+    name: openai/gpt-oss-20b
+    revision: 6cee5e81ee83917806bbde320786a8fb61efebee
+    params_b: 20.9
+    precision: bfloat16
+    quantization: mxfp4  # native checkpoint format
+    output_format: harmony  # answer = final channel; analysis channel kept separately
+  gpt_oss_120b:
+    name: openai/gpt-oss-120b
+    revision: b5c939de8f754692c1647ca79fbf85e8c1e70f8a
+    params_b: 116.8
+    precision: bfloat16
+    quantization: mxfp4
+    output_format: harmony
+  ministral3_14b:
+    name: mistralai/Ministral-3-14B-Instruct-2512
+    revision: 29439f81c2be264d8d393273f99e7db9c0961120
+    params_b: 13.9
+    precision: bfloat16
+    quantization: checkpoint_native  # BF16 + FP8 tensors as published
+    multimodal: true
+  qwen3_6_35b_a3b:
+    name: Qwen/Qwen3.6-35B-A3B
+    revision: 995ad96eacd98c81ed38be0c5b274b04031597b0
+    params_b: 36.0
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  gemma4_26b_a4b:
+    name: google/gemma-4-26B-A4B-it
+    revision: 4d7ae4984b7db7de8f8457170b3f1a419ee76d52
+    params_b: 25.8
+    precision: bfloat16
+    quantization: null
+    thinking: false
+    multimodal: true
+  granite4_2_8b:
+    name: ibm-granite/granite-4.2-8b
+    revision: f8de16cdcdbc6c779ca517604e050d82cc119e44
+    params_b: 8.8
+    precision: bfloat16
+    quantization: null
+  granite4_2_30b:
+    name: ibm-granite/granite-4.2-30b
+    revision: 9e668ce1c538387ef24d3644e9b0606647762636
+    params_b: 29.3
+    precision: bfloat16
+    quantization: null
+
 # Model sets referenced by phase configs.
 sets:
   phase0: [qwen3_8b, qwen3_32b, gemma3_27b, llama3_3_70b_int8]
-  phase2_sweep: [qwen3_4b, qwen3_8b, qwen3_14b, qwen3_32b, qwen3_32b_thinking, llama3_1_8b,
-                 llama3_3_70b, llama3_3_70b_int8, gemma3_12b, gemma3_27b, mistral_small_24b]
-  phase2_optional: [qwen3_235b_a22b_fp8]
+  phase0_addendum: [qwen3_8_27b, gemma4_31b, gpt_oss_120b]
+  # Phase 2 roster amended 2026-10-08 (Jerzy approved); the original Qwen3/Gemma3/Llama3.1/Mistral-3.2
+  # roster is superseded. llama3_3_70b_int8 stays as the legacy anchor already run in Phase 0.
+  phase2_sweep: [qwen3_5_4b, qwen3_5_9b, qwen3_8_27b, qwen3_8_27b_thinking, qwen3_8_27b_fp8, gemma4_e4b,
+                 gemma4_12b, gemma4_31b, gpt_oss_20b, gpt_oss_120b, ministral3_14b, llama3_3_70b_int8]
+  phase2_optional: [qwen3_6_35b_a3b, gemma4_26b_a4b, granite4_2_8b, granite4_2_30b]
