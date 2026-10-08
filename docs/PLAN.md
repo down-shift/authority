@@ -184,7 +184,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: fetch script (data/raw git-ignored) with pinned source URL/commit and license recorded; CedarBench policies mapped to canonical objects where expressible (unsupported constructs counted and reported, not dropped silently); imported worlds engine-checked; tests on a small fixture; gate green.
 
 ### P1.8 — Quacky AWS IAM import → Cedar
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T08:01:06Z
 - deps: P1.7
