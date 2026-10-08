@@ -29,7 +29,7 @@ import yaml  # noqa: E402
 
 from authinv import models, provenance  # noqa: E402
 from authinv.eval import metrics  # noqa: E402
-from authinv.eval.parse import PARSER_VERSION, parse_answer  # noqa: E402
+from authinv.eval.parse import PARSERS, parse_answer  # noqa: E402
 
 KEEP = (
     "row_id",
@@ -92,7 +92,7 @@ def build_dataset(cfg: dict, source_run: Path) -> tuple[list[dict], dict]:
 
 def analyze(rows: list[dict], cfg: dict) -> dict:
     a = cfg["analysis"]
-    out = {"parser_version": PARSER_VERSION, "tasks": {}}
+    out = {"parser_version": cfg["parser_version"], "tasks": {}}
     for task in sorted({r["task"] for r in rows}):
         out["tasks"][task] = metrics.task_metrics(rows, task, a["bootstrap_replicates"], a["bootstrap_seed"])
     lenient = [{**r, "category": _lenient_category(r)} for r in rows]
@@ -153,6 +153,9 @@ def report_md(model_key: str, spec: dict, m: dict, task_order=("application", "i
 
 def cmd_run(args) -> None:
     cfg = yaml.safe_load(args.config.read_text())
+    parser_version = cfg["parser_version"]  # Phase-0 configs pin strict-v1
+    if parser_version not in PARSERS:
+        raise SystemExit(f"unknown parser_version {parser_version!r} in {args.config}")
     spec = models.model_spec(args.model)
     rows, validation = build_dataset(cfg, args.source_run)
     if args.resume:
@@ -165,7 +168,7 @@ def cmd_run(args) -> None:
                 "config": old["config_sha256"] == provenance.sha256_json(cfg),
                 "model": old["model"] == spec,
                 "dataset": meta["sha256"] == provenance.sha256_json(rows),
-                "parser": old["parser_version"] == PARSER_VERSION,
+                "parser": old["parser_version"] == parser_version,
             }.items()
             if not ok
         ]
@@ -181,7 +184,7 @@ def cmd_run(args) -> None:
                 "config": cfg,
                 "config_sha256": provenance.sha256_json(cfg),
                 "model": spec,
-                "parser_version": PARSER_VERSION,
+                "parser_version": parser_version,
                 "source_run": str(args.source_run),
                 "smoke_limit": args.limit,
                 "command": sys.argv,
@@ -240,7 +243,7 @@ def cmd_run(args) -> None:
                 "source_sha256": provenance.source_hashes(TRACKED),
                 "dataset_sha256": provenance.sha256_json(rows),
                 "command": sys.argv,
-                "parser_version": PARSER_VERSION,
+                "parser_version": parser_version,
             },
         )
         provenance.write_run_status(run, "running", len(done), total)
@@ -249,7 +252,9 @@ def cmd_run(args) -> None:
             for start in range(0, len(todo), step):
                 chunk = todo[start : start + step]
                 for row, gen in zip(chunk, chat.generate([r["prompt"] for r in chunk]), strict=True):
-                    parsed = parse_answer(gen["text"], row["candidates"], row["correct"])
+                    parsed = parse_answer(
+                        gen["text"], row["candidates"], row["correct"], version=parser_version
+                    )
                     out.write(json.dumps({**row, **gen, **parsed}, sort_keys=True) + "\n")
                 out.flush()
                 provenance.write_run_status(run, "running", len(done) + start + len(chunk), total)
