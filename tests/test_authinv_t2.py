@@ -154,26 +154,35 @@ def _dataset(tmp_path, drop_one=False):
 
 
 def test_runner_dataset_only_and_validation(tmp_path):
+    import yaml
+
     runner = _runner()
-    rows, report = runner.load_dataset(_dataset(tmp_path))
+    (tmp_path / "a").mkdir()
+    rows, report = runner.load_dataset(_dataset(tmp_path / "a"))
     assert report["passed"] and len(rows) == 4
+    (tmp_path / "b").mkdir()
     with pytest.raises(SystemExit, match="every rendering"):
-        runner.load_dataset(
-            _dataset(tmp_path / "b", drop_one=True) if (tmp_path / "b").mkdir() is None else None
-        )
-    sys.argv = [
+        runner.load_dataset(_dataset(tmp_path / "b", drop_one=True))
+    (tmp_path / "c").mkdir()
+    ds = _dataset(tmp_path / "c")
+    cfg = yaml.safe_load((ROOT / "configs/authinv/t2.yaml").read_text())
+    base = [
         "x",
         "run",
-        "--config",
-        str(ROOT / "configs/authinv/t2.yaml"),
         "--dataset",
-        str(_dataset(tmp_path / "c") if (tmp_path / "c").mkdir() is None else None),
+        str(ds),
         "--model",
         "qwen3_5_4b",
         "--dataset-only",
         "--output-root",
         str(tmp_path / "out"),
     ]
+    sys.argv = base[:2] + ["--config", str(ROOT / "configs/authinv/t2.yaml")] + base[2:]
+    with pytest.raises(SystemExit, match="preregistered benchmark"):
+        runner.main()  # the frozen config pins the v2 benchmark hash
+    unpinned = tmp_path / "t2_unpinned.yaml"
+    unpinned.write_text(yaml.safe_dump({k: v for k, v in cfg.items() if k != "dataset_sha256"}))
+    sys.argv = base[:2] + ["--config", str(unpinned)] + base[2:]
     runner.main()
     run = next((tmp_path / "out").iterdir())
     assert json.loads((run / "run_status.json").read_text())["status"] == "dataset_only"
@@ -188,3 +197,15 @@ def test_runner_analyze_on_synthetic_predictions():
     cfg["analysis"]["bootstrap_replicates"] = 100
     out = runner.analyze(_rows(), cfg)
     assert out["tasks"]["application"]["worst_rendering"] == "nl" and "dissociation" in out
+
+
+def test_rendering_contrasts_and_scaling():
+    from authinv.eval.invariance import rendering_contrasts, spearman_with_permutation
+
+    c = rendering_contrasts(_rows(), "application", replicates=300, seed=1)
+    gap = 8 / 30 * 0.5  # nl accuracy deficit per world-average
+    assert c["nl"]["mean"] == pytest.approx(-gap) and c["cedar"]["mean"] == pytest.approx(gap / 2)
+    assert c["nl"]["ci95"][1] < 0
+    s = spearman_with_permutation([4, 9, 27, 31, 117], [0.10, 0.08, 0.02, 0.01, 0.03], permutations=2000)
+    assert s["rho"] < 0 and 0 <= s["p_permutation"] <= 1
+    assert spearman_with_permutation([1, 2], [1, 2])["rho"] is None

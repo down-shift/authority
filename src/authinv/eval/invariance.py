@@ -166,3 +166,44 @@ def dissociation(rows: list[dict], replicates: int = 4000, seed: int = 0) -> dic
             "paired_rows": len(paired),
         }
     return out
+
+
+def rendering_contrasts(rows: list[dict], task: str, replicates: int = 4000, seed: int = 0) -> dict:
+    """Per rendering: accuracy minus the mean accuracy of the other renderings (paired within world).
+
+    The Phase-2 Holm family member for one model (docs/prereg/phase2.md). Point estimate, world-clustered
+    percentile CI, two-sided bootstrap p.
+    """
+    sel = [r for r in rows if r["task"] == task]
+    worlds = sorted({r["world_id"] for r in sel})
+    rends = sorted({r["rendering"] for r in sel})
+    idx = bootstrap_indices(len(worlds), replicates, seed)
+    acc = {
+        g: _per_world([r for r in sel if r["rendering"] == g], worlds, lambda r: r["category"] == "correct")
+        for g in rends
+    }
+    out = {}
+    for g in rends:
+        others = np.nanmean(np.stack([acc[h] for h in rends if h != g]), axis=0)
+        d = acc[g] - others
+        boot = np.nanmean(d[idx], axis=1)
+        out[g] = {
+            "mean": float(np.nanmean(d)),
+            "ci95": _ci(boot),
+            "p_bootstrap": float(min(1.0, 2 * min(np.mean(boot <= 0), np.mean(boot >= 0)))),
+        }
+    return out
+
+
+def spearman_with_permutation(
+    x: list[float], y: list[float], permutations: int = 20000, seed: int = 0
+) -> dict:
+    """Spearman rho between two per-model series with an exact-ish two-sided permutation p (scaling test)."""
+    if len(x) != len(y) or len(x) < 3:
+        return {"rho": None, "p_permutation": None, "n": len(x)}
+    rx = np.argsort(np.argsort(x)).astype(float)
+    ry = np.argsort(np.argsort(y)).astype(float)
+    rho = float(np.corrcoef(rx, ry)[0, 1])
+    rng = np.random.default_rng(seed)
+    perm = np.array([np.corrcoef(rx, rng.permutation(ry))[0, 1] for _ in range(permutations)])
+    return {"rho": rho, "p_permutation": float(np.mean(np.abs(perm) >= abs(rho) - 1e-12)), "n": len(x)}

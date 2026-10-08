@@ -90,6 +90,15 @@ def analyze(preds: list[dict], cfg: dict) -> dict:
             t: dict(collections.Counter(r["category"] for r in preds if r["task"] == t)) for t in tasks
         },
     }
+    if "application" in tasks:
+        out["rendering_contrasts"] = invariance.rendering_contrasts(
+            preds, "application", a["bootstrap_replicates"], a["bootstrap_seed"]
+        )
+        for kind in sorted({r.get("source_kind") for r in preds} - {None}):
+            sub = [r for r in preds if r.get("source_kind") == kind]
+            out.setdefault("by_source_kind", {})[kind] = invariance.rendering_metrics(
+                sub, "application", a["bootstrap_replicates"], a["bootstrap_seed"]
+            )
     if {"application", "interpretation"} <= set(tasks):
         out["dissociation"] = invariance.dissociation(preds, a["bootstrap_replicates"], a["bootstrap_seed"])
     return out
@@ -119,6 +128,10 @@ def cmd_run(args) -> None:
     spec = models.model_spec(args.model)
     rows, validation = load_dataset(args.dataset)
     dataset_sha = validation["manifest"]["sha256"]
+    if cfg.get("dataset_sha256") and dataset_sha != cfg["dataset_sha256"]:
+        raise SystemExit(f"dataset {dataset_sha} is not the preregistered benchmark {cfg['dataset_sha256']}")
+    if cfg.get("parser_version") and cfg["parser_version"] != JSON_PARSER_VERSION:
+        raise SystemExit(f"config parser {cfg['parser_version']} != code {JSON_PARSER_VERSION}")
     if args.resume:
         run = args.resume
         old = json.loads((run / "config.json").read_text())
@@ -161,6 +174,8 @@ def cmd_run(args) -> None:
     done_path = run / "predictions.jsonl"
     done = {r["row_id"] for r in provenance.read_jsonl(done_path)} if done_path.exists() else set()
     todo = [r for r in rows if r["row_id"] not in done]
+    if args.limit:  # engineering smoke test only; never analysed or aggregated
+        todo = todo[: args.limit]
     try:
         from authinv.eval.generation import VLLMChat
 
@@ -204,6 +219,11 @@ def cmd_run(args) -> None:
                 out.flush()
                 provenance.write_run_status(run, "running", len(done) + start + len(chunk), total)
         preds = provenance.read_jsonl(done_path)
+        if args.limit:
+            provenance.write_run_status(run, "smoke", len(preds), total)
+            provenance.finalize(run)
+            print(run)
+            return
         provenance.write_json(run / "metrics.json", analyze(preds, cfg))
         provenance.write_run_status(run, "complete", len(preds), total)
         provenance.finalize(run)
@@ -226,9 +246,38 @@ def cmd_aggregate(args) -> None:
             raise SystemExit(f"{run}: config differs")
         per_model[conf["model"]["key"]] = json.loads((run / "metrics.json").read_text())
     pvals = {k: m["tasks"][task]["worst_case_gap"]["p_bootstrap"] for k, m in per_model.items()}
+    # Holm family (docs/prereg/phase2.md): each (model, rendering) contrast vs the other renderings.
+    family = {
+        f"{k}|{g}": v["p_bootstrap"]
+        for k, m in per_model.items()
+        for g, v in m.get("rendering_contrasts", {}).items()
+    }
+    params = {k: models.model_spec(k)["params_b"] for k in per_model}
+    scaling = invariance.spearman_with_permutation(
+        [params[k] for k in sorted(per_model)],
+        [per_model[k]["tasks"][task]["worst_case_gap"]["mean"] for k in sorted(per_model)],
+    )
+    quant = {}
+    for base, q in cfg.get("quantization_pairs", {}).items():
+        if base in per_model and q in per_model:
+            b, qq = per_model[base]["tasks"][task], per_model[q]["tasks"][task]
+            delta = {
+                g: qq["per_rendering"][g]["accuracy"]["mean"] - b["per_rendering"][g]["accuracy"]["mean"]
+                for g in b["per_rendering"]
+            }
+            quant[f"{base}->{q}"] = {
+                "accuracy_delta": delta,
+                "max_abs_delta": max(abs(v) for v in delta.values()),
+                "base_worst_case_gap": b["worst_case_gap"]["mean"],
+                "exceeds_rendering_effect": max(abs(v) for v in delta.values())
+                >= b["worst_case_gap"]["mean"],
+            }
     result = {
         "primary_task": task,
         "holm_adjusted_gap_p": metrics.holm(pvals),
+        "holm_adjusted_rendering_contrasts": metrics.holm(family) if family else {},
+        "scaling_worst_case_gap_vs_params": scaling,
+        "quantization_control": quant,
         "worst_case": {
             k: {"worst": m["tasks"][task]["worst_rendering"], "gap": m["tasks"][task]["worst_case_gap"]}
             for k, m in per_model.items()
@@ -256,6 +305,7 @@ def main() -> None:
     r.add_argument("--resume", type=Path)
     r.add_argument("--dataset-only", action="store_true")
     r.add_argument("--tokenizer-audit-only", action="store_true")
+    r.add_argument("--limit", type=int, help="engineering smoke test: first N rows only; never analysed")
     r.set_defaults(func=cmd_run)
     a = sub.add_parser("aggregate")
     a.add_argument("--config", type=Path, required=True)
