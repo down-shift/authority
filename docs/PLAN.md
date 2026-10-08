@@ -293,7 +293,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: vLLM greedy decoding with a strict JSON answer schema over authinv datasets; parse failures / refusals / abstains as separate categories; metrics extended with dissociation rate (interpretation correct ∧ application wrong, by rendering) and deny→allow flip rate on engine-labelled requests; scripts/authinv_eval.py with --dataset-only / --tokenizer-audit-only / --resume and full provenance; tests; gate green.
 
 ### P2.3 — Preregister Phase 2 (T1/T2)
-- status: claimed
+- status: in_review (#45)
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T17:22:19Z
 - deps: P2.1 P2.2 G1
