@@ -209,9 +209,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: configs/authinv/synthetic.yaml replicates raised to 30 (1,440 worlds), regenerated and certified on all six renderings (incl. Rego); report docs/experiments/p1.6-synthetic-sources.md updated with the new counts (old counts kept as history); gate green.
 
 ### P1.7.2 — CedarBench importer v2: enlarged universes + exact `||` split
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T11:06:47Z
 - deps: P1.7
 - source: Jerzy 2026-10-08 (approved universe enlargement); docs/experiments/p1.7-cedarbench-import.md caveats
 - done-when: importer version bump (recorded in each world's meta and docs/CHANGELOG.md): the request universe adds every schema action as a probe and extra deterministic entities per type so worlds are non-degenerate where the policy allows; `||` at the top of a when-clause is split exactly into separate rules (DNF over the disjunction only; anything else still excluded); every world re-certified (all six renderings) and faithful to the original Cedar text on the enlarged universe; report updated with v1-vs-v2 counts incl. the number meeting the ≥4 allow / ≥4 deny bar, split by the paper's 221 tasks vs the 5 stress scenarios; gate green.
