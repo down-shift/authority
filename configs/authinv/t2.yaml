@@ -17,3 +17,5 @@ analysis:
   primary_task: application
   bootstrap_replicates: 4000
   bootstrap_seed: 20261010
+quantization_pairs:   # quantization control (RESEARCH_PLAN Phase-2 amendment)
+  qwen3_8_27b: qwen3_8_27b_fp8

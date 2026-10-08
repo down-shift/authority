@@ -188,3 +188,15 @@ def test_runner_analyze_on_synthetic_predictions():
     cfg["analysis"]["bootstrap_replicates"] = 100
     out = runner.analyze(_rows(), cfg)
     assert out["tasks"]["application"]["worst_rendering"] == "nl" and "dissociation" in out
+
+
+def test_rendering_contrasts_and_scaling():
+    from authinv.eval.invariance import rendering_contrasts, spearman_with_permutation
+
+    c = rendering_contrasts(_rows(), "application", replicates=300, seed=1)
+    gap = 8 / 30 * 0.5  # nl accuracy deficit per world-average
+    assert c["nl"]["mean"] == pytest.approx(-gap) and c["cedar"]["mean"] == pytest.approx(gap / 2)
+    assert c["nl"]["ci95"][1] < 0
+    s = spearman_with_permutation([4, 9, 27, 31, 117], [0.10, 0.08, 0.02, 0.01, 0.03], permutations=2000)
+    assert s["rho"] < 0 and 0 <= s["p_permutation"] <= 1
+    assert spearman_with_permutation([1, 2], [1, 2])["rho"] is None

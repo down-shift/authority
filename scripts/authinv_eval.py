@@ -90,6 +90,15 @@ def analyze(preds: list[dict], cfg: dict) -> dict:
             t: dict(collections.Counter(r["category"] for r in preds if r["task"] == t)) for t in tasks
         },
     }
+    if "application" in tasks:
+        out["rendering_contrasts"] = invariance.rendering_contrasts(
+            preds, "application", a["bootstrap_replicates"], a["bootstrap_seed"]
+        )
+        for kind in sorted({r.get("source_kind") for r in preds} - {None}):
+            sub = [r for r in preds if r.get("source_kind") == kind]
+            out.setdefault("by_source_kind", {})[kind] = invariance.rendering_metrics(
+                sub, "application", a["bootstrap_replicates"], a["bootstrap_seed"]
+            )
     if {"application", "interpretation"} <= set(tasks):
         out["dissociation"] = invariance.dissociation(preds, a["bootstrap_replicates"], a["bootstrap_seed"])
     return out
@@ -233,9 +242,38 @@ def cmd_aggregate(args) -> None:
             raise SystemExit(f"{run}: config differs")
         per_model[conf["model"]["key"]] = json.loads((run / "metrics.json").read_text())
     pvals = {k: m["tasks"][task]["worst_case_gap"]["p_bootstrap"] for k, m in per_model.items()}
+    # Holm family (docs/prereg/phase2.md): each (model, rendering) contrast vs the other renderings.
+    family = {
+        f"{k}|{g}": v["p_bootstrap"]
+        for k, m in per_model.items()
+        for g, v in m.get("rendering_contrasts", {}).items()
+    }
+    params = {k: models.model_spec(k)["params_b"] for k in per_model}
+    scaling = invariance.spearman_with_permutation(
+        [params[k] for k in sorted(per_model)],
+        [per_model[k]["tasks"][task]["worst_case_gap"]["mean"] for k in sorted(per_model)],
+    )
+    quant = {}
+    for base, q in cfg.get("quantization_pairs", {}).items():
+        if base in per_model and q in per_model:
+            b, qq = per_model[base]["tasks"][task], per_model[q]["tasks"][task]
+            delta = {
+                g: qq["per_rendering"][g]["accuracy"]["mean"] - b["per_rendering"][g]["accuracy"]["mean"]
+                for g in b["per_rendering"]
+            }
+            quant[f"{base}->{q}"] = {
+                "accuracy_delta": delta,
+                "max_abs_delta": max(abs(v) for v in delta.values()),
+                "base_worst_case_gap": b["worst_case_gap"]["mean"],
+                "exceeds_rendering_effect": max(abs(v) for v in delta.values())
+                >= b["worst_case_gap"]["mean"],
+            }
     result = {
         "primary_task": task,
         "holm_adjusted_gap_p": metrics.holm(pvals),
+        "holm_adjusted_rendering_contrasts": metrics.holm(family) if family else {},
+        "scaling_worst_case_gap_vs_params": scaling,
+        "quantization_control": quant,
         "worst_case": {
             k: {"worst": m["tasks"][task]["worst_rendering"], "gap": m["tasks"][task]["worst_case_gap"]}
             for k, m in per_model.items()
