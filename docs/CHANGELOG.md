@@ -12,3 +12,4 @@ results requires a new version and a full rerun of everything that used it.
 | 2026-10-08 | table renderer | table-v1 | initial template + exact decoder | P1.2 | n/a (first version) |
 | 2026-10-08 | json_policy renderer | json-v1 | initial template + exact decoder | P1.2 | n/a (first version) |
 | 2026-10-08 | executable renderer (Cedar, cedarpy 4.12.1 formatter) | cedar-v1 | initial template + exact decoder | P1.2 | n/a (first version) |
+| 2026-10-08 | rego renderer (Rego v1 module, OPA v1.21.1) | rego-v1 | initial template + exact decoder (OPA's own parser, `opa parse`): fixed preamble (default deny with `default permit/forbid := false`, `allow if { permit; not forbid }`, transitive and reflexive `member` via `graph.reachable`) and one `permit`/`forbid` body per rule under `# rule <id>`; entity facts passed as OPA `data`, not shown in the rendering; sixth rendering, engine-checked with `opa eval` | P1.5 (H0.1: add Rego) | n/a (first version) |

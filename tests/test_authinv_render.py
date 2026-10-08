@@ -1,4 +1,4 @@
-"""Five renderings: determinism, exact round trips across tiers, decoder strictness."""
+"""Six renderings: determinism, exact round trips across tiers, decoder strictness."""
 
 from __future__ import annotations
 
@@ -17,6 +17,10 @@ from authinv.render.renderers import (
 )
 
 pytest.importorskip("cedarpy")  # the executable rendering is Cedar text
+from authinv.equivalence.rego import find_opa  # noqa: E402
+
+# Rendering Rego needs no binary; decoding it parses with OPA (CI fetches the pinned build).
+DECODABLE = [r for r in RENDERINGS if r != "rego" or find_opa()]
 
 
 def fuzz_policies(n=200):
@@ -27,7 +31,7 @@ def test_every_rendering_round_trips_on_random_policies_of_every_tier():
     tiers = set()
     for p in fuzz_policies():
         tiers.add(tier(p))
-        for rendering in RENDERINGS:
+        for rendering in DECODABLE:
             assert round_trips(p, rendering), (p.policy_id, rendering, render(p, rendering))
     assert tiers == {"single", "multi_rule", "conditioned"}
 
@@ -97,7 +101,8 @@ def test_golden_texts_for_a_fixed_policy():
     assert render(p, "table").splitlines()[3] == '| r2 | deny | User "bob" | delete | Repo "core" | — |'
     assert '"effect": "deny"' in render(p, "json_policy")
     assert 'principal is User in Group::"eng"' in render(p, "executable")
-    for r in RENDERINGS:
+    assert '\tmember(input.principal, {"type": "Group", "id": "eng"})' in render(p, "rego")
+    for r in DECODABLE:
         assert normal_form(decode(render(p, r), r)) == normal_form(p.rules)
 
 

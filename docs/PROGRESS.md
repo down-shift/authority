@@ -28,3 +28,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — P1.4 equivalence checker: a world ships only if all five renderings decode to the canonical rules, give the reference decision on every request in the universe, and (executable) the Cedar engine agrees with zero errors and the strict typechecker accepts it; hashed proofs to equivalence.jsonl. Tampered renderings (flipped effect ×5, threshold, dropped rule, garbage, unless-clause) are caught.
 2026-10-08 — P1.6 synthetic sources: 720 worlds (repo 360, mcp 360; 24-cell grid × 15), all certified; balanced over roles/conditions/effect (docs/experiments/p1.6-synthetic-sources.md).
 2026-10-08 — P2.1 T1 log-prob scorer ported into authinv (continuation boundaries + audit, NumPy reference, batched HF scorer verified against the reference on a tiny model).
+2026-10-08 — P1.5 Rego rendering (rego-v1) + OPA 1.21.1 engine check; reference agrees with OPA on 41,958 requests over 165 random policies.

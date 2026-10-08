@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 
 import pytest
+from authinv_opa import requires_opa
 
 from authinv.policy import policy_hash, tier
 from authinv.sources.synthetic import DOMAINS, balance_table, design_grid, generate, is_non_degenerate
@@ -48,6 +49,7 @@ def test_different_seeds_give_different_worlds():
     assert [policy_hash(w) for w in a] != [policy_hash(w) for w in b]
 
 
+@requires_opa  # certify() includes the Rego rendering's OPA engine check
 def test_generated_worlds_are_certified():
     pytest.importorskip("cedarpy")
     from authinv.equivalence.check import certify

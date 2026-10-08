@@ -36,6 +36,9 @@ jobs:
       - name: Set up Python 3.11
         run: uv python install 3.11
 
+      - name: Fetch pinned OPA (Rego engine check)
+        run: bash scripts/fetch_opa.sh
+
       - name: Run gate
         # Only the dev extra: torch/transformers aren't exercised by the gate
         # (heavy imports are lazy; torch tests use pytest.importorskip).

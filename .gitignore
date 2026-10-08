@@ -9,3 +9,4 @@ outputs/*
 .env.*
 .claude/worktrees/
 .DS_Store
+tools/
