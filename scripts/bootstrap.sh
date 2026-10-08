@@ -24,6 +24,9 @@ fi
 # 3. working dirs (outputs/ is git-ignored except .gitkeep)
 mkdir -p outputs
 
+# 3b. pinned OPA binary for the Rego engine check (tools/ is git-ignored)
+bash "$(dirname "${BASH_SOURCE[0]}")/fetch_opa.sh" || echo "WARN: OPA fetch failed; Rego tests will skip locally"
+
 # 4. soft prerequisites (warn, don't fail)
 if command -v gh >/dev/null 2>&1; then
   gh auth status >/dev/null 2>&1 || echo "WARN: gh not authenticated — run 'gh auth login' for PR/auto-merge"

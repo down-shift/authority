@@ -1,4 +1,4 @@
-"""Five renderings of a canonical policy's rules, each with an exact decoder.
+"""Six renderings of a canonical policy's rules, each with an exact decoder.
 
 Each renderer is a pure function of the canonical policy: the same policy gives
 byte-identical text. Templates are fixed. **Never edit one after seeing model
@@ -30,6 +30,7 @@ VERSIONS = {
     "table": "table-v1",
     "json_policy": "json-v1",
     "executable": "cedar-v1",
+    "rego": "rego-v1",
 }
 RENDERINGS = tuple(VERSIONS)
 
@@ -504,12 +505,183 @@ def decode_executable(text: str) -> list[Rule]:
     return rules
 
 
+# ---- 6. executable rules (Rego v1, OPA) -----------------------------------------
+
+
+def render_rego(policy: Policy) -> str:
+    from authinv.equivalence.rego import rego_policy_text
+
+    _rules(policy)
+    return rego_policy_text(policy)
+
+
+_REGO_CMP = {"equal": "==", "neq": "!=", "lt": "<", "lte": "<=", "gt": ">", "gte": ">="}
+_REGO_SIDES = ("principal", "resource")
+EFFECTS_REGO = ("permit", "forbid")
+
+
+def _rg_ref(t: dict) -> list:
+    """A ref term as [root var, *string keys]; RenderError for anything else."""
+    if t.get("type") != "ref":
+        raise RenderError(f"expected a reference, got {t}")
+    head, *rest = t["value"]
+    if head.get("type") != "var" or any(x.get("type") != "string" for x in rest):
+        raise RenderError(f"unsupported Rego reference {t}")
+    return [head["value"], *(x["value"] for x in rest)]
+
+
+def _rg_str(t: dict) -> str:
+    if t.get("type") != "string":
+        raise RenderError(f"expected a string, got {t}")
+    return t["value"]
+
+
+def _rg_ent(t: dict) -> EntityRef:
+    if t.get("type") != "object":
+        raise RenderError(f"expected an entity object, got {t}")
+    d = {_rg_str(k): _rg_str(v) for k, v in t["value"]}
+    if set(d) != {"type", "id"} or len(t["value"]) != 2:
+        raise RenderError(f"bad entity object {t}")
+    return EntityRef(d["type"], d["id"])
+
+
+def _rg_operand(t: dict):
+    kind = t.get("type")
+    if kind == "string":
+        return t["value"]
+    if kind == "boolean":
+        return t["value"]
+    if kind == "number":
+        v = t["value"]
+        if not isinstance(v, int) or isinstance(v, bool):
+            raise RenderError(f"non-integer number {v!r}")
+        return v
+    ref = _rg_ref(t)
+    if len(ref) == 2 and ref[0] in _REGO_SIDES:
+        return AttrRef(ref[0], ref[1])
+    if len(ref) == 3 and ref[:2] == ["input", "context"]:
+        return AttrRef("context", ref[2])
+    raise RenderError(f"unsupported Rego operand {ref}")
+
+
+def _rg_expr(e: dict) -> tuple[str, ...]:
+    """Classify one body expression: ("actions", acts) | (side, "type"|"eq"|"in", x) | ("cond", Condition)."""
+    if set(e) != {"index", "terms"} or not isinstance(e["terms"], list) or len(e["terms"]) != 3:
+        raise RenderError(f"unsupported Rego expression {e}")
+    op, a, b = e["terms"]
+    fn = ".".join(_rg_ref(op))
+    if fn in _REGO_CMP and a.get("type") == "ref":
+        ref = _rg_ref(a)
+        if fn == "equal" and ref == ["input", "action"]:
+            return ("actions", (_rg_str(b),))
+        if (
+            fn == "equal"
+            and len(ref) == 3
+            and ref[0] == "input"
+            and ref[1] in _REGO_SIDES
+            and ref[2] == "type"
+        ):
+            return (ref[1], "type", _rg_str(b))
+        if fn == "equal" and len(ref) == 2 and ref[0] == "input" and ref[1] in _REGO_SIDES:
+            return (ref[1], "eq", _rg_ent(b))
+        if ref[0] != "input" or ref[:2] == ["input", "context"]:
+            return ("cond", Condition(_rg_operand(a), _REGO_CMP[fn], _rg_operand(b)))
+    if fn == "internal.member_2" and _rg_ref(a) == ["input", "action"] and b.get("type") == "set":
+        return ("actions", tuple(sorted(_rg_str(x) for x in b["value"])))
+    if fn == "member":
+        ref = _rg_ref(a)
+        if len(ref) == 2 and ref[0] == "input" and ref[1] in _REGO_SIDES:
+            return (ref[1], "in", _rg_ent(b))
+    raise RenderError(f"unsupported Rego expression {e}")
+
+
+def _rg_scope(parts: list[tuple]) -> Scope:
+    kinds = [k for k, _ in parts]
+    if kinds == []:
+        return Scope()
+    if kinds == ["eq"]:
+        return Scope("eq", parts[0][1])
+    if kinds == ["type"]:
+        return Scope("is", type=parts[0][1])
+    if kinds == ["in"]:
+        return Scope("in", parts[0][1])
+    if kinds == ["type", "in"]:
+        return Scope("is_in", parts[1][1], parts[0][1])
+    raise RenderError(f"unsupported Rego scope {kinds}")
+
+
+def _rg_rule(r: dict, rule_id: str) -> Rule:
+    head = r["head"]
+    if set(r) != {"head", "body", "row"} or set(head) != {"name", "ref", "value"}:
+        raise RenderError(f"unsupported Rego rule {r}")
+    if head["ref"] != [{"type": "var", "value": head["name"]}] or head["value"] != {
+        "type": "boolean",
+        "value": True,
+    }:
+        raise RenderError(f"unsupported Rego rule head {head}")
+    stage = {"actions": 0, "principal": 1, "resource": 2, "cond": 3}
+    last, actions = -1, None
+    sides: dict[str, list] = {"principal": [], "resource": []}
+    conds = []
+    for e in r["body"]:
+        item = _rg_expr(e)
+        s = stage[item[0]]
+        if s < last or (item[0] == "actions" and actions is not None):
+            raise RenderError(f"rule {rule_id}: body out of the renderer's order")
+        last = s
+        if item[0] == "actions":
+            actions = item[1]
+        elif item[0] == "cond":
+            conds.append(item[1])
+        else:
+            sides[item[0]].append(item[1:])
+    if actions is None:
+        raise RenderError(f"rule {rule_id}: no action test")
+    return Rule(
+        rule_id,
+        head["name"],
+        _rg_scope(sides["principal"]),
+        actions,
+        _rg_scope(sides["resource"]),
+        tuple(conds),
+    )
+
+
+def decode_rego(text: str) -> list[Rule]:
+    """Parse with OPA's own parser (`opa parse`) and convert its AST back.
+
+    The module must be `package authz` with no imports, the fixed preamble's
+    rules verbatim, and otherwise only `permit`/`forbid` bodies, each directly
+    under a `# rule <id>` comment.
+    """
+    from authinv.equivalence.rego import parse_module, preamble_rules
+
+    ast = parse_module(text)
+    pkg = ast.get("package", {}).get("path", [])
+    if [x.get("value") for x in pkg] != ["data", "authz"] or set(ast) != {"package", "rules", "comments"}:
+        raise RenderError("Rego module must be `package authz` with no imports")
+    ids = {}
+    for c in ast["comments"]:
+        if m := re.fullmatch(r" rule ([A-Za-z0-9_.-]+)", c["text"]):
+            ids[c["row"] + 1] = m.group(1)
+    preamble, rules = [], []
+    for r in ast["rules"]:
+        if r["head"].get("name") in EFFECTS_REGO and r.get("row") in ids and not r.get("default"):
+            rules.append(_rg_rule(r, ids[r["row"]]))
+        else:
+            preamble.append(json.dumps({k: v for k, v in r.items() if k != "row"}, sort_keys=True))
+    if tuple(preamble) != preamble_rules():
+        raise RenderError("Rego preamble differs from the renderer's")
+    return rules
+
+
 RENDER = {
     "nl_statement": render_nl,
     "owner_statement": render_owner,
     "table": render_table,
     "json_policy": render_json,
     "executable": render_executable,
+    "rego": render_rego,
 }
 DECODE = {
     "nl_statement": decode_nl,
@@ -517,6 +689,7 @@ DECODE = {
     "table": decode_table,
     "json_policy": decode_json,
     "executable": decode_executable,
+    "rego": decode_rego,
 }
 
 

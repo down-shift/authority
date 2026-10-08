@@ -8,7 +8,10 @@ A world ships only if every rendering passes every check:
 3. **engine**: the Cedar engine, run on the exact executable text shown to the
    model, gives the reference decision on every request, with no errors;
 4. **typecheck**: Cedar's strict validator accepts the executable text
-   against the generated schema.
+   against the generated schema;
+5. **engine (rego)**: OPA (`opa eval`), run on the exact Rego module shown to
+   the model with the entity facts as `data`, gives the reference decision on
+   every request, with no errors.
 
 `certify_texts` takes the rendered texts explicitly, so tests can feed
 tampered renderings and confirm they are caught. The proof record carries
@@ -22,7 +25,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from authinv.equivalence import cedar
+from authinv.equivalence import cedar, rego
 from authinv.equivalence.requests import request_to_dict, universe
 from authinv.policy import Policy, evaluate, policy_hash, semantic_hash
 from authinv.render.renderers import RENDERINGS, VERSIONS, RenderError, decode, normal_form, render
@@ -66,13 +69,21 @@ def certify_texts(
             c["typecheck"] = v["passed"]
             if v["errors"]:
                 c["typecheck_errors"] = v["errors"][:5]
+        if rendering == "rego":
+            engine = rego.opa_decisions(policy, reqs, policy_text=text)
+            c["engine_mismatches"] = sum(e["decision"] != t for e, t in zip(engine, truth, strict=True))
+            c["engine_errors"] = sum(bool(e["errors"]) for e in engine)
+            first = next((e["errors"] for e in engine if e["errors"]), None)
+            if first:
+                c["engine_error_example"] = first[:1]
         c["passed"] = (
             c["decodes"]
             and c["decision_mismatches"] == 0
             and (
-                rendering != "executable"
-                or (c["engine_mismatches"] == 0 and c["engine_errors"] == 0 and c["typecheck"])
+                rendering not in ("executable", "rego")
+                or (c["engine_mismatches"] == 0 and c["engine_errors"] == 0)
             )
+            and (rendering != "executable" or c["typecheck"])
         )
         checks[rendering] = c
     universe_doc = [{**request_to_dict(r), "decision": d} for r, d in zip(reqs, truth, strict=True)]
@@ -85,7 +96,7 @@ def certify_texts(
         "n_requests": len(reqs),
         "n_allow": truth.count("allow"),
         "universe_sha256": _sha(json.dumps(universe_doc, sort_keys=True)),
-        "engine": {"name": "cedar", "cedarpy": _cedarpy_version()},
+        "engine": {"name": "cedar", "cedarpy": _cedarpy_version(), "opa": rego.opa_version()},
         "renderings": checks,
         "passed": set(checks) == set(RENDERINGS) and all(c["passed"] for c in checks.values()),
     }

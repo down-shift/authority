@@ -101,7 +101,7 @@ uv run --extra inference --extra quantization python scripts/run_authorization_c
 
 ## Development workflow
 
-Work advances through an autonomous, human-checkpointed loop: `docs/PLAN.md` is the step ledger, `/continue` in Claude Code (or «продолжи») claims and ships one step per invocation, and `bash scripts/check.sh` is the mandatory gate (also run in CI). The research spec is [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md); see also [CLAUDE.md](CLAUDE.md) and [docs/AUTONOMY.md](docs/AUTONOMY.md). Experiment reports, including negative results, go in `docs/experiments/`. The paper is in `paper/` (ACL template; `cd paper && latexmk -pdf main`).
+Work advances through an autonomous, human-checkpointed loop: `docs/PLAN.md` is the step ledger, `/continue` in Claude Code (or «продолжи») claims and ships one step per invocation, and `bash scripts/check.sh` is the mandatory gate (also run in CI). The Rego engine check needs the pinned OPA binary: `bash scripts/fetch_opa.sh` downloads it into the git-ignored `tools/` and verifies its sha256 (`scripts/bootstrap.sh` and CI run it; Rego tests skip locally without it). The research spec is [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md); see also [CLAUDE.md](CLAUDE.md) and [docs/AUTONOMY.md](docs/AUTONOMY.md). Experiment reports, including negative results, go in `docs/experiments/`. The paper is in `paper/` (ACL template; `cd paper && latexmk -pdf main`).
 
 ## authinv Phase 0: generation kill test
 
