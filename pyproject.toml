@@ -18,7 +18,7 @@ dev = ["pytest>=8", "ruff>=0.6"]
 # pins its own torch, so generation runs use the pinned vllm/vllm-openai image
 # (H100) or a separate venv with the same vllm version (A100); the runner
 # records the version it ran with.
-engines = []  # Cedar / OPA bindings, filled by P1.3 / P1.5
+engines = ["cedarpy==4.12.1"]  # Cedar (Rust engine via PyO3); OPA is a pinned binary (P1.5)
 probing = ["scikit-learn>=1.4"]
 agent = []  # sandbox deps, filled by P2.7
 

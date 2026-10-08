@@ -23,3 +23,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — P1.1 canonical policy object (Cedar semantics: default deny, forbid overrides; scopes any/eq/is/in; schema-checked conditions; derived decision ownership; canonical + semantic hashes).
 2026-10-08 — P2.0 parser strict-v2 (typographic apostrophes); Phase 0 stays on strict-v1.
 2026-10-08 — W0.1 threat model written (docs/threat_model.md).
+2026-10-08 — P1.3 Cedar engine (cedarpy 4.12.1) + request sets: reference semantics agree with Cedar on 23,976 requests over 165 random policies (0 engine errors); strict schema validation; balanced boundary-first sampling. Added the is_in scope kind (Cedar `principal is T in G`).

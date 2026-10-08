@@ -22,7 +22,7 @@ from typing import Any, Literal
 
 Value = str | int | bool
 EFFECTS = ("permit", "forbid")
-SCOPE_KINDS = ("any", "eq", "is", "in")
+SCOPE_KINDS = ("any", "eq", "is", "in", "is_in")
 OPS = ("==", "!=", "<", "<=", ">", ">=")
 SUBJECTS = ("principal", "resource", "context")
 
@@ -48,11 +48,11 @@ class Entity:
 
 @dataclass(frozen=True)
 class Scope:
-    """Principal or resource scope: any, == entity, is <type>, in <group> (transitive)."""
+    """Scope: any, == entity, is <type>, in <group> (transitive), or is <type> in <group>."""
 
-    kind: Literal["any", "eq", "is", "in"] = "any"
-    entity: EntityRef | None = None  # for eq / in
-    type: str | None = None  # for is
+    kind: Literal["any", "eq", "is", "in", "is_in"] = "any"
+    entity: EntityRef | None = None  # for eq / in / is_in
+    type: str | None = None  # for is / is_in
 
 
 @dataclass(frozen=True)
@@ -145,7 +145,7 @@ def _scope_types(policy: Policy, scope: Scope) -> set[str]:
     """Entity types a scope can match (what its conditions may read)."""
     if scope.kind == "eq":
         return {scope.entity.type}
-    if scope.kind == "is":
+    if scope.kind in ("is", "is_in"):
         return {scope.type}
     if scope.kind == "in":
         return {
@@ -183,9 +183,9 @@ def validate(policy: Policy) -> None:
         for side, scope in (("principal", r.principal), ("resource", r.resource)):
             if scope.kind not in SCOPE_KINDS:
                 raise PolicyError(f"{r.rule_id}: bad {side} scope {scope.kind!r}")
-            if scope.kind in ("eq", "in") and scope.entity not in known:
+            if scope.kind in ("eq", "in", "is_in") and scope.entity not in known:
                 raise PolicyError(f"{r.rule_id}: unknown {side} entity")
-            if scope.kind == "is" and scope.type not in schema:
+            if scope.kind in ("is", "is_in") and scope.type not in schema:
                 raise PolicyError(f"{r.rule_id}: unknown {side} type {scope.type!r}")
         reach = {"principal": _scope_types(policy, r.principal), "resource": _scope_types(policy, r.resource)}
         for c in r.conditions:
@@ -222,7 +222,8 @@ def _in_scope(policy: Policy, scope: Scope, ref: EntityRef) -> bool:
         return ref == scope.entity
     if scope.kind == "is":
         return ref.type == scope.type
-    return ref == scope.entity or scope.entity in policy.ancestors(ref)
+    member = ref == scope.entity or scope.entity in policy.ancestors(ref)
+    return member and (scope.kind == "in" or ref.type == scope.type)
 
 
 def _resolve(policy: Policy, x: AttrRef | Value, req: Request) -> Value:
