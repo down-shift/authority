@@ -441,9 +441,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: release builder producing the HF Datasets layout (policies, renderings, equivalence proofs, request sets, datasheet, license compatible with every source); leaderboard script producing the worst-case table for any HF model id; T3 sandbox documented as a reusable harness; publishing itself is left to Jerzy.
 
 ### W0.1 — Threat model for format-choice exploitability
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:26:53Z
 - deps: R0.1
 - source: docs/novelty_check.md §5 and Novelty Assessment ("exploitable through format choice: open but needs a threat model"); approved by Jerzy 2026-10-08
 - done-when: docs/threat_model.md defines the attacker who chooses a *legitimate* policy's rendering (tenant-written MCP allowlists, repo-synced policy files) vs one who injects fake policy text (Policy Puppetry, role confusion), states assumptions/capabilities/goals, maps each claim to the experiments that can support it (P2.x deny→allow / fail-closed rates, T3 UIR), and lists what the paper must not claim; cited related work from docs/related_work.md.
