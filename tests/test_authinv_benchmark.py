@@ -97,3 +97,21 @@ def test_single_principal_worlds_swap_resources():
     q = rename(p, m)
     for req in universe(p, ("Caller",), ("Bucket",)):
         assert evaluate(q, rename_request(req, m))["decision"] == evaluate(p, req)["decision"]
+
+
+def test_dedupe_conditions_is_exact():
+    from authinv.benchmark import dedupe_conditions
+    from authinv.policy import AttrRef, Condition, Rule, Scope, validate
+
+    w = worlds(1)[0]
+    c = Condition(AttrRef("principal", "level"), ">=", 2)
+    rule = Rule("rx", "permit", Scope("is", type="User"), ("read",), Scope("is", type="Repo"), (c, c))
+    p = type(w.policy)(
+        w.policy.policy_id, w.policy.entities, w.policy.actions, (rule,), w.policy.context_schema
+    )
+    validate(p)
+    q, removed = dedupe_conditions(p)
+    assert removed == 1 and q.rules[0].conditions == (c,)
+    for req in universe(p, ("User",), ("Repo",)):
+        assert evaluate(q, req)["decision"] == evaluate(p, req)["decision"]
+    assert dedupe_conditions(q) == (q, 0)

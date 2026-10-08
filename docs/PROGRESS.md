@@ -43,3 +43,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — GATE G1 round 1: **not passed** (Jerzy reviewed 20 worlds; flagged owner_statement 20, nl 15, json 14, table 9; Cedar/Rego 0). Renderer v2 proposed; awaiting approval.
 2026-10-08 — Jerzy approved renderer v2 (owner: keep wording + defining line; self-contained semantics in every rendering); new steps P1.12, P1.13; G1 round 2 after P1.13.
 2026-10-08 — P1.12 renderers v2 (nl-v2, owner-v2, table-v2, json-v2; Cedar/Rego unchanged): self-contained combining semantics, sufficiency wording, explicit group-includes-itself wording, owner definition line; all fuzzed policies round-trip.
+2026-10-08 — P1.13 benchmark v2 (dataset sha256 0b602a17…; same 1,984 worlds and rows; orig and swap re-certified under v2 renderers; 147 repeated conditions removed); archived on V100. G1 round-2 form: https://claude.ai/artifact/HKHG6EyFtHjaEgAMysHFdr. Waiting on human: G1.
