@@ -145,3 +145,12 @@ uv run --extra engines python scripts/authinv_build_benchmark.py --config config
 ```
 
 Writes `dataset.jsonl` + `dataset_manifest.json` (input to `scripts/authinv_eval.py`), `worlds.jsonl`, `equivalence.jsonl`, and `audit.json`. See `docs/experiments/p1.10-benchmark.md`.
+
+## authinv tier T3: agent sandbox
+
+```sh
+python scripts/authinv_agent_eval.py run --config configs/authinv/t3.yaml \
+  --benchmark outputs/<frozen benchmark run> --model <key>     # --dataset-only builds and verifies episodes
+```
+
+Episodes reuse the benchmark's worlds and requests. Needs vLLM 0.29.0 and `cedarpy` (`--extra engines`). See `src/authinv/agent/sandbox.py` for the protocol and metrics.
