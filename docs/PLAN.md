@@ -234,9 +234,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: PARSER_VERSION strict-v2 accepts typographic apostrophes/quotes in refusal and abstention patterns (and in normalization); docs/CHANGELOG.md entry; tests with the P0.5 refusal strings; strict-v1 remains importable so Phase-0 results stay reproducible; Phase 2+ configs use strict-v2; gate green.
 
 ### P2.1 — T1 log-prob scorer for authinv
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-08T07:44:33Z
 - deps: P1.2
 - source: RESEARCH_PLAN §3 Phase 2 T1
 - done-when: the existing candidate log-prob scorer copied and adapted into src/authinv/eval/ (no imports from legacy packages), scoring authinv rendered prompts; candidate token-count audit; tests with a fake tokenizer/logits; gate green.
