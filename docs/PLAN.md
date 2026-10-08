@@ -106,11 +106,19 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - source: RESEARCH_PLAN §3 Phase 0 task 2
 - done-when: all four models run on the frozen Phase-0 dataset with full provenance; docs/experiments/p0.4-phase0-kill-test.md (result positive/neutral/negative) reports every preregistered metric with CIs per model, per rendering, and ends with the Gate 0 recommendation for Jerzy (not a decision); docs/PROGRESS.md entry added.
 
+### P0.5 — [GPU: H100] Phase-0 addendum on current models
+- status: todo
+- owner: —
+- claimed_at: —
+- deps: P0.3
+- source: Jerzy 2026-10-08 (model roster refresh); RESEARCH_PLAN §3 Phase 0 addendum
+- done-when: harness supports the new models (multimodal checkpoints loaded text-only; gpt-oss harmony output with the answer taken from the final channel); docs/prereg/phase0-addendum.md committed and pushed before any addendum inference (same frozen data, parser, metrics; per-model generation settings fixed in configs/authinv/phase0_addendum.yaml); Qwen3.8-27B, Gemma-4-31B-it, gpt-oss-120b run with full provenance; docs/experiments/p0.5-phase0-addendum.md reports them next to Phase 0, explicitly outside the Gate-0 rule.
+
 ### G0 — [HUMAN] Gate 0 decision: proceed or pivot
 - status: todo
 - owner: —
 - claimed_at: —
-- deps: P0.4
+- deps: P0.4 P0.5
 - source: RESEARCH_PLAN §3 Gate 0
 - done-when: Jerzy records PASS / FAIL / waiver in docs/PROGRESS.md. PASS → `mark.py G0 done`. FAIL → Jerzy rewrites the remaining plan for the SFT-primary paper before anything else is claimed.
 
@@ -244,23 +252,23 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - claimed_at: —
 - deps: P2.3
 - source: RESEARCH_PLAN §3 Phase 2 sweep
-- done-when: Qwen3-4B/8B/14B, Llama-3.1-8B, Gemma-3-12B (bf16) complete T1 and T2 on the frozen benchmark with provenance; per-run reports referenced from docs/experiments/p2.4-sweep-a.md.
+- done-when: the ≤14B models of the amended roster (Qwen3.5-4B/9B, Gemma-4-E4B/12B, gpt-oss-20b, Ministral-3-14B) complete T1 and T2 on the frozen benchmark with provenance; per-run reports referenced from docs/experiments/p2.4-sweep-a.md. (Roster amended 2026-10-08.)
 
-### P2.5 — [GPU: H100] Sweep B: 24–32B models (T1 + T2)
+### P2.5 — [GPU: H100] Sweep B: 27–31B models and controls (T1 + T2)
 - status: todo
 - owner: —
 - claimed_at: —
 - deps: P2.3
 - source: RESEARCH_PLAN §3 Phase 2 sweep
-- done-when: Qwen3-32B (thinking off and on), Gemma-3-27B, Mistral Small 3.x 24B (bf16) complete T1 and T2; docs/experiments/p2.5-sweep-b.md.
+- done-when: Qwen3.8-27B (thinking off and on), Qwen3.8-27B-FP8 (quantization control: bf16-vs-FP8 delta reported against the rendering effect), Gemma-4-31B complete T1 and T2; docs/experiments/p2.5-sweep-b.md. (Roster amended 2026-10-08.)
 
-### P2.6 — [GPU: H100 multi-GPU] Sweep C: 70B+ and quantization control
+### P2.6 — [GPU: H100] Sweep C: largest models
 - status: todo
 - owner: —
 - claimed_at: —
 - deps: P2.3 H0.1
 - source: RESEARCH_PLAN §3 Phase 2 sweep, §8.2
-- done-when: Llama-3.3-70B in bf16 and int8 complete T1 and T2; quantized-vs-bf16 delta reported against the rendering effect (drop quantized configs from headline tables if it exceeds it); Qwen3-235B-A22B included only if H0.1 says it fits; docs/experiments/p2.6-sweep-c.md.
+- done-when: gpt-oss-120b and the Llama-3.3-70B W8A8 anchor complete T1 (where applicable) and T2; optional models (Qwen3.6-35B-A3B, Gemma-4-26B-A4B, Granite-4.2) only if H0.1 allows the GPU time; docs/experiments/p2.6-sweep-c.md. (Roster amended 2026-10-08.)
 
 ### P2.7 — T3 agent sandbox
 - status: todo

@@ -14,3 +14,4 @@ YYYY-MM-DD — GATE <id>: <pass|fail> — <decision + who decided>
 2026-10-08 — R0.1 related-work doc: 77 papers verified, 7 mismatches flagged.
 2026-10-08 — P0.2 Phase-0 harness merged; end-to-end smoke test on A100 with Qwen3-0.6B (not a Phase-0 model, 20 rows, discarded).
 2026-10-08 — P0.3 Phase 0 preregistered (`89b91c0`); Phase-0 inference may start.
+2026-10-08 — Jerzy approved the model-roster refresh: Phase-2 sweep amended to current releases (Qwen3.5/3.8, Gemma 4, gpt-oss, Ministral 3; Llama-3.3-70B W8A8 kept as anchor); new step P0.5 (Phase-0 addendum on Qwen3.8-27B, Gemma-4-31B, gpt-oss-120b), G0 now waits for it.

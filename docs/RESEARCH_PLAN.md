@@ -67,6 +67,12 @@ Gate 0 (preregister in `docs/prereg/phase0.md` before running):
 - PASS if, on at least two of the three ≥27B models, worst-case accuracy is ≥5 pp below the best rendering with a 95% CI excluding zero, **or** per-world rendering disagreement ≥5%.
 - FAIL → pivot: paper becomes "format-diverse SFT yields representation-invariant small open agents" (Phase 4 becomes primary, Phases 2–3 shrink). Record the decision; do not quietly continue.
 
+> **Addendum 2026-10-08 (approved by Jerzy).** Phase 0 runs as preregistered on
+> the models above. A separately preregistered addendum (step P0.5,
+> `docs/prereg/phase0-addendum.md`) runs the same frozen prompts on current
+> models (Qwen3.8-27B, Gemma-4-31B-it, gpt-oss-120b) to inform G0. It does not
+> change the Gate-0 rule or its inputs.
+
 ### Phase 1 — Benchmark with engine-certified equivalence (Weeks 3–8)
 
 Goal: replace toy worlds with real policies whose renderings are provably equivalent.
@@ -106,6 +112,26 @@ Gate 1: dataset-only run passes all equivalence checks; a 20-world human spot-ch
 | Reasoning variant | Qwen3-32B thinking mode on, vs off | bf16 |
 
 Report quantized-vs-bf16 deltas for Llama-70B explicitly; if they exceed the rendering effect, drop quantized configs from headline tables.
+
+> **Amendment 2026-10-08 (approved by Jerzy).** The table above is superseded:
+> its families had newer open-weight releases. The Phase 2 sweep is now
+> (pinned in `configs/authinv/models.yaml`, set `phase2_sweep`):
+>
+> | Family | Models | Precision |
+> |---|---|---|
+> | Qwen | Qwen3.5-4B, Qwen3.5-9B, Qwen3.8-27B | bf16 |
+> | Reasoning variant | Qwen3.8-27B thinking on vs off | bf16 |
+> | Quantization control | Qwen3.8-27B bf16 vs its official FP8 checkpoint (replaces Llama-70B bf16 vs int8, which needs more GPUs than we reliably have) | bf16 / FP8 |
+> | Gemma 4 | E4B-it, 12B-it, 31B-it | bf16 |
+> | OpenAI gpt-oss | 20b, 120b | native MXFP4 |
+> | Mistral | Ministral-3-14B-Instruct-2512 | checkpoint-native |
+> | Legacy anchor | Llama-3.3-70B W8A8 (Meta's newest dense Llama; already run in Phase 0) | INT8 W8A8 |
+> | Optional | Qwen3.6-35B-A3B, Gemma-4-26B-A4B (dense vs MoE at matched size); Granite-4.2-8B/30B | bf16 |
+>
+> Out: Qwen3 4/8/14/32B, Gemma 3, Llama-3.1-8B, Mistral Small 3.x, Qwen3-235B
+> (all superseded); the newest giant MoEs (Qwen3.8-Flash-Next, GLM-5.3,
+> DeepSeek-V4) do not fit the hardware. Phase 4's SFT models (Qwen3-8B,
+> Gemma-3-12B) are to be revisited when Phase 4 starts.
 
 Tiers:
 - **T1 Log-prob margins** (port the existing scorer): cheap, mechanistically clean, used for probing alignment.
