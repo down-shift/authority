@@ -115,3 +115,12 @@ python scripts/authinv_phase0.py aggregate --config configs/authinv/phase0.yaml 
 ```
 
 `--dataset-only` validates and freezes the 3,600-row dataset without loading a model. On hosts whose system `nvcc` is older than FlashInfer requires, set `VLLM_USE_FLASHINFER_SAMPLER=0` (greedy decoding does not use it).
+
+## authinv Phase 1: CedarBench import
+
+Fetches the pinned CedarBench snapshot (`configs/authinv/sources/cedarbench.yaml`: repo, commit, Apache-2.0 license, tree hash) into the git-ignored `data/raw/cedarbench/`, then converts every reference policy to a canonical world, certifies it, and checks it against the original Cedar text. No model is loaded.
+
+```sh
+uv run --extra engines python scripts/fetch_cedarbench.py            # or --verify-only
+uv run --extra engines python scripts/authinv_import_cedarbench.py --dataset-only
+```

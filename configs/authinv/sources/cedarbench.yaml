@@ -1,0 +1,25 @@
+# CedarBench source pin (step P1.7). Read by scripts/fetch_cedarbench.py and
+# scripts/authinv_import_cedarbench.py. Re-pinning is a deliberate change:
+# update commit + hashes together and log it in docs/PROGRESS.md.
+name: CedarBench
+paper: "Vatsa, Shome, Zhou, Eiers. AutoCedar: An Agentic Framework for Verifier-Guided Access Control Policy Synthesis. arXiv:2607.03656 (v1, 4 Jul 2026)"
+repo: https://github.com/neselab/cedar-synthesis-engine
+commit: 0201565abf5993e258764d3f0ef83a59d3b4962e  # main as of 2026-09-08T00:59:56Z
+archive_url: https://codeload.github.com/neselab/cedar-synthesis-engine/tar.gz/{commit}
+license: Apache-2.0  # repo LICENSE + NOTICE ("Copyright 2026 AutoCedar Authors"); both extracted alongside the data
+retrieved: 2026-10-08
+# repo path -> path under data/raw/cedarbench/ (a trailing slash extracts a subtree)
+extract:
+  LICENSE: LICENSE
+  NOTICE: NOTICE
+  cedarbench/README.md: README.md
+  cedarbench/scenarios/: scenarios/
+# The paper reports 221 tasks; the pinned repo README and tree contain 226
+# scenarios (79 mutation + 147 realworld). We import what the pin contains.
+expected_scenarios: 226
+expected_reference_files: 4731
+tree_sha256: 3ee5b24ce0e791152437e269ec3ac14c4419d4fd202b5314012b3c0bd3f3fe3b
+n_files: 5437
+file_sha256:
+  LICENSE: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+  NOTICE: b3389ee603207207a1ebdbd69b83f29c31001a334fce3409cfe1f5fc27488958

@@ -1,0 +1,28 @@
+// Hand-written CedarBench-style fixture (authinv P1.7 tests); not copied from CedarBench.
+type Clearance = Long;
+
+entity Group in [Group];
+
+@doc("an employee")
+entity User in [Group] = {
+    role: String,
+    level: Clearance,
+    nickname?: String,
+};
+
+entity Doc {
+    classification: Long,
+    archived: Bool,
+    tags: Set<String>,
+};
+
+action view, edit appliesTo {
+    principal: [User],
+    resource: [Doc],
+    context: { mfa: Bool, },
+};
+
+action "archive" appliesTo {
+    principal: User,
+    resource: Doc,
+};
