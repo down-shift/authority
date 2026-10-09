@@ -309,9 +309,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: the ≤14B models of the amended roster (Qwen3.5-4B/9B, Gemma-4-E4B/12B, gpt-oss-20b, Ministral-3-14B) complete T1 and T2 on the frozen benchmark with provenance; per-run reports referenced from docs/experiments/p2.4-sweep-a.md. (Roster amended 2026-10-08.)
 
 ### P2.5 — [GPU: H100] Sweep B: 27–31B models and controls (T1 + T2)
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-09T14:20:55Z
 - deps: P2.3
 - source: RESEARCH_PLAN §3 Phase 2 sweep
 - done-when: Qwen3.8-27B (thinking off and on), Qwen3.8-27B-FP8 (quantization control: bf16-vs-FP8 delta reported against the rendering effect), Gemma-4-31B complete T1 and T2; docs/experiments/p2.5-sweep-b.md. (Roster amended 2026-10-08.)
