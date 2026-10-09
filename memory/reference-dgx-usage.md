@@ -76,7 +76,11 @@ other people's processes, except where a rule below explicitly allows it.
   `/data/storage/kaluzhnaya_jhub/authinv/<step-id>/`. Root disk is ~92% full.
 - **Other containers:** don't touch them. **Exception:** a container that
   occupies GPU #7 may be stopped to free it. Check which container holds GPU 7
-  before stopping anything, and stop only that one.
+  before stopping anything, and stop only that one. **Never stop
+  `kaluzhnaya_stale_runner`**: it is Jerzy's own container from another
+  project (human rule, 2026-10-09). Share GPU 7 with it instead
+  (`--gpu-memory-utilization 0.5`, about 40 GB). Models whose weights don't
+  fit in that need the GPU to free up.
 - **Clean up when done:** `docker compose down`, remove the images you pulled
   if they're not reused soon, and delete your subdirectory once the results
   are copied off. Disk space is limited.
