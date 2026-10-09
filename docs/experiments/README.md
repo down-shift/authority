@@ -62,3 +62,4 @@ testing) are themselves experiments and get reports.
 - `p1.11-benchmark-audit.md` — certification summary (0 mismatches/errors) and the G1 spot-check packet.
 - `g1-spotcheck-round1.md` — G1 human review, round 1: not passed (20/20 worlds flagged; Cedar and Rego clean).
 - `g1-spotcheck-round2.md` — G1 human review, round 2: **passed** (all renderings read the same in all 20 worlds).
+- `p2.4-sweep-a.md` — Phase 2 sweep A (6 models ≤14B, T1+T2): T2 worst-case gap 2.2–7.3 pp in every model (CIs exclude 0); deny→allow highest on NL, lowest on Rego; T1 reproduces T2. Positive (descriptive); Holm/scaling in P2.9.
