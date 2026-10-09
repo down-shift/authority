@@ -309,8 +309,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: the ≤14B models of the amended roster (Qwen3.5-4B/9B, Gemma-4-E4B/12B, gpt-oss-20b, Ministral-3-14B) complete T1 and T2 on the frozen benchmark with provenance; per-run reports referenced from docs/experiments/p2.4-sweep-a.md. (Roster amended 2026-10-08.)
 
 ### P2.5 — [GPU: H100] Sweep B: 27–31B models and controls (T1 + T2)
-- status: claimed
-- note: resumed 2026-10-09 after Jerzy freed the H100; full sweep-B chain at 0.9 on GPU 7 (FP8 restarted from scratch)
+- status: blocked
+- note: paused by Jerzy 2026-10-09 ~21:00Z (H100 needed elsewhere). Done: FP8 T2 (20261009T174429800255Z, complete). Left: FP8 T1, 27B bf16 T2+T1, 27B thinking T2, Gemma-4-31B T2+T1. Resume via the sweep-B chain at 0.9
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-09T14:20:55Z
 - deps: P2.3
