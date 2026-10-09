@@ -301,7 +301,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: docs/prereg/phase2.md (hypotheses, sweep table from §3 Phase 2, metrics, Holm family, exclusion rules, quantization-control rule for Llama-70B) committed and pushed before sweep inference; MANIFEST row.
 
 ### P2.4 — [GPU: H100] Sweep A: ≤14B models (T1 + T2)
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-08T17:36:08Z
 - deps: P2.3
