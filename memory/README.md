@@ -27,6 +27,7 @@ the rest of the team's agents never see it. Committing it here fixes that.
   the claim priority, and each machine's rules (H100: compose only, files only
   under `/data/storage/kaluzhnaya_jhub/`, GPU #7 only, clean up).
 - `lesson-gate-exit-status.md` — a piped gate and an unprotected `main` let a red PR merge; check exit codes and CI conclusion before merging.
+- `lesson-qwen38-serving-traps.md` — Qwen3.8's chat template opens `<think>` in the prompt (parser v2 missed it); hybrid Mamba needs `--max-num-seqs 128`; thinking-off still reasons on Rego.
 - `lesson-preregistration-git-trail.md` — squash/rebase erase the
   rule-before-result evidence; merge experiment PRs with `--merge`; only say
   "pre-registered" with a timestamped commit (see `docs/prereg/`).
