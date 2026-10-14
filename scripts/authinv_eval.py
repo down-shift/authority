@@ -4,6 +4,11 @@
   python scripts/authinv_eval.py run --config configs/authinv/t2.yaml --dataset DIR --model KEY
         [--model-dir DIR] [--tensor-parallel N] [--resume RUN] [--dataset-only] [--tokenizer-audit-only]
   python scripts/authinv_eval.py aggregate --config configs/authinv/t2.yaml --runs RUN [RUN ...] [--out F]
+  python scripts/authinv_eval.py rescore --config configs/authinv/t2.yaml --run RUN [--output-root DIR]
+
+rescore re-parses a complete run's saved outputs with the current parser into a new run
+directory (no model call). It refuses unless the old config differs only in parser_version
+and the old parser reproduces every recorded category.
 
 DIR is a frozen dataset directory built by P1.10: dataset.jsonl plus dataset_manifest.json
 ({"sha256": ..., "rows": ...}). Each row carries: row_id, world_id, assignment, instance,
@@ -27,7 +32,12 @@ import yaml  # noqa: E402
 from authinv import models, provenance  # noqa: E402
 from authinv.eval import invariance, metrics  # noqa: E402
 from authinv.eval.dataset import load_dataset  # noqa: E402
-from authinv.eval.structured import JSON_PARSER_VERSION, answer_schema, parse_structured  # noqa: E402
+from authinv.eval.structured import (  # noqa: E402
+    JSON_PARSER_VERSION,
+    JSON_PARSER_VERSIONS,
+    answer_schema,
+    parse_structured,
+)
 
 TRACKED = [ROOT / "scripts" / "authinv_eval.py"] + [
     ROOT / "src" / "authinv" / p
@@ -200,6 +210,78 @@ def cmd_run(args) -> None:
         raise
 
 
+def cmd_rescore(args) -> None:
+    cfg = yaml.safe_load(args.config.read_text())
+    old = json.loads((args.run / "config.json").read_text())
+    if json.loads((args.run / "run_status.json").read_text())["status"] != "complete":
+        raise SystemExit(f"{args.run}: not complete")
+    if old["parser_version"] not in JSON_PARSER_VERSIONS or old["parser_version"] == JSON_PARSER_VERSION:
+        raise SystemExit(
+            f"{args.run}: parser {old['parser_version']} cannot be rescored to {JSON_PARSER_VERSION}"
+        )
+    if cfg.get("parser_version") != JSON_PARSER_VERSION:
+        raise SystemExit(f"config parser {cfg.get('parser_version')} != code {JSON_PARSER_VERSION}")
+    if {**old["config"], "parser_version": JSON_PARSER_VERSION} != cfg:
+        raise SystemExit("rescore refused: the configs differ beyond parser_version")
+    key = old["model"]["key"]
+    if old["model"] != models.model_spec(key):
+        raise SystemExit(f"rescore refused: model spec for {key} differs")
+    preds = provenance.read_jsonl(args.run / "predictions.jsonl")
+    changed, stale = collections.Counter(), 0
+    for r in preds:
+        stale += (
+            parse_structured(r["text"], r["task"], r["expected"], old["parser_version"])["category"]
+            != r["category"]
+        )
+    if stale:
+        raise SystemExit(
+            f"rescore refused: {old['parser_version']} does not reproduce {stale} recorded categories"
+        )
+    out = []
+    for r in preds:
+        new = parse_structured(r["text"], r["task"], r["expected"])
+        changed[(r["task"], r["category"], new["category"])] += r["category"] != new["category"]
+        out.append({**r, **new})
+    run = args.output_root / f"{provenance.utc_stamp()}_authinv_t2_{key}"
+    run.mkdir(parents=True, exist_ok=False)
+    source = {
+        "run": str(args.run),
+        "config_sha256": old["config_sha256"],
+        "parser_version": old["parser_version"],
+        "predictions_sha256": provenance.sha256_file(args.run / "predictions.jsonl"),
+    }
+    provenance.write_json(
+        run / "config.json",
+        {
+            **old,
+            "config": cfg,
+            "config_sha256": provenance.sha256_json(cfg),
+            "parser_version": JSON_PARSER_VERSION,
+            "command": sys.argv,
+            "rescored_from": source,
+        },
+    )
+    for name in ("validation_report.json", "metadata.json"):
+        (run / name).write_bytes((args.run / name).read_bytes())  # generation provenance of the source run
+    provenance.write_json(
+        run / "rescore.json",
+        {
+            "source": source,
+            "parser_version": JSON_PARSER_VERSION,
+            "git": provenance.git_state(),
+            "source_sha256": provenance.source_hashes(TRACKED),
+            "changed": [
+                {"task": t, "from": a, "to": b, "rows": n} for (t, a, b), n in sorted(changed.items()) if n
+            ],
+        },
+    )
+    provenance.write_jsonl(run / "predictions.jsonl", out)
+    provenance.write_json(run / "metrics.json", analyze(out, cfg))
+    provenance.write_run_status(run, "complete", len(out), len(out))
+    provenance.finalize(run)
+    print(run, sum(changed.values()), "rows changed")
+
+
 def cmd_aggregate(args) -> None:
     cfg = yaml.safe_load(args.config.read_text())
     per_model, task = {}, cfg["analysis"]["primary_task"]
@@ -272,6 +354,11 @@ def main() -> None:
     r.add_argument("--tokenizer-audit-only", action="store_true")
     r.add_argument("--limit", type=int, help="engineering smoke test: first N rows only; never analysed")
     r.set_defaults(func=cmd_run)
+    s = sub.add_parser("rescore")
+    s.add_argument("--config", type=Path, required=True)
+    s.add_argument("--run", type=Path, required=True)
+    s.add_argument("--output-root", type=Path, default=ROOT / "outputs")
+    s.set_defaults(func=cmd_rescore)
     a = sub.add_parser("aggregate")
     a.add_argument("--config", type=Path, required=True)
     a.add_argument("--runs", type=Path, nargs="+", required=True)

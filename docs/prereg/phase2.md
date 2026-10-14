@@ -81,7 +81,7 @@ benchmark's harder worlds.
   bf16 where the format is bf16; V100 is not used because it lacks bf16).
   Hardware is recorded per run and isn't analysed.
 
-## Parsing (`json-strict-v2`, frozen)
+## Parsing (`json-strict-v2`, frozen; `json-strict-v3` by the 2026-10-14 amendment)
 
 - **Accepted answer.** Exactly one JSON object, bare or in one ```json fence,
   with one trailing period allowed. It must contain only the task's field:
@@ -183,3 +183,24 @@ No sweep model was run on the benchmark before this commit.
 
   Every T1 run in the sweep uses the vLLM backend, so no comparison mixes
   backends. The metric definitions are unchanged.
+
+- **2026-10-14, after the Qwen3.8-27B thinking T2 run: parser `json-strict-v3`.**
+  Approved by Jerzy. The Procedure section says a thinking model's leading
+  `<think>` block is stripped before parsing. `json-strict-v2` implemented that
+  only for a block that opens with `<think>`. Qwen3.8's chat template puts the
+  opening `<think>` in the prompt when thinking is on, so the output starts
+  with the reasoning and ends it with `</think>`. v2 left that reasoning in
+  place and labelled 99% of the run's rows `parse_failure`.
+
+  `json-strict-v3` also strips everything up to the first `</think>` when the
+  output contains no `<think>`. Nothing else changes. It is the parser for
+  every T2 run from this date. Every completed T2 run is re-scored offline
+  from its saved outputs (`authinv_eval.py rescore`, no model call; it refuses
+  unless v2 reproduces every recorded category). Reports give the v3 numbers
+  as primary and the v2 numbers beside them, with the count of re-labelled
+  rows per run, so no recorded label disappears. Runs whose outputs contain no
+  `</think>` are unchanged by construction.
+
+  Changing `parser_version` in `configs/authinv/t2.yaml` changes its config
+  hash. T1 does not use the parser, so completed T1 runs keep their recorded
+  hash. Their only check against it is `--resume`, and none is resumed.

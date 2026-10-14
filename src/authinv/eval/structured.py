@@ -9,7 +9,11 @@ the task's field:
 Anything else is a refusal or abstention (strict-v2 patterns, with typographic
 apostrophes folded) or a parse failure. These categories are kept apart and are
 never counted as wrong or dropped (RESEARCH_PLAN §4). A rule change needs a new
-JSON_PARSER_VERSION and a docs/CHANGELOG.md entry.
+JSON_PARSER_VERSION and a docs/CHANGELOG.md entry; older versions stay selectable.
+
+json-strict-v3 also strips a leading think block whose opening ``<think>`` the chat
+template put in the prompt (Qwen3.8 with thinking on), so the output starts with the
+reasoning and the first ``</think>`` closes it.
 """
 
 from __future__ import annotations
@@ -19,12 +23,26 @@ import re
 
 from authinv.eval.parse import _ABSTAIN, _REFUSAL, _THINK, fold_typographic
 
-JSON_PARSER_VERSION = "json-strict-v2"  # v2: tolerate one period right after the object (v1 never used)
+JSON_STRICT_V2 = "json-strict-v2"  # v2: tolerate one period right after the object (v1 never used)
+JSON_STRICT_V3 = "json-strict-v3"  # v3: also strip a think block whose opening tag is in the prompt
+JSON_PARSER_VERSIONS = (JSON_STRICT_V2, JSON_STRICT_V3)
+JSON_PARSER_VERSION = JSON_STRICT_V3
 _FENCE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```$", re.S)
+_ELIDED_THINK = re.compile(r"^.*?</think>\s*", re.S)
 
 
-def extract_object(text: str) -> dict | None:
-    s = _THINK.sub("", text, count=1).strip()
+def strip_think(text: str, version: str = JSON_PARSER_VERSION) -> str:
+    """Drop the leading think block: a closed one (v2, v3) or one whose opener is in the prompt (v3)."""
+    if version not in JSON_PARSER_VERSIONS:
+        raise ValueError(f"unknown parser version {version!r}")
+    s = _THINK.sub("", text, count=1)
+    if version == JSON_STRICT_V3 and s == text and "<think>" not in text:
+        s = _ELIDED_THINK.sub("", text, count=1)
+    return s
+
+
+def extract_object(text: str, version: str = JSON_PARSER_VERSION) -> dict | None:
+    s = strip_think(text, version).strip()
     m = _FENCE.match(s)
     if m:
         s = m.group(1).strip()
@@ -51,17 +69,17 @@ def _value(obj: dict, task: str):
     return None
 
 
-def parse_structured(text: str, task: str, expected) -> dict:
+def parse_structured(text: str, task: str, expected, version: str = JSON_PARSER_VERSION) -> dict:
     """{"category", "value"} where value is the parsed answer (decision str or sorted principal tuple)."""
     if task not in ("application", "interpretation"):
         raise ValueError(f"unknown task {task!r}")
     want = tuple(sorted(expected)) if task == "interpretation" else expected
-    obj = extract_object(text)
+    obj = extract_object(text, version)
     if obj is not None:
         value = _value(obj, task)
         if value is not None:
             return {"category": "correct" if value == want else "incorrect", "value": value}
-    folded = fold_typographic(_THINK.sub("", text, count=1))
+    folded = fold_typographic(strip_think(text, version))
     if _REFUSAL.search(folded):
         return {"category": "refusal", "value": None}
     if _ABSTAIN.search(folded) and obj is None:
