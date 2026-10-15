@@ -63,3 +63,4 @@ testing) are themselves experiments and get reports.
 - `g1-spotcheck-round1.md` — G1 human review, round 1: not passed (20/20 worlds flagged; Cedar and Rego clean).
 - `g1-spotcheck-round2.md` — G1 human review, round 2: **passed** (all renderings read the same in all 20 worlds).
 - `p2.4-sweep-a.md` — Phase 2 sweep A (6 models ≤14B, T1+T2): T2 worst-case gap 2.2–7.3 pp in every model (CIs exclude 0); deny→allow highest on NL, lowest on Rego; T1 reproduces T2. Positive (descriptive); Holm/scaling in P2.9.
+- `p2.5-sweep-b.md` — Phase 2 sweep B (Qwen3.8-27B bf16/FP8/thinking, Gemma-4-31B; T1+T2): T2 worst-case gap 45.7 / 15.4 / 0.7 / 2.4 pp (CIs exclude 0). The thinking-off Qwen3.8 gap is mostly Rego format failure at the token limit (T1 gap 4.8 pp). FP8 stays primary under the quantization rule. Parser json-strict-v3 fix: every T2 run re-scored, only the thinking run changes. Positive (descriptive).

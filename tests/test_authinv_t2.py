@@ -39,6 +39,28 @@ def test_parse_structured(text, task, expected, category):
     assert parse_structured(text, task, expected)["category"] == category
 
 
+ELIDED = 'No rule allows delete. Deny.\n</think>\n\n{"decision": "deny"}'  # opener in the prompt
+
+
+@pytest.mark.parametrize(
+    ("text", "v2", "v3"),
+    [
+        (ELIDED, "parse_failure", "correct"),
+        ("I cannot determine it.\n</think>\n\n" + '{"decision": "deny"}', "refusal", "correct"),
+        ("Unclear, so neither.\n</think>\n\nIt is unclear.", "abstain", "abstain"),
+        ("Thinking, still going and cut off by the token limit", "parse_failure", "parse_failure"),
+        ('<think>\nhmm\n</think>\n{"decision": "deny"}', "correct", "correct"),
+        ('{"decision": "deny"}', "correct", "correct"),
+        ('{"decision": "deny"} </think>', "parse_failure", "parse_failure"),
+    ],
+)
+def test_parser_v3_strips_elided_think_block(text, v2, v3):
+    assert parse_structured(text, "application", "deny", "json-strict-v2")["category"] == v2
+    assert parse_structured(text, "application", "deny")["category"] == v3
+    with pytest.raises(ValueError, match="unknown parser"):
+        parse_structured(text, "application", "deny", "json-strict-v9")
+
+
 def test_extract_object_is_strict():
     assert extract_object('Sure! {"decision": "allow"}') is None
     assert extract_object('[{"decision": "allow"}]') is None
@@ -186,7 +208,7 @@ def test_runner_dataset_only_and_validation(tmp_path):
     runner.main()
     run = next((tmp_path / "out").iterdir())
     assert json.loads((run / "run_status.json").read_text())["status"] == "dataset_only"
-    assert json.loads((run / "config.json").read_text())["parser_version"] == "json-strict-v2"
+    assert json.loads((run / "config.json").read_text())["parser_version"] == "json-strict-v3"
 
 
 def test_runner_analyze_on_synthetic_predictions():
@@ -209,3 +231,99 @@ def test_rendering_contrasts_and_scaling():
     s = spearman_with_permutation([4, 9, 27, 31, 117], [0.10, 0.08, 0.02, 0.01, 0.03], permutations=2000)
     assert s["rho"] < 0 and 0 <= s["p_permutation"] <= 1
     assert spearman_with_permutation([1, 2], [1, 2])["rho"] is None
+
+
+def _old_run(tmp_path, cfg, preds, parser="json-strict-v2", model="qwen3_8_27b_thinking"):
+    from authinv import models
+
+    old = tmp_path / "old"
+    old.mkdir()
+    old_cfg = {**cfg, "parser_version": parser}
+    provenance.write_json(
+        old / "config.json",
+        {
+            "experiment": cfg["experiment"],
+            "config": old_cfg,
+            "config_sha256": provenance.sha256_json(old_cfg),
+            "model": models.model_spec(model),
+            "dataset": "ds",
+            "dataset_sha256": cfg["dataset_sha256"],
+            "parser_version": parser,
+            "command": ["x"],
+        },
+    )
+    provenance.write_json(old / "validation_report.json", {"passed": True})
+    provenance.write_json(old / "metadata.json", {"runtime": {"vllm_version": "0.29.0"}})
+    provenance.write_jsonl(old / "predictions.jsonl", preds)
+    provenance.write_run_status(old, "complete", len(preds), len(preds))
+    return old
+
+
+def test_rescore_relabels_only_elided_think_rows(tmp_path):
+    import yaml
+
+    runner = _runner()
+    cfg = yaml.safe_load((ROOT / "configs/authinv/t2.yaml").read_text())
+    cfg["analysis"]["bootstrap_replicates"] = 50
+    conf = tmp_path / "t2.yaml"
+    conf.write_text(yaml.safe_dump(cfg))
+    preds = []
+    for w in range(4):
+        for g in ("cedar", "nl"):
+            text = ELIDED if g == "nl" else '{"decision": "deny"}'
+            row = {"row_id": f"w{w}/{g}", "world_id": f"w{w}", "assignment": "orig", "instance": "q0"}
+            row |= {"rendering": g, "task": "application", "expected": "deny", "label": "deny", "text": text}
+            preds.append(row | parse_structured(text, "application", "deny", "json-strict-v2"))
+    old = _old_run(tmp_path, cfg, preds)
+    sys.argv = [
+        "x",
+        "rescore",
+        "--config",
+        str(conf),
+        "--run",
+        str(old),
+        "--output-root",
+        str(tmp_path / "out"),
+    ]
+    runner.main()
+    run = next((tmp_path / "out").iterdir())
+    rescore = json.loads((run / "rescore.json").read_text())
+    assert rescore["changed"] == [
+        {"task": "application", "from": "parse_failure", "to": "correct", "rows": 4}
+    ]
+    assert rescore["source"]["parser_version"] == "json-strict-v2"
+    new = provenance.read_jsonl(run / "predictions.jsonl")
+    assert {r["category"] for r in new} == {"correct"} and len(new) == len(preds)
+    conf_new = json.loads((run / "config.json").read_text())
+    assert conf_new["parser_version"] == "json-strict-v3" and conf_new[
+        "config_sha256"
+    ] == provenance.sha256_json(cfg)
+    assert "artifact_sha256.json" in {p.name for p in run.iterdir()}
+
+
+def test_rescore_refuses_other_config_changes_and_stale_labels(tmp_path):
+    import yaml
+
+    runner = _runner()
+    cfg = yaml.safe_load((ROOT / "configs/authinv/t2.yaml").read_text())
+    conf = tmp_path / "t2.yaml"
+    conf.write_text(yaml.safe_dump(cfg))
+    row = {"row_id": "w0/nl", "world_id": "w0", "rendering": "nl", "task": "application", "expected": "deny"}
+    bad = _old_run(tmp_path, {**cfg, "seed": 1}, [row | {"text": ELIDED, "category": "parse_failure"}])
+    sys.argv = [
+        "x",
+        "rescore",
+        "--config",
+        str(conf),
+        "--run",
+        str(bad),
+        "--output-root",
+        str(tmp_path / "o"),
+    ]
+    with pytest.raises(SystemExit, match="beyond parser_version"):
+        runner.main()
+    (tmp_path / "x").mkdir()
+    stale = _old_run(tmp_path / "x", cfg, [row | {"text": ELIDED, "category": "correct"}])
+    sys.argv[5] = str(stale)
+    with pytest.raises(SystemExit, match="does not reproduce"):
+        runner.main()

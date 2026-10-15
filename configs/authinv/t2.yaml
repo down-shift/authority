@@ -3,7 +3,7 @@
 experiment: authinv_t2_structured_generation
 seed: 20261010
 dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
-parser_version: json-strict-v2
+parser_version: json-strict-v3   # amendment 2026-10-14 (docs/prereg/phase2.md)
 generation:
   seed: 20261010
   temperature: 0.0
