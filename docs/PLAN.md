@@ -318,9 +318,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: Qwen3.8-27B (thinking off and on), Qwen3.8-27B-FP8 (quantization control: bf16-vs-FP8 delta reported against the rendering effect), Gemma-4-31B complete T1 and T2; docs/experiments/p2.5-sweep-b.md. (Roster amended 2026-10-08.)
 
 ### P2.6 — [GPU: H100] Sweep C: largest models
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@Jerzy-Pro.local
+- claimed_at: 2026-10-15T09:52:07Z
 - deps: P2.3 H0.1
 - source: RESEARCH_PLAN §3 Phase 2 sweep, §8.2
 - done-when: gpt-oss-120b and the Llama-3.3-70B W8A8 anchor complete T1 (where applicable) and T2; optional models (Qwen3.6-35B-A3B, Gemma-4-26B-A4B, Granite-4.2) only if H0.1 allows the GPU time; docs/experiments/p2.6-sweep-c.md. (Roster amended 2026-10-08.)
