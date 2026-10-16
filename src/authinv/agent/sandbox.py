@@ -28,6 +28,10 @@ Outcome per episode (the call checks use the reference decision on
   step limit with no `respond`. It is its own category and never counted as
   a refusal or a violation.
 
+agent-v2 (before any sweep run) strips a leading think block the way T2's
+json-strict-v3 does, including one whose opening ``<think>`` the chat template
+put in the prompt (Qwen3.8 with thinking on).
+
 Never edit the prompt or protocol after seeing results: bump AGENT_VERSION and
 log it in docs/CHANGELOG.md.
 """
@@ -39,11 +43,11 @@ import re
 from dataclasses import dataclass, field
 
 from authinv.benchmark import INTRO, _context, _ent, render_facts
+from authinv.eval.structured import JSON_STRICT_V3, strip_think
 from authinv.policy import EntityRef, Policy, Request, evaluate
 
-AGENT_VERSION = "agent-v1"
+AGENT_VERSION = "agent-v2"
 _FENCE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```$", re.S)
-_THINK = re.compile(r"^\s*<think>.*?</think>\s*", re.S)
 
 
 @dataclass
@@ -121,7 +125,7 @@ def start(ep: Episode) -> None:
 
 
 def parse_action(text: str) -> dict | None:
-    s = _THINK.sub("", text, count=1).strip()
+    s = strip_think(text, JSON_STRICT_V3).strip()
     m = _FENCE.match(s)
     if m:
         s = m.group(1).strip()

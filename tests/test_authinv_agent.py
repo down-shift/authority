@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
-from authinv.agent.metrics import agent_metrics
+from authinv.agent.metrics import agent_metrics, transfer, uir_contrasts
 from authinv.agent.sandbox import Episode, outcome, parse_action, run, start
 from authinv.benchmark import World, non_degenerate
 from authinv.equivalence.requests import sample_requests
@@ -76,6 +77,14 @@ def test_parse_action_is_strict():
     assert parse_action('I will push. {"tool": "push", "arguments": {}}') is None
     assert parse_action('{"tool": "push"}') is None
     assert parse_action('{"tool": "push", "arguments": {"resource": "r_lynx"}}.')["tool"] == "push"
+
+
+def test_parse_action_strips_think_blocks():
+    call = '{"tool": "push", "arguments": {"resource": "r_lynx"}}'
+    assert parse_action(f"<think>\nr1 allows push.\n</think>\n\n{call}")["tool"] == "push"
+    # agent-v2: the chat template put the opening <think> in the prompt (Qwen3.8 thinking on)
+    assert parse_action(f"r1 allows push. {{maybe}}\n</think>\n\n{call}")["tool"] == "push"
+    assert parse_action(f"r1 allows push.\n{call}") is None
 
 
 def _requested(msgs, eps_by_task):
@@ -203,9 +212,8 @@ def test_unauthorized_other_call_counts_even_on_allowed_requests():
     assert any(o["unauthorized"] for o in outs) and not any(o["completed"] for o in outs if o["unauthorized"])
 
 
-def test_episode_builder_matches_frozen_rows(tmp_path):
+def _tiny_benchmark(tmp_path):
     from authinv import provenance
-    from authinv.agent.episodes import build_episodes
     from authinv.benchmark import world_rows
     from authinv.policy import to_dict
 
@@ -234,8 +242,131 @@ def test_episode_builder_matches_frozen_rows(tmp_path):
             }
         ],
     )
+
+
+def test_episode_builder_matches_frozen_rows(tmp_path):
+    from authinv import provenance
+    from authinv.agent.episodes import build_episodes
+
+    _tiny_benchmark(tmp_path)
     eps, info = build_episodes(tmp_path)
     assert info["instances_checked"] == 8 and len(eps) == 8 * 6
     provenance.write_json(tmp_path / "config.json", {"config": {"per_label": 2, "seed": 10}})
     with pytest.raises(SystemExit, match="does not match"):
         build_episodes(tmp_path)
+
+
+def _rows(eps):
+    return [
+        {
+            **outcome(e),
+            "world_id": e.world_id,
+            "assignment": e.assignment,
+            "instance": e.instance,
+            "rendering": e.rendering,
+            "label": e.label,
+        }
+        for e in eps
+    ]
+
+
+def _fail_open_on_nl(eps):
+    for e in eps:
+        start(e)
+    index = {(e.messages[0]["content"], e.messages[1]["content"]): e for e in eps}
+
+    def agent(msgs):
+        e = index[(msgs[0]["content"], msgs[1]["content"])]
+        if e.label == "allow" or e.rendering == "nl_statement":
+            return act(e.request.action, resource=e.request.resource.id)
+        return act("respond", message="Not permitted.")
+
+    run(eps, scripted(agent), max_steps=4)
+    return _rows(eps)
+
+
+def test_uir_contrasts_are_paired_within_world():
+    rows = _fail_open_on_nl(episodes())
+    c = uir_contrasts(rows, replicates=200, seed=1)
+    assert c["nl_statement"]["mean"] == pytest.approx(1.0) and c["table"]["mean"] == pytest.approx(-1.0)
+    assert c["nl_statement"]["ci95"] == [pytest.approx(1.0), pytest.approx(1.0)]
+
+
+def test_transfer_matches_t2_rows_and_splits_uir_by_t2_answer():
+    rows = _fail_open_on_nl(episodes())
+    # T2 answered allow on every NL row and correctly elsewhere; one table row is a parse failure
+    t2 = []
+    for i, r in enumerate(rows):
+        value = "allow" if r["rendering"] == "nl_statement" else r["label"]
+        cat = "correct" if value == r["label"] else "incorrect"
+        if i == 1 and r["rendering"] == "table":
+            value, cat = None, "parse_failure"
+        t2.append(
+            {
+                **{k: r[k] for k in ("world_id", "assignment", "instance", "rendering", "label")},
+                "task": "application",
+                "value": value,
+                "category": cat,
+            }
+        )
+    t = transfer(rows, t2, replicates=200, seed=1)
+    assert t["all"]["agreement"]["mean"] == pytest.approx(1.0)
+    u = t["all"]["uir_given_t2"]
+    assert u["allow"]["uir"] == 1.0 and u["deny"]["uir"] == 0.0
+    assert t["per_rendering"]["table"]["uir_given_t2"]["allow"]["episodes"] == 0
+    with pytest.raises(ValueError):
+        transfer(rows, t2[1:], replicates=10, seed=1)
+
+
+def test_runner_checkpoints_and_resumes(tmp_path, monkeypatch):
+    import importlib.util
+    import sys
+
+    import yaml
+
+    from authinv import provenance
+    from authinv.eval import generation
+
+    bench = tmp_path / "bench"
+    bench.mkdir()
+    _tiny_benchmark(bench)
+    cfg = yaml.safe_load(Path("configs/authinv/t3.yaml").read_text())
+    cfg["dataset_sha256"] = "x"
+    (tmp_path / "t3.yaml").write_text(yaml.safe_dump(cfg))
+    calls = {"n": 0, "crash_after": 1}
+
+    class FakeChat:
+        def __init__(self, *a, **k):
+            pass
+
+        def provenance(self):
+            return {"backend": "fake"}
+
+        def chat_texts(self, convs):
+            if calls["n"] >= calls["crash_after"] and calls["crash_after"]:
+                raise RuntimeError("simulated crash")
+            calls["n"] += 1
+            return [act("respond", message="no") for _ in convs]
+
+    monkeypatch.setattr(generation, "VLLMChat", FakeChat)
+    spec = importlib.util.spec_from_file_location("agent_eval", "scripts/authinv_agent_eval.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    base = ["x", "run", "--config", str(tmp_path / "t3.yaml"), "--benchmark", str(bench)]
+    base += ["--model", "smoke_qwen3_0_6b", "--output-root", str(tmp_path / "out"), "--chunk-episodes", "12"]
+    monkeypatch.setattr(sys, "argv", base)
+    with pytest.raises(RuntimeError, match="simulated"):
+        mod.main()
+    (run_dir,) = (tmp_path / "out").iterdir()
+    assert len(provenance.read_jsonl(run_dir / "episodes.jsonl")) == 12
+    calls["crash_after"] = 0
+    monkeypatch.setattr(sys, "argv", base + ["--resume", str(run_dir)])
+    mod.main()
+    recs = provenance.read_jsonl(run_dir / "episodes.jsonl")
+    assert len({r["episode_id"] for r in recs}) == len(recs) == 48
+    assert json.loads((run_dir / "run_status.json").read_text())["status"] == "complete"
+    assert "uir_contrasts" in json.loads((run_dir / "metrics.json").read_text())
+    cfg["max_steps"] = 3
+    (tmp_path / "t3.yaml").write_text(yaml.safe_dump(cfg))
+    with pytest.raises(SystemExit, match="--resume refused"):
+        mod.main()
