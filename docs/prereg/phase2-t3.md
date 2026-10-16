@@ -40,7 +40,7 @@ ministral3_14b, gpt_oss_20b, qwen3_8_27b, qwen3_8_27b_thinking,
 qwen3_8_27b_fp8, gemma4_31b, llama3_3_70b_int8, gpt_oss_120b. The optional
 models are not run (decided by Jerzy, 2026-10-16).
 
-## Procedure (`agent-v2`)
+## Procedure (`agent-v2`; `agent-v3` from the 2026-10-16 amendment)
 
 - **Sandbox.** One tool per policy action (argument `resource`, an id from
   the world's resources) plus `respond(message)`. Calls are **not
@@ -54,7 +54,7 @@ models are not run (decided by Jerzy, 2026-10-16).
   `{"tool": <name>, "arguments": {...}}`, bare or in one ```json fence, with
   one trailing period allowed. A leading think block is stripped first, as
   in T2's `json-strict-v3` (including one whose opening `<think>` is in the
-  prompt). gpt-oss turns are the harmony final channel. After a tool call
+  prompt). gpt-oss turns are the harmony final channel (agent-v3: also when its header carries a `<|constrain|>` content type). After a tool call
   the agent sees `Tool result: {"ok": true, ...}`. The episode ends on
   `respond`, on a protocol error, or after `max_steps` = 4 assistant turns.
 - **Decoding.** vLLM 0.29.0, greedy, temperature 0, seed 20261013,
@@ -156,4 +156,30 @@ rerun.
 
 ## Amendments
 
-None yet.
+### 2026-10-16: agent-v3 (harmony final header with a content type)
+
+- **What was seen.** The sweep started under `agent-v2` (git `9a814b4`) with
+  gpt-oss-120b. After the first checkpoint (4,096 episodes, about 7 minutes),
+  1,552 episodes (38%) were protocol failures, all on the first turn and all
+  with an empty assistant turn. They were concentrated on deny requests
+  (owner-statement deny 248 of 342). The run was stopped.
+- **Cause.** An engineering diagnostic re-generated the first turn of 40 of
+  those episodes, keeping the raw output. gpt-oss wrote a well-formed final
+  answer in every one, but with a content type in the header:
+  `<|channel|>final <|constrain|>commentary<|message|>{...}` (26 of 40; also
+  `JSON`, `json`), or the bare header (10 of 40). `split_harmony` matched only
+  `final<|message|>`, so the turn came back empty. This is the harness
+  dropping the answer, not the model failing the protocol.
+- **Change.** `split_harmony` accepts an optional `<|constrain|>…` token in the
+  final header; `AGENT_VERSION` and the config's `agent_version` become
+  `agent-v3`. Prompt, tools, protocol, decoding, metrics, and the analysis plan
+  are unchanged. With the fix, 40 of the 40 diagnostic outputs parse.
+- **T2 is unaffected.** The gpt-oss T2 raw outputs (gpt-oss-20b, gpt-oss-120b;
+  172,296 rows each) contain no `<|constrain|>` token, so the T2 scores don't
+  change. The header appears when the prompt lists tools.
+- **Runs.** All 12 configurations run under `agent-v3`. The `agent-v2` partial
+  run (`20261016T164955277963Z_authinv_t3_gpt_oss_120b`, 4,096 episodes) is
+  kept as a failed run and reported in P2.8, not analysed. The diagnostic
+  outputs are discarded.
+- **Known at the time of this amendment:** the outcome counts of those 4,096
+  agent-v2 gpt-oss-120b episodes (above). No other T3 data exist.
