@@ -19,3 +19,4 @@ hash of the code that produced it.
 | Phase 0 kill test: Gate-0 rule, strict-v1 parser, worst-case gap, disagreement, flip definitions | `89b91c0` | 2026-10-08 00:47:05 | 2026-10-08 00:48:38 (qwen3_8b run dir) | `phase0.md` |
 | Phase 0 addendum (current models; outside Gate 0): harmony final-channel answer, text-only loading, Holm over 3 models | `64b3b52` | 2026-10-08 01:26:29 | 2026-10-08 01:27:07 (gpt_oss_120b run dir) | `phase0-addendum.md` |
 | Phase 2 T1/T2: worst-case gap, direction, dissociation, Holm over 72 (model, rendering) contrasts, scaling test, quantization rule | `91cf920` | 2026-10-08 17:34:28 | — (P2.4) | `phase2.md` |
+| Phase 2 T3: worst-case UIR gap on deny requests, separate T3 Holm family over 72 (model, rendering) UIR contrasts, T2→T3 transfer, cross-tier Spearman, agent-v2 protocol | `4694983` | 2026-10-16 16:46:08 | — (P2.8) | `phase2-t3.md` |
