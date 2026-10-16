@@ -12,7 +12,10 @@ import re
 from typing import Any
 
 _HARMONY_FINAL = re.compile(
-    r"<\|channel\|>final<\|message\|>(.*?)(?:<\|return\|>|<\|end\|>|<\|call\|>|$)", re.S
+    # The final header may carry a content-type token (`final <|constrain|>json<|message|>`), which gpt-oss
+    # emits when the prompt lists tools (T3); T2 outputs never contain one.
+    r"<\|channel\|>final(?:\s*<\|constrain\|>[^<]*)?<\|message\|>(.*?)(?:<\|return\|>|<\|end\|>|<\|call\|>|$)",
+    re.S,
 )
 _HARMONY_ANALYSIS = re.compile(r"<\|channel\|>analysis<\|message\|>(.*?)(?:<\|end\|>|$)", re.S)
 

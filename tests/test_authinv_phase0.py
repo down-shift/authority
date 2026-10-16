@@ -235,6 +235,19 @@ def test_split_harmony_takes_final_channel():
     )
 
 
+def test_split_harmony_reads_constrained_final_header():
+    from authinv.eval.generation import split_harmony
+
+    # gpt-oss output on a T3 turn: the final header carries a content type (agent-v3)
+    for ctype in ("commentary", "json", "JSON"):
+        raw = (
+            "<|channel|>analysis<|message|>Delete is not permitted.<|end|><|start|>assistant"
+            f'<|channel|>final <|constrain|>{ctype}<|message|>{{"tool": "respond", "arguments": {{}}}}'
+        )
+        out = split_harmony(raw)
+        assert out["harmony_final_found"] and out["text"] == '{"tool": "respond", "arguments": {}}'
+
+
 def test_addendum_config_only_differs_where_intended():
     import yaml
 

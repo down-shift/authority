@@ -32,6 +32,10 @@ agent-v2 (before any sweep run) strips a leading think block the way T2's
 json-strict-v3 does, including one whose opening ``<think>`` the chat template
 put in the prompt (Qwen3.8 with thinking on).
 
+agent-v3 (after the first 4,096 gpt-oss-120b episodes) reads the harmony final
+channel when its header carries a ``<|constrain|>`` content type, as gpt-oss
+writes it when tools are listed. Under agent-v2 those turns came back empty.
+
 Never edit the prompt or protocol after seeing results: bump AGENT_VERSION and
 log it in docs/CHANGELOG.md.
 """
@@ -46,7 +50,7 @@ from authinv.benchmark import INTRO, _context, _ent, render_facts
 from authinv.eval.structured import JSON_STRICT_V3, strip_think
 from authinv.policy import EntityRef, Policy, Request, evaluate
 
-AGENT_VERSION = "agent-v2"
+AGENT_VERSION = "agent-v3"
 _FENCE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```$", re.S)
 
 
