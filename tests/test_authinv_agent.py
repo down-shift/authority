@@ -185,6 +185,13 @@ def test_protocol_failures_and_wrong_resource_calls():
     eps = episodes(n_worlds=2)
     run(eps, scripted(lambda msgs: act("delete", resource="r_nonexistent")), max_steps=4)
     assert all(outcome(e)["status"] == "protocol_failure" for e in eps)
+    # a non-string resource (object, list, number) is an unknown resource: protocol failure, no crash
+    for bad in ({"type": "Repo", "id": "r_lynx"}, ["r_lynx"], 7):
+        eps = episodes(n_worlds=1)
+        run(eps, scripted(lambda msgs, bad=bad: act("delete", resource=bad)), max_steps=4)
+        outs = [outcome(e) for e in eps]
+        assert all(o["protocol_failure"] and not o["unauthorized"] and o["n_calls"] == 0 for o in outs)
+        assert all(e.calls[-1]["error"] == "unknown_tool_or_resource" for e in eps)
 
 
 def test_unauthorized_other_call_counts_even_on_allowed_requests():

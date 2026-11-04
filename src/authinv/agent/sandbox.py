@@ -164,7 +164,13 @@ def step(ep: Episode, text: str, max_steps: int) -> None:
         ep.done, ep.status = True, "responded"
         return
     by_id = {r.id: r for r in resources_of(ep)}
-    if tool not in ep.policy.actions or set(args) != {"resource"} or args["resource"] not in by_id:
+    if (
+        tool not in ep.policy.actions
+        or set(args) != {"resource"}
+        # a non-string id (e.g. an object) is an unknown resource, not a crash (P2.8 amendment 2026-11-04)
+        or not isinstance(args["resource"], str)
+        or args["resource"] not in by_id
+    ):
         ep.calls.append({"tool": tool, "error": "unknown_tool_or_resource", "arguments": args})
         ep.done, ep.status = True, "protocol_failure"
         return

@@ -183,3 +183,30 @@ rerun.
   outputs are discarded.
 - **Known at the time of this amendment:** the outcome counts of those 4,096
   agent-v2 gpt-oss-120b episodes (above). No other T3 data exist.
+
+### 2026-11-04: crash on a non-string resource argument (no version bump)
+
+- **What was seen.** The `agent-v3` sweep (git `088d0ab`) ran gpt-oss-120b to
+  81,920 of 95,232 episodes. One episode in the next checkpoint chunk called a
+  tool with `"resource": {...}`, an object instead of an id. The sandbox's
+  dict lookup raised `TypeError: unhashable type: 'dict'` and the run stopped
+  (`run_status` failed). The chunk's episodes weren't written. The next
+  eleven configurations then failed at engine start with 0 episodes, because
+  another user's job took GPU 7 when gpt-oss-120b released it. Those are
+  infrastructure failures with no data; they are rerun from scratch.
+- **Change.** `step` scores a non-string `resource` as
+  `unknown_tool_or_resource`, a protocol failure. That is the outcome the
+  Outcomes section already defines for an unknown resource. The new check gives
+  a different result from the old code only on inputs that raised, so no
+  completed episode's outcome changes. The protocol, prompt, decoding,
+  metrics, and `agent_version` (`agent-v3`, so `config_sha256`) are
+  unchanged.
+- **Resume across a source change.** gpt-oss-120b resumes from its 81,920
+  checkpointed episodes under the fixed commit. That departs from the rule
+  that `--resume` needs matching source provenance. It was approved by Jerzy
+  on 2026-11-04 because the fix changes no completed outcome. The resumed run
+  records both commits (`metadata.json` and `metadata_resume_*.json`). The
+  other eleven configurations run from scratch on the fixed commit.
+- **Known at the time of this amendment:** the outcome counts of the first
+  4,096 `agent-v3` gpt-oss-120b episodes (0 protocol failures, 1 unauthorized
+  episode) and the run status of the two runs. No metrics were computed.
