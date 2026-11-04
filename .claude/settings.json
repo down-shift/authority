@@ -14,6 +14,7 @@
       "Bash(git log:*)",
       "Bash(git branch:*)",
       "Bash(git show:*)",
+      "Bash(git commit:*)",
       "Bash(rg:*)",
       "Bash(ls:*)",
       "Bash(gh pr merge:*)"
