@@ -162,3 +162,11 @@ python scripts/authinv_agent_eval.py aggregate --config configs/authinv/t3.yaml 
   --runs <T3 runs> --t2-runs <matching T2 runs> --out <aggregate.json>
 python scripts/authinv_agent_report.py --agg <aggregate.json> --runs <T3 runs> --out <dir>   # tables.md + distilled.json
 ```
+
+## authinv Phase 2: headline tables and figures
+
+```sh
+uv run python scripts/authinv_figures.py --config configs/authinv/phase2_figures.yaml [--verify-artifacts] [--preview <png dir>]
+```
+
+Reads the T1/T2/T3 run directories named in `configs/authinv/phase2_figures.yaml` (CPU only). It refuses the set if any run is incomplete, uses another dataset, or uses an unpinned revision. It writes figures (`fig_*.pdf`), LaTeX tables (`tab_*.tex`), `phase2_tables.md` and `phase2_summary.json` into `paper/figures/`. `--verify-artifacts` re-hashes every file in each run's SHA-256 manifest. See `docs/experiments/p2.9-phase2-report.md`.

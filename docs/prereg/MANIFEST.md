@@ -18,13 +18,15 @@ hash of the code that produced it.
 |---|---|---|---|---|
 | Phase 0 kill test: Gate-0 rule, strict-v1 parser, worst-case gap, disagreement, flip definitions | `89b91c0` | 2026-10-08 00:47:05 | 2026-10-08 00:48:38 (qwen3_8b run dir) | `phase0.md` |
 | Phase 0 addendum (current models; outside Gate 0): harmony final-channel answer, text-only loading, Holm over 3 models | `64b3b52` | 2026-10-08 01:26:29 | 2026-10-08 01:27:07 (gpt_oss_120b run dir) | `phase0-addendum.md` |
-| Phase 2 T1/T2: worst-case gap, direction, dissociation, Holm over 72 (model, rendering) contrasts, scaling test, quantization rule | `91cf920` | 2026-10-08 17:34:28 | — (P2.4) | `phase2.md` |
+| Phase 2 T1/T2: worst-case gap, direction, dissociation, Holm over 72 (model, rendering) contrasts, scaling test, quantization rule | `91cf920` | 2026-10-08 17:34:28 | 2026-10-08 17:46:27 (qwen3_5_4b T2 run dir) | `phase2.md` (original: `phase2@91cf920.md`) |
 | Phase 2 T3: worst-case UIR gap on deny requests, separate T3 Holm family over 72 (model, rendering) UIR contrasts, T2→T3 transfer, cross-tier Spearman, agent-v2 protocol | `4694983` | 2026-10-16 16:46:08 | 2026-10-16 16:49:55 (agent-v2 gpt_oss_120b run dir) | `phase2-t3.md` (original: `phase2-t3@4694983.md`) |
 
 ## Amendments
 
 | file | original frozen as | amendment commit | committed (UTC) | what and why |
 |---|---|---|---|---|
+| `phase2.md` | `phase2@91cf920.md` | `7a65522` | 2026-10-08 17:44:17 | T1 log-probabilities via vLLM prompt log-probs instead of HF transformers (same token ids and continuation sum; 100/100 T1-correct agreement on a smoke-only model); committed before the first sweep run |
+| `phase2.md` | `phase2@91cf920.md` | `318bc5c` (PR #48 branch; squash-merged to `main` as `b55a75e`, 2026-10-15 09:51:19) | 2026-10-14 16:53:11 | parser `json-strict-v3`: strip the reasoning before `</think>` when the chat template opened `<think>` in the prompt (v2 scored the Qwen3.8-27B thinking run 99% `parse_failure`); every T2 run re-scored offline at 2026-10-14 20:27, only the thinking run changes; approved by Jerzy |
 | `phase2-t3.md` | `phase2-t3@4694983.md` | `5df80dd` | 2026-10-16 21:41:28 | agent-v3: read the harmony final channel when its header has a content type (the agent-v2 gpt-oss-120b run returned empty turns); all 12 configurations rerun |
 | `phase2-t3.md` | `phase2-t3@4694983.md` | `1c723be` | 2026-11-04 19:27:59 | score a non-string `resource` as the preregistered protocol failure (it crashed the run); gpt-oss-120b resumed across the fix, on Jerzy's approval |
 | `phase2-t3.md` | `phase2-t3@4694983.md` | `801606c` | 2026-11-06 15:28:54 | agent-v4: read gpt-oss native tool calls (19.4% gpt-oss-20b protocol failures under agent-v3); both gpt-oss models rerun, the other 10 agent-v3 runs kept |

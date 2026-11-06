@@ -233,6 +233,21 @@ def test_rendering_contrasts_and_scaling():
     assert spearman_with_permutation([1, 2], [1, 2])["rho"] is None
 
 
+def test_spearman_gives_tied_values_their_average_rank():
+    from scipy import stats
+
+    from authinv.eval.invariance import spearman_with_permutation
+
+    # three configurations share a parameter count, as Qwen3.8-27B bf16 / FP8 / thinking do
+    x = [4.7, 8.0, 27.8, 27.8, 27.8, 116.8]
+    y = [0.10, 0.20, 0.01, 0.07, 0.06, 0.003]
+    s = spearman_with_permutation(x, y, permutations=500)
+    assert s["rho"] == pytest.approx(stats.spearmanr(x, y).statistic)
+    # input order of the tied entries does not change rho
+    swapped = spearman_with_permutation(x, [0.10, 0.20, 0.07, 0.06, 0.01, 0.003], permutations=500)
+    assert swapped["rho"] == pytest.approx(s["rho"])
+
+
 def _old_run(tmp_path, cfg, preds, parser="json-strict-v2", model="qwen3_8_27b_thinking"):
     from authinv import models
 
