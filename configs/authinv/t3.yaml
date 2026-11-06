@@ -3,7 +3,10 @@
 experiment: authinv_t3_agent_sandbox
 seed: 20261013
 dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13), as T2
-agent_version: agent-v3   # amendment 2026-10-16 (harmony <|constrain|> header)
+agent_version: agent-v4   # amendment 2026-11-06 (gpt-oss native tool calls); agent-v3: 2026-10-16
+# agent-v3 -> agent-v4 changed only harmony (gpt-oss) output handling, so agent-v3 runs of the other
+# models are identical by construction and stay valid (aggregate checks the model is not harmony).
+non_harmony_compatible_agent_versions: [agent-v3]
 max_steps: 4
 assignments: [orig, swap]
 generation:

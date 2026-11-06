@@ -8,6 +8,7 @@ pinned vllm/vllm-openai image (H100) or a venv with the same vLLM version
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from typing import Any
 
@@ -34,6 +35,50 @@ def split_harmony(raw: str) -> dict:
         "reasoning": analysis.group(1).strip() if analysis else None,
         "raw_text": raw,
     }
+
+
+_HARMONY_BODY_END = re.compile(r"<\|end\|>|<\|call\|>|<\|return\|>")
+_HARMONY_CHANNEL = re.compile(r"<\|channel\|>\s*(\w+)")
+_HARMONY_RECIPIENT = re.compile(r"\bto=([^\s<]+)")
+_TOOL_NAMESPACE = re.compile(r"^(?:functions|tools?)\.")
+
+
+def harmony_agent_turn(raw: str) -> str:
+    """T3 (agent-v4): the text a gpt-oss turn is scored on. T2 keeps `split_harmony`.
+
+    gpt-oss may call a tool natively: a message addressed to a recipient,
+    `<|channel|>commentary to=delete <|constrain|>json<|message|>{"resource": "r_lynx"}`,
+    instead of writing the protocol object in the final channel. The first
+    message that has a recipient or is in the final channel is the turn:
+    - final channel: the same text as `split_harmony` (agent-v3), unchanged;
+    - a recipient: a body that is already a protocol object is the turn as
+      written; any other JSON object body is the arguments of the recipient,
+      after one leading `functions.`, `tool.` or `tools.` namespace is removed
+      (the name must then match a tool exactly, or the sandbox scores it
+      unknown); a non-JSON body is returned as is and fails to parse.
+    A message without a `<|message|>` token is malformed and is not read.
+    """
+    for segment in raw.split("<|start|>assistant"):
+        header, sep, body = segment.partition("<|message|>")
+        if not sep:
+            continue
+        recipient = _HARMONY_RECIPIENT.search(header)
+        if recipient:
+            body = _HARMONY_BODY_END.split(body, maxsplit=1)[0].strip()
+            try:
+                obj = json.loads(body)
+            except ValueError:
+                return body
+            if not isinstance(obj, dict):
+                return body
+            if set(obj) == {"tool", "arguments"}:
+                return body
+            name = _TOOL_NAMESPACE.sub("", recipient.group(1))
+            return json.dumps({"tool": name, "arguments": obj})
+        channel = _HARMONY_CHANNEL.search(header)
+        if channel and channel.group(1) == "final":
+            break
+    return split_harmony(raw)["text"]
 
 
 def _with_schema(params, structured):
@@ -100,14 +145,18 @@ class VLLMChat:
             rows.append(row)
         return rows
 
-    def chat_texts(self, conversations: list[list[dict]]) -> list[str]:
-        """Greedy reply text for multi-turn conversations (T3); harmony models return their final channel."""
+    def chat_texts(self, conversations: list[list[dict]]) -> list[str] | list[dict]:
+        """Greedy reply text for multi-turn conversations (T3).
+
+        Harmony models return `{"text": <scored turn>, "raw": <raw output>}` (agent-v4,
+        `harmony_agent_turn`) so the raw harmony text is stored; other models return plain text.
+        """
         outs = self.llm.chat(
             conversations, self.params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs
         )
         texts = [o.outputs[0].text for o in outs]
         if self.harmony:
-            texts = [split_harmony(t)["text"] for t in texts]
+            return [{"text": harmony_agent_turn(t), "raw": t} for t in texts]
         return texts
 
     def provenance(self) -> dict:

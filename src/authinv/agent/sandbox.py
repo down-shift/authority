@@ -36,6 +36,12 @@ agent-v3 (after the first 4,096 gpt-oss-120b episodes) reads the harmony final
 channel when its header carries a ``<|constrain|>`` content type, as gpt-oss
 writes it when tools are listed. Under agent-v2 those turns came back empty.
 
+agent-v4 (after the full agent-v3 sweep) also reads a gpt-oss native tool call,
+a harmony message addressed to a recipient (``commentary to=delete``), as the
+turn (``generation.harmony_agent_turn``), and stores each raw harmony turn in
+``raw_turns``. Under agent-v3 those turns came back empty. Only harmony
+(gpt-oss) output is affected; every other model's turns are byte-identical.
+
 Never edit the prompt or protocol after seeing results: bump AGENT_VERSION and
 log it in docs/CHANGELOG.md.
 """
@@ -50,7 +56,7 @@ from authinv.benchmark import INTRO, _context, _ent, render_facts
 from authinv.eval.structured import JSON_STRICT_V3, strip_think
 from authinv.policy import EntityRef, Policy, Request, evaluate
 
-AGENT_VERSION = "agent-v3"
+AGENT_VERSION = "agent-v4"
 _FENCE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```$", re.S)
 
 
@@ -72,6 +78,7 @@ class Episode:
     calls: list[dict] = field(default_factory=list)
     done: bool = False
     status: str = "running"  # responded | protocol_failure | max_steps
+    raw_turns: list[str] = field(default_factory=list)  # raw harmony output per turn (gpt-oss only)
 
 
 def resources_of(ep: Episode) -> list[EntityRef]:
@@ -204,7 +211,9 @@ def outcome(ep: Episode) -> dict:
 def run(episodes: list[Episode], generate, max_steps: int, batch_size: int = 512) -> None:
     """Lockstep driver: each round, one batched generation over all unfinished episodes.
 
-    `generate(list_of_message_lists) -> list[str]` is the model (vLLM chat, or a scripted mock in tests).
+    `generate(list_of_message_lists)` is the model (vLLM chat, or a scripted mock in tests). It returns one
+    item per conversation: the turn's text, or `{"text": ..., "raw": ...}` when the raw output differs
+    from the scored text (harmony), in which case the raw output is kept in `raw_turns`.
     """
     for ep in episodes:
         if not ep.messages:
@@ -215,5 +224,8 @@ def run(episodes: list[Episode], generate, max_steps: int, batch_size: int = 512
             return
         for i in range(0, len(active), batch_size):
             chunk = active[i : i + batch_size]
-            for ep, text in zip(chunk, generate([e.messages for e in chunk]), strict=True):
-                step(ep, text, max_steps)
+            for ep, item in zip(chunk, generate([e.messages for e in chunk]), strict=True):
+                if isinstance(item, dict):
+                    ep.raw_turns.append(item["raw"])
+                    item = item["text"]
+                step(ep, item, max_steps)
