@@ -342,9 +342,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: T3 preregistration appended to docs/prereg/phase2.md (or phase2-t3.md) before inference; sweep models run in the sandbox with rendering as the only varied factor; T2→T3 transfer reported; docs/experiments/p2.8-agentic-uir.md.
 
 ### P2.9 — Figures and Phase-2 report
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-06T21:33:29Z
 - deps: P2.4 P2.5 P2.6 P2.8
 - source: RESEARCH_PLAN §3 Phase 2 headline tables, Gate 2
 - done-when: scripts/authinv_figures.py regenerates all headline tables/figures from outputs/ (mean by rendering, worst-case, disagreement, deny→allow flips, dissociation, scaling of worst-case gap vs parameters) into paper/figures/; docs/experiments/p2.9-phase2-report.md with the Gate 2 recommendation; docs/PROGRESS.md entry.
