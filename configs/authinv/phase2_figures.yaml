@@ -1,0 +1,75 @@
+# P2.9: the frozen Phase-2 run set behind the headline tables and figures
+# (scripts/authinv_figures.py). Paths are relative to the repo root. The runs
+# themselves are git-ignored; the P2.4-P2.8 reports name their V100 archives.
+experiment: authinv_phase2_figures
+dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83
+t2_config: configs/authinv/t2.yaml   # every T2 run must carry this config's hash
+# Permutation seeds for the Spearman tests: each tier's preregistered analysis seed
+# (t2.yaml bootstrap_seed; phase2-t3.md uses 20261013).
+seeds: {t1: 20261010, t2: 20261010, t3: 20261013}
+permutations: 20000     # docs/prereg/phase2.md, Q4
+alpha: 0.05             # Holm family level (docs/prereg/phase2.md, phase2-t3.md)
+expected_rows: {t2: 172296, t1: 95232, t3: 95232}
+quantization_pair: [qwen3_8_27b, qwen3_8_27b_fp8]
+# Q4 is reported a second time without these (they duplicate the 27B base; descriptive).
+scaling_descriptive_exclude: [qwen3_8_27b_fp8, qwen3_8_27b_thinking]
+# Sweep order: parameter count, then variant. T1 is not defined for reasoning-output
+# models (harmony, thinking on); those rows have no t1 entry.
+models:
+  - key: qwen3_5_4b
+    label: Qwen3.5-4B
+    t2: outputs/rescored_v3/20261014T202728636666Z_authinv_t2_qwen3_5_4b
+    t1: outputs/p2.4_sweepA/runs/20261008T185110731080Z_authinv_t1_qwen3_5_4b
+    t3: outputs/p2.8_sweepT3/runs/20261106T034153560761Z_authinv_t3_qwen3_5_4b
+  - key: gemma4_e4b
+    label: Gemma-4-E4B
+    t2: outputs/rescored_v3/20261014T202741446915Z_authinv_t2_gemma4_e4b
+    t1: outputs/p2.4_sweepA/runs/20261009T005310192317Z_authinv_t1_gemma4_e4b
+    t3: outputs/p2.8_sweepT3/runs/20261106T025756783200Z_authinv_t3_gemma4_e4b
+  - key: qwen3_5_9b
+    label: Qwen3.5-9B
+    t2: outputs/rescored_v3/20261014T202735054033Z_authinv_t2_qwen3_5_9b
+    t1: outputs/p2.4_sweepA/runs/20261008T220605597639Z_authinv_t1_qwen3_5_9b
+    t3: outputs/p2.8_sweepT3/runs/20261106T014025815068Z_authinv_t3_qwen3_5_9b
+  - key: gemma4_12b
+    label: Gemma-4-12B
+    t2: outputs/rescored_v3/20261014T202748027724Z_authinv_t2_gemma4_12b
+    t1: outputs/p2.4_sweepA/runs/20261009T040349036981Z_authinv_t1_gemma4_12b
+    t3: outputs/p2.8_sweepT3/runs/20261105T235955976435Z_authinv_t3_gemma4_12b
+  - key: ministral3_14b
+    label: Ministral-3-14B
+    t2: outputs/rescored_v3/20261014T202754388817Z_authinv_t2_ministral3_14b
+    t1: outputs/p2.4_sweepA/runs/20261009T080733025215Z_authinv_t1_ministral3_14b
+    t3: outputs/p2.8_sweepT3/runs/20261105T225140001893Z_authinv_t3_ministral3_14b
+  - key: gpt_oss_20b
+    label: gpt-oss-20b
+    t2: outputs/rescored_v3/20261014T202801474956Z_authinv_t2_gpt_oss_20b
+    t3: outputs/p2.8_sweepT3_v4/runs/20261106T153029492099Z_authinv_t3_gpt_oss_20b
+  - key: qwen3_8_27b
+    label: Qwen3.8-27B
+    t2: outputs/rescored_v3/20261014T202818108856Z_authinv_t2_qwen3_8_27b
+    t1: outputs/p2.5_sweepB/runs/20261013T014017136312Z_authinv_t1_qwen3_8_27b
+    t3: outputs/p2.8_sweepT3/runs/20261105T013250632748Z_authinv_t3_qwen3_8_27b
+  - key: qwen3_8_27b_thinking
+    label: Qwen3.8-27B thinking
+    t2: outputs/rescored_v3/20261014T202833896666Z_authinv_t2_qwen3_8_27b_thinking
+    t3: outputs/p2.8_sweepT3/runs/20261105T102829459557Z_authinv_t3_qwen3_8_27b_thinking
+  - key: qwen3_8_27b_fp8
+    label: Qwen3.8-27B-FP8
+    t2: outputs/rescored_v3/20261014T202809880573Z_authinv_t2_qwen3_8_27b_fp8
+    t1: outputs/p2.5_sweepB/runs/20261012T173436254846Z_authinv_t1_qwen3_8_27b_fp8
+    t3: outputs/p2.8_sweepT3/runs/20261105T065013388605Z_authinv_t3_qwen3_8_27b_fp8
+  - key: gemma4_31b
+    label: Gemma-4-31B
+    t2: outputs/rescored_v3/20261014T202840674725Z_authinv_t2_gemma4_31b
+    t1: outputs/p2.5_sweepB/runs/20261014T015458216556Z_authinv_t1_gemma4_31b
+    t3: outputs/p2.8_sweepT3/runs/20261106T044339689212Z_authinv_t3_gemma4_31b
+  - key: llama3_3_70b_int8
+    label: Llama-3.3-70B W8A8
+    t2: outputs/p2.6_sweepC/runs/20261015T095449229665Z_authinv_t2_llama3_3_70b_int8
+    t1: outputs/p2.6_sweepC/runs/20261015T121026904500Z_authinv_t1_llama3_3_70b_int8
+    t3: outputs/p2.8_sweepT3/runs/20261104T202117624003Z_authinv_t3_llama3_3_70b_int8
+  - key: gpt_oss_120b
+    label: gpt-oss-120b
+    t2: outputs/p2.6_sweepC/runs/20261015T195425466246Z_authinv_t2_gpt_oss_120b
+    t3: outputs/p2.8_sweepT3_v4/runs/20261106T165734350488Z_authinv_t3_gpt_oss_120b

@@ -25,6 +25,7 @@ from collections import defaultdict
 from itertools import permutations
 
 import numpy as np
+from scipy.stats import rankdata
 
 from authinv.eval.metrics import bootstrap_indices
 
@@ -198,11 +199,16 @@ def rendering_contrasts(rows: list[dict], task: str, replicates: int = 4000, see
 def spearman_with_permutation(
     x: list[float], y: list[float], permutations: int = 20000, seed: int = 0
 ) -> dict:
-    """Spearman rho between two per-model series with an exact-ish two-sided permutation p (scaling test)."""
+    """Spearman rho between two per-model series with an exact-ish two-sided permutation p (scaling test).
+
+    Tied values get their average rank (the standard Spearman definition). Before P2.9 ranks came
+    from a double argsort, which broke ties by input order (several sweep configurations share a
+    parameter count).
+    """
     if len(x) != len(y) or len(x) < 3:
         return {"rho": None, "p_permutation": None, "n": len(x)}
-    rx = np.argsort(np.argsort(x)).astype(float)
-    ry = np.argsort(np.argsort(y)).astype(float)
+    rx = rankdata(x)
+    ry = rankdata(y)
     rho = float(np.corrcoef(rx, ry)[0, 1])
     rng = np.random.default_rng(seed)
     perm = np.array([np.corrcoef(rx, rng.permutation(ry))[0, 1] for _ in range(permutations)])
