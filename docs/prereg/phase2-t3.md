@@ -270,3 +270,6 @@ rerun.
   per-model `metrics.json` (per-rendering rates and the worst-case gap) of
   all 12 `agent-v3` runs. No aggregate (Holm family, T2→T3 transfer) was
   computed.
+- **Erratum (2026-11-06, P2.8 report).** "207 of the 520 regenerated turns"
+  above should read "219 of the 520 regenerated turns (207 of the 380 empty
+  failing turns)". The other diagnostic counts are unchanged.

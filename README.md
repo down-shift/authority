@@ -154,3 +154,11 @@ python scripts/authinv_agent_eval.py run --config configs/authinv/t3.yaml \
 ```
 
 Episodes reuse the benchmark's worlds and requests. Needs vLLM 0.29.0 and `cedarpy` (`--extra engines`). See `src/authinv/agent/sandbox.py` for the protocol and metrics.
+
+Pooled analysis (CPU) and the P2.8 report tables:
+
+```sh
+python scripts/authinv_agent_eval.py aggregate --config configs/authinv/t3.yaml \
+  --runs <T3 runs> --t2-runs <matching T2 runs> --out <aggregate.json>
+python scripts/authinv_agent_report.py --agg <aggregate.json> --runs <T3 runs> --out <dir>   # tables.md + distilled.json
+```
