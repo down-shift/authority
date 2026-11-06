@@ -342,7 +342,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: T3 preregistration appended to docs/prereg/phase2.md (or phase2-t3.md) before inference; sweep models run in the sandbox with rendering as the only varied factor; T2→T3 transfer reported; docs/experiments/p2.8-agentic-uir.md.
 
 ### P2.9 — Figures and Phase-2 report
-- status: claimed
+- status: in_review (#57)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-06T21:33:29Z
 - deps: P2.4 P2.5 P2.6 P2.8
