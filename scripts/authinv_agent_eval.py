@@ -61,6 +61,7 @@ def record(ep) -> dict:
         },
         "calls": ep.calls,
         "messages": ep.messages,
+        **({"raw_turns": ep.raw_turns} if ep.raw_turns else {}),
         **outcome(ep),
     }
 
@@ -77,6 +78,21 @@ def model_metrics(recs: list[dict], a: dict) -> dict:
     }
 
 
+def config_matches(conf: dict, cfg: dict) -> bool:
+    """A run belongs to `cfg` if its config is identical, or (amendment 2026-11-06) if it is not a
+    harmony model and its config differs only in an agent_version `cfg` lists as compatible for those."""
+    if conf["config_sha256"] == provenance.sha256_json(cfg):
+        return True
+    keys = ("agent_version", "non_harmony_compatible_agent_versions")
+    old = {k: v for k, v in conf["config"].items() if k not in keys}
+    new = {k: v for k, v in cfg.items() if k not in keys}
+    return (
+        conf["model"].get("output_format") != "harmony"
+        and conf["config"].get("agent_version") in cfg.get("non_harmony_compatible_agent_versions", [])
+        and old == new
+    )
+
+
 def cmd_aggregate(args) -> None:
     cfg = yaml.safe_load(args.config.read_text())
     a = cfg["analysis"]
@@ -84,14 +100,15 @@ def cmd_aggregate(args) -> None:
     for t2_run in args.t2_runs:
         conf = json.loads((t2_run / "config.json").read_text())
         t2_by_model[conf["model"]["key"]] = t2_run
-    per_model, cells, trans = {}, [], {}
+    per_model, cells, trans, versions = {}, [], {}, {}
     for t3_run in args.runs:
         conf = json.loads((t3_run / "config.json").read_text())
         if json.loads((t3_run / "run_status.json").read_text())["status"] != "complete":
             raise SystemExit(f"{t3_run}: not complete")
-        if conf["config_sha256"] != provenance.sha256_json(cfg):
+        if not config_matches(conf, cfg):
             raise SystemExit(f"{t3_run}: config differs")
         key = conf["model"]["key"]
+        versions[key] = conf["config"]["agent_version"]
         m = json.loads((t3_run / "metrics.json").read_text())
         per_model[key] = m
         if key not in t2_by_model:
@@ -123,6 +140,7 @@ def cmd_aggregate(args) -> None:
             k: {"worst": m["worst_uir_rendering"], "best": m["best_uir_rendering"], "gap": m["uir_gap"]}
             for k, m in per_model.items()
         },
+        "agent_versions": versions,
         "runs": [str(r) for r in args.runs],
         "t2_runs": {k: str(v) for k, v in t2_by_model.items()},
     }

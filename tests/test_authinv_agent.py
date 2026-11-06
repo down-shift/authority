@@ -377,3 +377,77 @@ def test_runner_checkpoints_and_resumes(tmp_path, monkeypatch):
     (tmp_path / "t3.yaml").write_text(yaml.safe_dump(cfg))
     with pytest.raises(SystemExit, match="--resume refused"):
         mod.main()
+
+
+def test_harmony_agent_turn_reads_native_tool_calls():
+    from authinv.eval.generation import harmony_agent_turn, split_harmony
+
+    think = "<|channel|>analysis<|message|>r2 permits delete.<|end|><|start|>assistant"
+    native = think + '<|channel|>commentary to=delete <|constrain|>json<|message|>{"resource":"r_lynx"}'
+    assert parse_action(harmony_agent_turn(native)) == {"tool": "delete", "arguments": {"resource": "r_lynx"}}
+    # one leading namespace is removed; the name must then match exactly (else the sandbox scores it unknown)
+    for to, name in (("functions.merge", "merge"), ("tool.push", "push"), ("repo.delete", "repo.delete")):
+        raw = (
+            think
+            + f'<|channel|>commentary to={to} <|constrain|>json<|message|>{{"resource": "r_lynx"}}<|call|>'
+        )
+        assert parse_action(harmony_agent_turn(raw))["tool"] == name
+    # recipient in the role header, and a body that is already a protocol object
+    raw = (
+        think
+        + ' to=respond<|channel|>commentary<|message|>{"tool": "respond", "arguments": {"message": "no"}}'
+    )
+    assert parse_action(harmony_agent_turn(raw)) == {"tool": "respond", "arguments": {"message": "no"}}
+    # a final-channel turn reads exactly as agent-v3 did
+    for final in ("final", "final <|constrain|>json"):
+        raw = think + f'<|channel|>{final}<|message|>{{"tool": "respond", "arguments": {{}}}}<|return|>'
+        assert harmony_agent_turn(raw) == split_harmony(raw)["text"] == '{"tool": "respond", "arguments": {}}'
+    # malformed (no <|message|> token), non-JSON body, or reasoning only: not a valid turn
+    assert harmony_agent_turn(think + '<|channel|>final <|constrain|>{"tool": "respond"}') == ""
+    assert (
+        parse_action(harmony_agent_turn(think + "<|channel|>commentary to=delete<|message|>r_lynx")) is None
+    )
+    assert harmony_agent_turn("<|channel|>analysis<|message|>still thinking") == ""
+
+
+def test_run_keeps_raw_harmony_turns():
+    eps = episodes(n_worlds=1)
+
+    def gen(convs):
+        out = []
+        for msgs in convs:
+            done = msgs[-1]["content"].startswith("Tool result:")
+            text = act("respond", message="done") if done else act("read", resource="r_none")
+            out.append({"text": text, "raw": f"RAW {len(msgs)}"})
+        return out
+
+    run(eps, gen, max_steps=4)
+    assert all(e.raw_turns == ["RAW 2"] and e.status == "protocol_failure" for e in eps)
+    plain = episodes(n_worlds=1)
+    run(plain, scripted(lambda msgs: act("respond", message="no")), max_steps=4)
+    assert all(e.raw_turns == [] for e in plain)
+
+
+def test_aggregate_accepts_older_agent_version_only_for_non_harmony_runs():
+    import importlib.util
+
+    import yaml
+
+    from authinv import provenance
+
+    spec = importlib.util.spec_from_file_location("agent_eval_agg", "scripts/authinv_agent_eval.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    cfg = yaml.safe_load(Path("configs/authinv/t3.yaml").read_text())
+    old = {k: v for k, v in cfg.items() if k != "non_harmony_compatible_agent_versions"}
+    old["agent_version"] = "agent-v3"
+
+    def conf(c, output_format=None):
+        model = {"key": "m", **({"output_format": output_format} if output_format else {})}
+        return {"config": c, "config_sha256": provenance.sha256_json(c), "model": model}
+
+    assert mod.config_matches(conf(cfg, "harmony"), cfg)
+    assert mod.config_matches(conf(old), cfg)
+    assert not mod.config_matches(conf(old, "harmony"), cfg)
+    assert not mod.config_matches(conf({**old, "max_steps": 3}), cfg)
+    assert not mod.config_matches(conf({**old, "agent_version": "agent-v2"}), cfg)
