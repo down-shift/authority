@@ -334,7 +334,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: src/authinv/agent/ minimal MCP tool sandbox (file ops, repo ops, HTTP stubs) built fresh (H0.1 decision 2026-10-08), reusing only the UIR / refusal / completion metric definitions; tasks derived from the same policies as T2, with forbidden tools/resources; policy in the system prompt in one rendering; metrics UIR (as in arXiv 2605.18414), authorized-action refusal rate, task completion; tests with a scripted mock agent covering each metric; gate green.
 
 ### P2.8 — [GPU: H100] T3 runs over the sweep
-- status: claimed
+- status: done
 - owner: jrzkaminski@Jerzy-Pro.local
 - claimed_at: 2026-10-16T13:22:39Z
 - deps: P2.7 P2.3
