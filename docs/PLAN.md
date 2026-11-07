@@ -437,9 +437,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 5 — Probing (Weeks 14–17, optional)
 
 ### P5.1 — Activation extraction, probes, CKA tooling
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T22:07:48Z
 - deps: G2
 - source: RESEARCH_PLAN §3 Phase 5 tasks 1, 2, 4
 - done-when: `probing` extra; residual-stream extraction on T1 prompts with cache integrity hashes; per-layer linear probes for owner identity, allow/deny, governing field, trained on one rendering and tested on the others; metadata-only and shuffled-label baselines; per-layer CKA between renderings; tests on synthetic activations; gate green.
