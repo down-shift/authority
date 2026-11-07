@@ -419,9 +419,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
 ### P4.3 — Preregister Phase 4
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T21:56:27Z
 - deps: P4.2
 - source: RESEARCH_PLAN §3 Phase 4, §4
 - done-when: docs/prereg/phase4.md (held-in vs held-out worst-case gap, controls, BFCL-subset regression check) committed and pushed before training; MANIFEST row.
