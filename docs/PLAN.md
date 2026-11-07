@@ -480,9 +480,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: E2-style design re-implemented in authinv with constraint count held fixed and semantic independence varied; preregistered in docs/prereg/appendix-cross-scope.md before inference; report docs/experiments/a1.1-cross-scope.md engaging with the "not pairwise" finding.
 
 ### D1.1 — Benchmark release and leaderboard script
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T22:23:41Z
 - deps: G1 P2.9
 - source: RESEARCH_PLAN §6 deliverables 1–3
 - done-when: release builder producing the HF Datasets layout (policies, renderings, equivalence proofs, request sets, datasheet, license compatible with every source); leaderboard script producing the worst-case table for any HF model id; T3 sandbox documented as a reusable harness; publishing itself is left to Jerzy.
