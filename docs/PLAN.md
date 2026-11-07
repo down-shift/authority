@@ -419,7 +419,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
 ### P4.3 — Preregister Phase 4
-- status: claimed
+- status: in_review (#65, draft: awaits Jerzy's six choices)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:56:27Z
 - deps: P4.2
