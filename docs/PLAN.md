@@ -369,9 +369,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: rendering → canonical JSON IR via constrained decoding over the IR schema (or candidate-likelihood selection as in E3), then decision from the IR; conversion accuracy, answer accuracy, and garbage-in rate (wrong IR, right answer) reported separately; token + latency accounting; tests; gate green.
 
 ### P3.2 — Baseline arms
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T20:52:22Z
 - deps: G2
 - source: RESEARCH_PLAN §3 Phase 3 arm 2, §6 recommendations
 - done-when: zero-shot CoT; restate-as-JSON-then-answer (single prompt); self-consistency across renderings (labelled analysis-only, not deployable); Policy-as-Logic-style pipeline (LLM extracts facts, Clingo/engine decides); external enforcement proxy upper bound (0% UIR by construction); token + latency accounting per arm; tests; gate green.
