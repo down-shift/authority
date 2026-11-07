@@ -361,7 +361,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 3 — Mitigations (Weeks 12–15)
 
 ### P3.1 — Policy canonicalization arm
-- status: claimed
+- status: in_review (#59)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T20:19:51Z
 - deps: G2
