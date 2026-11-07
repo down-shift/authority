@@ -1,9 +1,11 @@
-# Datasheet: authinv Phase-1 benchmark
+# Datasheet: authinv Phase-1 benchmark (v2)
 
 Format after Gebru et al., *Datasheets for Datasets*. Version: prompt-v1 and
-renderers nl-v1 / owner-v1 / table-v1 / json-v1 / cedar-v1 / rego-v1.
-Frozen dataset sha256 `255c9ba2ed4b6483f3023a0bfb4a610ad7075e0292a0c1218b9378e3343b9380`.
-Build: `docs/experiments/p1.10-benchmark.md`.
+renderers nl-v2 / owner-v2 / table-v2 / json-v2 / cedar-v1 / rego-v1.
+Frozen dataset sha256 `0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83`
+(benchmark v2, P1.13: the same 1,984 worlds and rows as v1, with the v2 renderers after the G1
+round-1 review; v1 was `255c9ba2…`). Build: `docs/experiments/p1.10-benchmark.md` and the P1.13
+rebuild.
 
 ## Motivation
 
@@ -84,11 +86,21 @@ submission.
 
 ## Distribution
 
-Not yet released. Release is step D1.1, and publishing is Jerzy's decision.
-A release must carry:
+The release builder is `scripts/authinv_release.py` (D1.1, `configs/authinv/release.yaml`). It
+writes the Hugging Face Datasets layout:
+- data files: policies, renderings, requests, equivalence proofs, and the application and
+  interpretation prompts;
+- a dataset card made from this datasheet;
+- LICENSE, NOTICE, the upstream licenses, and a MANIFEST.json with per-file sha256.
+
+Every row carries its source's license. A release must carry:
 - CedarBench's Apache-2.0 license and NOTICE for derived policies;
 - Quacky's BSD-2-Clause license;
 - the project's license for synthetic content.
+
+The builder copies the upstream files byte for byte, after checking their pinned hashes. It refuses
+any source whose license is missing or incompatible with the release license. The proposed release
+license is Apache-2.0. Publishing, and the license choice, are Jerzy's decisions.
 
 ## Maintenance
 
