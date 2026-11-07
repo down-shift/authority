@@ -471,7 +471,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Appendix and release
 
 ### A1.1 — [GPU: H100] Cross-scope interference with constraint count fixed (only if time)
-- status: todo
+- status: blocked
+- note: only if time: needs Jerzy's go (new E2-style design, prereg and a GPU sweep); not started
 - owner: —
 - claimed_at: —
 - deps: G2
