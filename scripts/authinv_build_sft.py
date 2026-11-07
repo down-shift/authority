@@ -38,6 +38,9 @@ TRACKED = [ROOT / "scripts" / "authinv_build_sft.py"] + [
 ]
 
 
+MIN_TOKENS_PER_EXAMPLE = 50
+
+
 def hf_counter(key: str) -> tuple:
     """(count(example) -> tokens, provenance) with the model's pinned tokenizer and chat template."""
     import transformers
@@ -47,7 +50,9 @@ def hf_counter(key: str) -> tuple:
     kwargs = {"enable_thinking": bool(spec["thinking"])} if "thinking" in spec else {}
 
     def count(ex: dict) -> int:
-        return len(tok.apply_chat_template(ex["messages"], tokenize=True, **kwargs))
+        # transformers 5 returns an encoding dict here, so read input_ids (len() of it would count its keys)
+        ids = tok.apply_chat_template(ex["messages"], tokenize=True, return_dict=True, **kwargs)["input_ids"]
+        return len(ids[0] if ids and isinstance(ids[0], list) else ids)
 
     template = getattr(tok, "chat_template", None) or ""
     return count, {
@@ -157,6 +162,8 @@ def build(cfg: dict, benchmark: Path, counter: str, out_root: Path) -> Path:
         count, info = make(key)
         tokenizers[key] = info
         t_train = sum(count(e) for e in train)
+        if t_train < MIN_TOKENS_PER_EXAMPLE * len(train):  # a prompt-v1 query is hundreds of tokens
+            raise SystemExit(f"{key}: implausible token count ({t_train / len(train):.1f} per example)")
         controls[key], t_control = data.match_tokens(pool, t_train, count)
         tokens[key] = {
             "train_multi": t_train,

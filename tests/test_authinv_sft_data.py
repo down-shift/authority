@@ -142,3 +142,24 @@ def test_build_writes_sets_manifest_and_refuses_overlap(tmp_path):
         builder.build(cfg, bench, "chars", tmp_path / "out2")
     with pytest.raises(SystemExit, match="partition"):
         builder.build({**cfg, "held_out_renderings": ["executable"]}, bench, "chars", tmp_path / "out3")
+
+
+def test_build_refuses_implausible_token_counts(tmp_path, monkeypatch):
+    bench = tmp_path / "bench"
+    bench.mkdir()
+    eval_ws = eval_generate("repo", 1, 20261009)[0][:2]
+    provenance.write_jsonl(
+        bench / "worlds.jsonl",
+        [{"world_id": w.policy_id, "orig": to_dict(w), "swap": to_dict(w)} for w in eval_ws],
+    )
+    provenance.write_json(bench / "dataset_manifest.json", {"sha256": "b" * 64, "rows": 0})
+    cfg = yaml.safe_load((ROOT / "configs/authinv/sft_data.yaml").read_text())
+    cfg.update(
+        eval_benchmark_sha256="b" * 64,
+        domains=["ledger"],
+        replicates={"multi": 1, "val": 1, "control_pool": 8},
+    )
+    # a counter that returns the size of an encoding dict, not its tokens (the transformers-5 trap)
+    monkeypatch.setattr(builder, "chars_counter", lambda key: ((lambda ex: 2), {"counter": "broken"}))
+    with pytest.raises(SystemExit, match="implausible token count"):
+        builder.build(cfg, bench, "chars", tmp_path / "out")
