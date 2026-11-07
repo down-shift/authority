@@ -411,7 +411,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: synthetic training policies disjoint from the eval benchmark (hash-checked), rendered in four renderings with Cedar held out; matched-token single-format control set; no-SFT baseline defined; dataset hashes + manifest; tests for disjointness; gate green.
 
 ### P4.2 — LoRA SFT trainer
-- status: claimed
+- status: in_review (#64)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:47:44Z
 - deps: P4.1
