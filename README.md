@@ -205,3 +205,13 @@ uv run --extra inference python scripts/authinv_build_sft.py --config configs/au
 ```
 
 Generates train-only synthetic worlds whose vocabulary and policy hashes are disjoint from the eval benchmark; the build refuses on any overlap. Writes `train_multi.jsonl` (four training renderings, with Cedar and Rego held out), `val_multi.jsonl`, one token-matched single-format control per SFT model (`control_<model>.jsonl`), `worlds.jsonl`, and `manifest.json` (hashes, counts, tokens, disjointness, the no-SFT baseline). Tokens are counted with each model's pinned tokenizer and chat template. See `src/authinv/sft/data.py`.
+
+## authinv Phase 4: LoRA SFT
+
+```sh
+uv run --extra inference --extra training python scripts/authinv_sft_train.py run \
+  --config configs/authinv/sft_lora.yaml --model qwen3_5_9b --arm multi --seed 20261111
+python scripts/authinv_sft_train.py plan --config configs/authinv/sft_lora.yaml   # all (model, arm, seed) runs
+```
+
+Trains one LoRA adapter per (model, arm, seed) on the frozen P4.1 data. `multi` uses the four-rendering set and `control` the token-matched single-format set; the no-SFT arm is the base model. Each run writes `train_log.jsonl`, `metrics.json` (validation loss and adapter sha256) and `adapter/`. Training sequences are the eval harness's own generation prompt followed by the answer. See `src/authinv/sft/train.py`.

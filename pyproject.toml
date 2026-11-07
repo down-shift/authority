@@ -20,6 +20,7 @@ dev = ["pytest>=8", "ruff>=0.6"]
 # records the version it ran with.
 engines = ["cedarpy==4.12.1"]  # Cedar (Rust engine via PyO3); OPA is a pinned binary (P1.5)
 probing = ["scikit-learn>=1.4"]
+training = ["peft>=0.15"]  # Phase-4 LoRA SFT (P4.2); with the inference extra (torch, transformers)
 agent = []  # sandbox deps, filled by P2.7
 
 [tool.setuptools.packages.find]
