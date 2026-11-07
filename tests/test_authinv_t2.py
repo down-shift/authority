@@ -342,3 +342,23 @@ def test_rescore_refuses_other_config_changes_and_stale_labels(tmp_path):
     sys.argv[5] = str(stale)
     with pytest.raises(SystemExit, match="does not reproduce"):
         runner.main()
+
+
+def test_run_modules_import_without_scipy():
+    """The vLLM run image has no scipy: the runners' imports must not need it (P3.3 smoke test)."""
+    import subprocess
+
+    code = (
+        "import sys, importlib.abc\n"
+        "class Block(importlib.abc.MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'scipy' or name.startswith('scipy.'):\n"
+        "            raise ImportError('scipy blocked')\n"
+        "sys.meta_path.insert(0, Block())\n"
+        "sys.path.insert(0, 'src')\n"
+        "import authinv.eval.invariance, authinv.agent.metrics\n"
+        "import authinv.mitigate.metrics, authinv.mitigate.baselines\n"
+        "print('ok')\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
+    assert out.stdout.strip() == "ok", out.stderr
