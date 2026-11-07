@@ -369,7 +369,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: rendering → canonical JSON IR via constrained decoding over the IR schema (or candidate-likelihood selection as in E3), then decision from the IR; conversion accuracy, answer accuracy, and garbage-in rate (wrong IR, right answer) reported separately; token + latency accounting; tests; gate green.
 
 ### P3.2 — Baseline arms
-- status: in_review (#60)
+- status: done
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T20:52:22Z
 - deps: G2
