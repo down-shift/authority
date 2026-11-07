@@ -445,7 +445,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: `probing` extra; residual-stream extraction on T1 prompts with cache integrity hashes; per-layer linear probes for owner identity, allow/deny, governing field, trained on one rendering and tested on the others; metadata-only and shuffled-label baselines; per-layer CKA between renderings; tests on synthetic activations; gate green.
 
 ### P5.2 — Preregister Phase 5
-- status: claimed
+- status: in_review (#68, draft: Phase 5 is optional, awaits Jerzy)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T22:18:21Z
 - deps: P5.1
