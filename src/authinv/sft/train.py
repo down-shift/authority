@@ -16,8 +16,13 @@ Determinism: the seed fixes the LoRA initialization (`torch.manual_seed` before
 `get_peft_model`), the example order (a seeded shuffle per epoch) and dropout.
 Heavy dependencies (torch, transformers, peft) are imported lazily.
 
-`TRAINER_VERSION` covers the sequence construction, the loss, the schedule and the
-batching. Bump it for any change.
+LoRA goes on the language model only (`NON_TEXT_MODULES` are excluded). Gemma 4's
+checkpoint also holds vision and audio projections, and multimodal checkpoints load
+through the image-text-to-text class if the causal-LM class refuses them, as the T1
+scorer does.
+
+`TRAINER_VERSION` covers the sequence construction, the loss, the schedule, the LoRA
+targets and the batching. Bump it for any change after a real-model run.
 """
 
 from __future__ import annotations
@@ -26,10 +31,13 @@ import hashlib
 import json
 import math
 import random
+import re
 import time
 from pathlib import Path
 
 TRAINER_VERSION = "sft-trainer-v1"
+# LoRA goes on the text model only: multimodal checkpoints (Gemma 4) also hold vision/audio projections.
+NON_TEXT_MODULES = r".*(embed_vision|embed_audio|vision_tower|audio_tower|visual|multi_modal_projector).*"
 
 
 def load_set(data_dir: Path, name: str) -> list[dict]:
@@ -123,6 +131,36 @@ def mean_loss(model, encoded: list[dict], batch_size: int, pad_id: int, device) 
     return total / tokens if tokens else float("nan")
 
 
+def load_model(transformers, source: str, revision, dtype, auto_name: str | None = None):
+    """The causal LM; multimodal checkpoints fall back to image-text-to-text, as the T1 scorer does."""
+    if auto_name:
+        return getattr(transformers, auto_name).from_pretrained(source, revision=revision, dtype=dtype)
+    try:
+        return transformers.AutoModelForCausalLM.from_pretrained(source, revision=revision, dtype=dtype)
+    except ValueError:
+        return transformers.AutoModelForImageTextToText.from_pretrained(
+            source, revision=revision, dtype=dtype
+        )
+
+
+def lora_config(peft, lcfg: dict):
+    return peft.LoraConfig(
+        r=lcfg["r"],
+        lora_alpha=lcfg["alpha"],
+        lora_dropout=lcfg["dropout"],
+        target_modules=lcfg["target_modules"],
+        exclude_modules=NON_TEXT_MODULES,
+        task_type="CAUSAL_LM",
+    )
+
+
+def lora_modules(model) -> list[str]:
+    """Names of the base modules that carry a LoRA adapter."""
+    return sorted(
+        n for n, m in model.named_modules() if hasattr(m, "lora_A") and not n.endswith(("lora_A", "lora_B"))
+    )
+
+
 def train(
     spec: dict,
     model_path: str | None,
@@ -148,23 +186,18 @@ def train(
     if tok.pad_token_id is None:
         tok.pad_token = tok.eos_token
     kwargs = {"enable_thinking": bool(spec["thinking"])} if "thinking" in spec else {}
-    auto = getattr(transformers, cfg.get("auto_class", {}).get(spec["key"], "AutoModelForCausalLM"))
     dtype = getattr(torch, tcfg.get("dtype", "bfloat16"))
-    model = auto.from_pretrained(source, revision=revision, dtype=dtype)
+    model = load_model(transformers, source, revision, dtype, cfg.get("auto_class", {}).get(spec["key"]))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     if tcfg.get("gradient_checkpointing"):
         model.gradient_checkpointing_enable()
         model.enable_input_require_grads()
     torch.manual_seed(seed)  # LoRA initialization
-    lora = peft.LoraConfig(
-        r=lcfg["r"],
-        lora_alpha=lcfg["alpha"],
-        lora_dropout=lcfg["dropout"],
-        target_modules=lcfg["target_modules"],
-        task_type="CAUSAL_LM",
-    )
-    model = peft.get_peft_model(model, lora)
+    model = peft.get_peft_model(model, lora_config(peft, lcfg))
+    targeted = lora_modules(model)
+    if any(re.fullmatch(NON_TEXT_MODULES, n) for n in targeted):
+        raise RuntimeError("LoRA reached a non-text module")
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     enc = [encode(tok, r["messages"], kwargs, tcfg["max_len"]) for r in train_rows]
     val = [encode(tok, r["messages"], kwargs, tcfg["max_len"]) for r in val_rows]
@@ -238,6 +271,7 @@ def train(
         "val_examples": len(val),
         "target_tokens_seen": seen_tokens,
         "trainable_parameters": trainable,
+        "lora_modules": len(targeted),
         "val_loss": val_loss,
         "adapter_sha256": adapter,
         "seconds": time.perf_counter() - t0,

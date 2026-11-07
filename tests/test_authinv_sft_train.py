@@ -213,3 +213,15 @@ def test_runner_smoke_run_writes_provenance(tmp_path):
     m = json.loads((run / "metrics.json").read_text())
     manifest = json.loads((run / "artifact_sha256.json").read_text())
     assert any(k.startswith("adapter/") for k in manifest) and m["steps"] == 2
+
+
+def test_lora_skips_non_text_modules(tmp_path):
+    torch = pytest.importorskip("torch")
+    peft = pytest.importorskip("peft")
+    transformers = pytest.importorskip("transformers")
+    model = transformers.AutoModelForCausalLM.from_pretrained(_tiny_model(tmp_path))
+    model.model.embed_vision = torch.nn.Linear(4, 4)  # as Gemma 4's vision/audio projections
+    model.model.embed_audio = torch.nn.Linear(4, 4)
+    names = sft.lora_modules(peft.get_peft_model(model, sft.lora_config(peft, _smoke_cfg()["lora"])))
+    assert names and not any("embed_vision" in n or "embed_audio" in n for n in names)
+    assert any(n.endswith("q_proj") for n in names)
