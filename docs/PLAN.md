@@ -403,9 +403,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 4 — Format-diverse LoRA SFT (Weeks 13–16, parallel with Phase 3)
 
 ### P4.1 — SFT data (Cedar held out)
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T21:23:13Z
 - deps: G2
 - source: RESEARCH_PLAN §3 Phase 4 task 1, 3
 - done-when: synthetic training policies disjoint from the eval benchmark (hash-checked), rendered in four renderings with Cedar held out; matched-token single-format control set; no-SFT baseline defined; dataset hashes + manifest; tests for disjointness; gate green.
