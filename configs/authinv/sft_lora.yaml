@@ -1,0 +1,31 @@
+# Phase-4 LoRA SFT (P4.2; scripts/authinv_sft_train.py; src/authinv/sft/train.py, sft-trainer-v1).
+# One run per (model, arm, seed). Hyperparameters stay provisional until the Phase-4 preregistration
+# (P4.3) freezes them; change them only before that commit.
+experiment: authinv_p4_lora_sft
+trainer_version: sft-trainer-v1
+data_dir: outputs/20261107T214145755710Z_authinv_sft_data       # P4.1 (sft-data-v1)
+data_manifest_sha256: 14f063c15732052c3fc1b52475cef2c4afe214b5a1a24d88bdfe3c6ac1fa7d28
+models: [qwen3_5_9b, gemma4_12b]   # RESEARCH_PLAN §3 Phase 4, amended 2026-10-08
+arms:                              # the no-SFT arm is the base model (Phase-2 T2 run): no training run
+  multi: train_multi.jsonl
+  control: "control_{model}.jsonl"
+val_set: val_multi.jsonl           # training renderings only; Cedar never used for selection
+seeds: [20261111, 20261112, 20261113]   # three per arm
+lora:
+  r: 32                    # within the plan's 16..64
+  alpha: 64
+  dropout: 0.05
+  target_modules: all-linear
+training:
+  epochs: 1
+  learning_rate: 1.0e-4
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  batch_size: 8
+  grad_accum: 4            # 32 examples per optimizer step
+  max_len: 4096            # longest example ~1.4k tokens
+  max_grad_norm: 1.0
+  gradient_checkpointing: true
+  dtype: bfloat16
+  log_every: 10
+auto_class: {}             # per-model transformers auto class when not AutoModelForCausalLM
