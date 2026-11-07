@@ -1,0 +1,38 @@
+# Phase-3 baseline arms (P3.2; scripts/authinv_baselines.py; src/authinv/mitigate/baselines.py).
+# Model arms (cot, restate) ask the frozen T2 prompt with only its answer instruction changed; derived arms
+# (self_consistency, solver) are computed from frozen Phase-2 T2 runs and P3.1 canonicalization runs. The
+# enforcement proxy's T3 run uses configs/authinv/p3_proxy_t3.yaml. Limits stay provisional until the Phase-3
+# preregistration (P3.3) freezes them.
+experiment: authinv_p3_baselines
+baseline_version: baseline-v1
+final_parser_version: json-final-v1
+canon_version: canon-v1          # the restate arm writes the arm-1 IR format
+dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
+parser_version: json-strict-v3   # think-block stripping as in T2
+tasks: [application]
+arms:
+  cot: {max_tokens: 2048}
+  restate: {max_tokens: 6144}            # the restated IR, then the answer
+  self_consistency: {tie: abstain}       # a tied or empty vote is an abstention; "deny" = fail closed
+  solver: {cedar_check: true}            # cross-check the reference evaluator with Cedar on every renderable IR
+generation:
+  seed: 20261010
+  temperature: 0.0
+  max_model_len: 16384
+  batch_size: 512
+overrides:
+  gpt_oss_20b:
+    cot: {max_tokens: 4096}
+    restate: {max_tokens: 12288}
+    generation: {max_model_len: 20480}
+  gpt_oss_120b:
+    cot: {max_tokens: 4096}
+    restate: {max_tokens: 12288}
+    generation: {max_model_len: 20480}
+  qwen3_8_27b_thinking:
+    cot: {max_tokens: 4096}
+    restate: {max_tokens: 12288}
+    generation: {max_model_len: 20480}
+analysis:
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261010   # = T2, so closure uses the same world draws as the Phase-2 intervals

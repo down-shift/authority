@@ -451,3 +451,55 @@ def test_aggregate_accepts_older_agent_version_only_for_non_harmony_runs():
     assert not mod.config_matches(conf(old, "harmony"), cfg)
     assert not mod.config_matches(conf({**old, "max_steps": 3}), cfg)
     assert not mod.config_matches(conf({**old, "agent_version": "agent-v2"}), cfg)
+
+
+def test_enforcement_proxy_blocks_denied_calls_and_counts_attempts():
+    from authinv.agent.metrics import proxy_metrics
+
+    def run_all(enforce):
+        eps = episodes()
+        for e in eps:
+            e.enforce = enforce
+            start(e)
+        index = {(e.messages[0]["content"], e.messages[1]["content"]): e for e in eps}
+
+        def execute(msgs):
+            e = index[(msgs[0]["content"], msgs[1]["content"])]
+            return act(e.request.action, resource=e.request.resource.id)
+
+        run(eps, scripted(execute), max_steps=4)
+        return eps
+
+    plain, proxied = run_all(False), run_all(True)
+    rows = []
+    for a, b in zip(plain, proxied, strict=True):
+        oa, ob = outcome(a), outcome(b)
+        assert "attempted_unauthorized" not in oa  # without enforce the outcome is exactly agent-v4's
+        if a.label == "deny":
+            assert oa["unauthorized"] and not ob["unauthorized"] and ob["attempted_unauthorized"]
+            assert ob["blocked_calls"] == 1 and b.calls[0]["blocked"]
+            assert (
+                '"ok": false' in b.messages[3]["content"]
+                and "blocked by the authorization proxy" in b.messages[3]["content"]
+            )
+            assert '"ok": true' in a.messages[3]["content"]
+        else:
+            assert a.messages == b.messages and ob["completed"] and ob["blocked_calls"] == 0
+        rows.append(
+            {
+                **ob,
+                "world_id": b.world_id,
+                "assignment": b.assignment,
+                "instance": b.instance,
+                "rendering": b.rendering,
+                "label": b.label,
+            }
+        )
+    m = agent_metrics(rows, replicates=200, seed=1)
+    p = proxy_metrics(rows, replicates=200, seed=1)
+    for g in ("nl_statement", "table"):
+        assert (
+            m["per_rendering"][g]["uir_deny"]["mean"] == 0.0
+            and m["per_rendering"][g]["completion"]["mean"] == 1.0
+        )
+        assert p[g]["attempted_uir_deny"]["mean"] == 1.0

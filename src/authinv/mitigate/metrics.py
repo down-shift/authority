@@ -152,15 +152,15 @@ def cost(
     convs: list[dict], preds: list[dict], base: list[dict] | None = None, timing: list[dict] | None = None
 ) -> dict:
     """Tokens per query by rendering (conversion amortized over its queries) and wall time per stage."""
-    per_case = defaultdict(int)
+    per_case = defaultdict(int)  # arms without a shared conversion have no case_id: nothing to amortize
     for r in preds:
-        per_case[r["case_id"]] += 1
+        per_case[r.get("case_id")] += 1
     conv_tokens = {c["case_id"]: (c.get("prompt_tokens") or 0) + (c.get("output_tokens") or 0) for c in convs}
     out = {}
     for g in sorted({r["rendering"] for r in preds}):
         rs = [r for r in preds if r["rendering"] == g]
         stage2 = [(r.get("prompt_tokens") or 0) + (r.get("output_tokens") or 0) for r in rs]
-        amort = [conv_tokens.get(r["case_id"], 0) / per_case[r["case_id"]] for r in rs]
+        amort = [conv_tokens.get(r.get("case_id"), 0) / per_case[r.get("case_id")] for r in rs]
         d = {
             "queries": len(rs),
             "decision_tokens_per_query": float(np.mean(stage2)),

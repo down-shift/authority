@@ -27,8 +27,8 @@ import yaml  # noqa: E402
 
 from authinv import models, provenance  # noqa: E402
 from authinv.agent.episodes import build_episodes  # noqa: E402
-from authinv.agent.metrics import agent_metrics, transfer, uir_contrasts  # noqa: E402
-from authinv.agent.sandbox import AGENT_VERSION, outcome, run  # noqa: E402
+from authinv.agent.metrics import agent_metrics, proxy_metrics, transfer, uir_contrasts  # noqa: E402
+from authinv.agent.sandbox import AGENT_VERSION, PROXY_VERSION, outcome, run  # noqa: E402
 from authinv.eval import invariance, metrics  # noqa: E402
 
 TRACKED = [ROOT / "scripts" / "authinv_agent_eval.py"] + [
@@ -68,8 +68,12 @@ def record(ep) -> dict:
 
 def model_metrics(recs: list[dict], a: dict) -> dict:
     n, seed = a["bootstrap_replicates"], a["bootstrap_seed"]
+    proxy = (
+        {"proxy": proxy_metrics(recs, n, seed)} if any("attempted_unauthorized" in r for r in recs) else {}
+    )
     return {
         **agent_metrics(recs, n, seed),
+        **proxy,
         "uir_contrasts": uir_contrasts(recs, n, seed),
         "by_source_kind": {
             k: agent_metrics([r for r in recs if r["source_kind"] == k], n, seed)
@@ -178,8 +182,13 @@ def main() -> None:
     cfg = yaml.safe_load(args.config.read_text())
     if cfg["agent_version"] != AGENT_VERSION:
         raise SystemExit(f"config agent_version {cfg['agent_version']} != code {AGENT_VERSION}")
+    enforce = bool(cfg.get("enforce"))  # P3.2 enforcement proxy (proxy-v1); off for every Phase-2 config
+    if enforce and cfg.get("proxy_version") != PROXY_VERSION:
+        raise SystemExit(f"config proxy_version {cfg.get('proxy_version')} != code {PROXY_VERSION}")
     spec = models.model_spec(args.model)
     episodes, info = build_episodes(args.benchmark, assignments=tuple(cfg["assignments"]))
+    for ep in episodes:
+        ep.enforce = enforce
     if cfg.get("dataset_sha256") and info["dataset_sha256"] != cfg["dataset_sha256"]:
         raise SystemExit(
             f"benchmark {info['dataset_sha256']} is not the preregistered {cfg['dataset_sha256']}"
@@ -198,7 +207,8 @@ def main() -> None:
         ):
             raise SystemExit("--resume refused: config, model, benchmark, or episode set differs")
     else:
-        run_dir = args.output_root / f"{provenance.utc_stamp()}_authinv_t3_{args.model}"
+        tag = "t3proxy" if enforce else "t3"
+        run_dir = args.output_root / f"{provenance.utc_stamp()}_authinv_{tag}_{args.model}"
         run_dir.mkdir(parents=True, exist_ok=False)
         provenance.write_json(
             run_dir / "config.json",
@@ -241,6 +251,7 @@ def main() -> None:
                 "git": provenance.git_state(),
                 "source_sha256": provenance.source_hashes(TRACKED),
                 "agent_version": AGENT_VERSION,
+                **({"proxy_version": PROXY_VERSION} if enforce else {}),
                 "resumed_after": len(done),
                 "command": sys.argv,
             },

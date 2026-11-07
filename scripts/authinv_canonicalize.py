@@ -40,7 +40,7 @@ from authinv.eval.structured import JSON_PARSER_VERSION, parse_structured  # noq
 from authinv.mitigate import canonicalize as canon  # noqa: E402
 from authinv.mitigate import metrics as mm  # noqa: E402
 from authinv.mitigate.prompts import query_of, replace_policy, request_of  # noqa: E402
-from authinv.mitigate.runner import done_ids, run_stage  # noqa: E402
+from authinv.mitigate.runner import done_ids, load_baseline, run_stage  # noqa: E402
 from authinv.policy import decision_owners, evaluate, from_dict  # noqa: E402
 
 TRACKED = [ROOT / "scripts" / "authinv_canonicalize.py"] + [
@@ -160,24 +160,6 @@ def decision_items(
                 }
             )
     return ready, failed
-
-
-def load_baseline(run: Path, spec: dict, dataset_sha: str) -> tuple[list[dict], dict]:
-    conf = json.loads((run / "config.json").read_text())
-    status = json.loads((run / "run_status.json").read_text())["status"]
-    problems = []
-    if status != "complete":
-        problems.append(f"status {status}")
-    if conf.get("dataset_sha256") != dataset_sha:
-        problems.append("dataset differs")
-    if conf.get("model") != spec:
-        problems.append("model spec differs")
-    if conf.get("parser_version") != JSON_PARSER_VERSION:
-        problems.append(f"parser {conf.get('parser_version')}")
-    if problems:
-        raise SystemExit(f"baseline {run} refused: {problems}")
-    path = run / "predictions.jsonl"
-    return provenance.read_jsonl(path), {"run": str(run), "predictions_sha256": provenance.sha256_file(path)}
 
 
 def analyze(

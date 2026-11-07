@@ -13,6 +13,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from authinv import provenance
+from authinv.eval.structured import JSON_PARSER_VERSION
 
 
 def done_ids(path: Path, id_key: str) -> set[str]:
@@ -67,3 +68,22 @@ def run_stage(
             if progress:
                 progress(len(done) + start + len(chunk))
     return len(todo)
+
+
+def load_baseline(run: Path, spec: dict, dataset_sha: str) -> tuple[list[dict], dict]:
+    """A Phase-2 T2 run usable as an arm's baseline: complete, same dataset, model spec and parser."""
+    conf = json.loads((run / "config.json").read_text())
+    status = json.loads((run / "run_status.json").read_text())["status"]
+    problems = []
+    if status != "complete":
+        problems.append(f"status {status}")
+    if conf.get("dataset_sha256") != dataset_sha:
+        problems.append("dataset differs")
+    if conf.get("model") != spec:
+        problems.append("model spec differs")
+    if conf.get("parser_version") != JSON_PARSER_VERSION:
+        problems.append(f"parser {conf.get('parser_version')}")
+    if problems:
+        raise SystemExit(f"baseline {run} refused: {problems}")
+    path = run / "predictions.jsonl"
+    return provenance.read_jsonl(path), {"run": str(run), "predictions_sha256": provenance.sha256_file(path)}

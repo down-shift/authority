@@ -10,13 +10,14 @@ from pathlib import Path
 
 import pytest
 import yaml
+from conftest import build_tiny_benchmark
 
 from authinv import provenance
 from authinv.benchmark import World, non_degenerate, world_rows
 from authinv.mitigate import canonicalize as canon
 from authinv.mitigate import metrics as mm
 from authinv.mitigate.prompts import replace_policy, request_of, split_prompt
-from authinv.policy import evaluate, to_dict
+from authinv.policy import evaluate
 from authinv.render.renderers import RENDERINGS, render, render_json
 from authinv.sources.synthetic import generate
 
@@ -160,31 +161,7 @@ def test_score_ir_separates_exact_equivalent_valid():
 
 
 def _benchmark(tmp_path):
-    rows, out = [], []
-    for w in worlds("repo", 3):
-        rs, extra = world_rows(w, per_label=2, seed=1)
-        rows += rs
-        out.append(
-            {
-                "world_id": w.policy.policy_id,
-                "source": w.source,
-                "source_kind": w.source_kind,
-                "principal_types": list(w.principal_types),
-                "resource_types": list(w.resource_types),
-                "orig": to_dict(w.policy),
-                "swap": to_dict(extra["swap_policy"]),
-                "swap_map": extra["swap_map"],
-            }
-        )
-    d = tmp_path / "bench"
-    d.mkdir()
-    provenance.write_jsonl(d / "dataset.jsonl", rows)
-    provenance.write_json(
-        d / "dataset_manifest.json",
-        {"sha256": provenance.sha256_file(d / "dataset.jsonl"), "rows": len(rows)},
-    )
-    provenance.write_jsonl(d / "worlds.jsonl", out)
-    return d, rows, {w["world_id"]: w for w in out}
+    return build_tiny_benchmark(tmp_path)
 
 
 def test_build_cases_validates_against_the_frozen_rows(tmp_path):
