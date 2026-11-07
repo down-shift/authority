@@ -118,17 +118,25 @@ class VLLMChat:
         )
         self.chat_kwargs = {"enable_thinking": bool(spec["thinking"])} if "thinking" in spec else None
 
-    def generate(self, prompts: list[str], schemas: list[dict | None] | None = None) -> list[dict]:
-        """Greedy chat generation; `schemas` (one per prompt) enables constrained JSON decoding."""
+    def generate(
+        self, prompts: list[str], schemas: list[dict | None] | None = None, max_tokens: int | None = None
+    ) -> list[dict]:
+        """Greedy chat generation; `schemas` (one per prompt) enables constrained JSON decoding.
+
+        `max_tokens` overrides the configured limit for this call (Phase-3 arms run two
+        stages with different limits); T2 never passes it.
+        """
         convs = [[{"role": "user", "content": p}] for p in prompts]
         params = self.params
+        if max_tokens is not None:
+            params = self.params.clone()
+            params.max_tokens = max_tokens
         if schemas is not None:
             from vllm.sampling_params import StructuredOutputsParams
 
+            base = params
             params = [
-                self.params.clone()
-                if sch is None
-                else _with_schema(self.params, StructuredOutputsParams(json=sch))
+                base.clone() if sch is None else _with_schema(base, StructuredOutputsParams(json=sch))
                 for sch in schemas
             ]
         outs = self.llm.chat(convs, params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs)
