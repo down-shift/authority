@@ -25,7 +25,6 @@ from collections import defaultdict
 from itertools import permutations
 
 import numpy as np
-from scipy.stats import rankdata
 
 from authinv.eval.metrics import bootstrap_indices
 
@@ -207,6 +206,8 @@ def spearman_with_permutation(
     """
     if len(x) != len(y) or len(x) < 3:
         return {"rho": None, "p_permutation": None, "n": len(x)}
+    from scipy.stats import rankdata  # lazy: the vLLM run image has no scipy; only analysis needs it
+
     rx = rankdata(x)
     ry = rankdata(y)
     rho = float(np.corrcoef(rx, ry)[0, 1])
