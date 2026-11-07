@@ -437,7 +437,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 5 — Probing (Weeks 14–17, optional)
 
 ### P5.1 — Activation extraction, probes, CKA tooling
-- status: claimed
+- status: in_review (#67)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T22:07:48Z
 - deps: G2
