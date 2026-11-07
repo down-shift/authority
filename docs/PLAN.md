@@ -350,7 +350,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: scripts/authinv_figures.py regenerates all headline tables/figures from outputs/ (mean by rendering, worst-case, disagreement, deny→allow flips, dissociation, scaling of worst-case gap vs parameters) into paper/figures/; docs/experiments/p2.9-phase2-report.md with the Gate 2 recommendation; docs/PROGRESS.md entry.
 
 ### G2 — [HUMAN] Gate 2: sweep complete
-- status: todo
+- status: done
+- note: passed (Jerzy, 2026-11-07, in session on the P2.9 report)
 - owner: —
 - claimed_at: —
 - deps: P2.9
