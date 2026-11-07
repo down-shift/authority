@@ -1,0 +1,38 @@
+# Phase-3 arm 1: policy canonicalization (P3.1; scripts/authinv_canonicalize.py).
+# Stage 1 converts each (world, assignment, rendering) cell of the frozen benchmark to the canonical
+# JSON IR (canon-v1, src/authinv/mitigate/canonicalize.py); stage 2 asks the frozen T2 prompt with
+# its policy block replaced by the predicted IR. Limits and decoding modes are provisional until the
+# Phase-3 preregistration (P3.3) freezes them; change them only before that commit.
+experiment: authinv_p3_canonicalization
+canon_version: canon-v1
+dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
+parser_version: json-strict-v3   # stage 2 parses answers exactly as T2 does
+tasks: [application]             # the headline task; add interpretation for dissociation under the arm
+conversion:
+  decoding: constrained   # JSON schema over the world's vocabulary (ir_schema); free = unconstrained + strict parse
+  max_tokens: 6144        # the largest canonical IR (12.7k chars of json-v2) must fit
+decision:
+  max_tokens: 256         # = T2
+generation:
+  seed: 20261010
+  temperature: 0.0
+  max_model_len: 16384    # conversion prompt (<= ~6k tokens) + IR; stage-2 prompts carry the IR
+  batch_size: 512
+overrides:
+  # Reasoning models: a grammar from the first token would block the reasoning channel (gpt-oss harmony,
+  # Qwen3.8 thinking), so their conversions decode freely and are parsed strictly; decision limits as in T2.
+  gpt_oss_20b:
+    conversion: {decoding: free, max_tokens: 12288}
+    decision: {max_tokens: 4096}
+    generation: {max_model_len: 20480}
+  gpt_oss_120b:
+    conversion: {decoding: free, max_tokens: 12288}
+    decision: {max_tokens: 4096}
+    generation: {max_model_len: 20480}
+  qwen3_8_27b_thinking:
+    conversion: {decoding: free, max_tokens: 12288}
+    decision: {max_tokens: 4096}
+    generation: {max_model_len: 20480}
+analysis:
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261010   # = T2, so closure uses the same world draws as the Phase-2 intervals
