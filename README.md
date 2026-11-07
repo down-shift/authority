@@ -181,3 +181,18 @@ python scripts/authinv_canonicalize.py analyze --config configs/authinv/p3_canon
 ```
 
 Stage 1 converts each (world, assignment, rendering) cell to the canonical JSON IR (`conversions.jsonl`). Stage 2 asks the frozen T2 prompt with its policy block replaced by that IR (`predictions.jsonl`). `timing.jsonl` logs each batch. `--dataset-only` builds and validates the conversion cases without a model. Needs vLLM 0.29.0 and `cedarpy` (`--extra engines`). The IR format and metrics are documented in `src/authinv/mitigate/canonicalize.py` and `src/authinv/mitigate/metrics.py`.
+
+## authinv Phase 3: baseline arms
+
+```sh
+python scripts/authinv_baselines.py run --arm cot|restate --config configs/authinv/p3_baselines.yaml \
+  --dataset outputs/<frozen benchmark run> --model <key> [--baseline <Phase-2 T2 run of that model>]
+python scripts/authinv_baselines.py derive --arm self_consistency --config configs/authinv/p3_baselines.yaml \
+  --t2-run <Phase-2 T2 run>                                           # CPU only; analysis-only arm
+python scripts/authinv_baselines.py derive --arm solver --config configs/authinv/p3_baselines.yaml \
+  --dataset outputs/<frozen benchmark run> --canon-run <canonicalization run> [--baseline <T2 run>]   # CPU only
+python scripts/authinv_agent_eval.py run --config configs/authinv/p3_proxy_t3.yaml \
+  --benchmark outputs/<frozen benchmark run> --model <key>           # T3 with the enforcement proxy
+```
+
+`run` asks the frozen T2 prompt with only its answer instruction changed, either zero-shot CoT or restate-as-JSON-then-answer. `derive` computes self-consistency (a majority vote over the six T2 answers) and the solver pipeline (the model's canonicalization conversions, decided by the engine) from frozen runs. Arm definitions are in `src/authinv/mitigate/baselines.py`.
