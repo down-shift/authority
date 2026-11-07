@@ -1,0 +1,17 @@
+# Benchmark release (D1.1; scripts/authinv_release.py; src/authinv/release.py). Building is local only:
+# publishing (HF Datasets + GitHub) and the release license are Jerzy's decisions.
+release: authinv-bench
+pretty_name: authinv representation-invariance benchmark
+version: 1.0.0-rc1
+benchmark_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
+release_license: Apache-2.0      # proposed: compatible with CedarBench (Apache-2.0) and Quacky (BSD-2-Clause)
+release_license_file: data/raw/cedarbench/LICENSE   # the Apache-2.0 text, fetched with the pinned CedarBench source
+release_license_sha256: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+notice_header: |
+  authinv benchmark (github.com/down-shift/authority)
+  Copyright 2026 the authors of down-shift/authority.
+  Licensed under the Apache License, Version 2.0 (see LICENSE).
+sources:                          # every source a shipped world comes from must be listed with its license
+  cedarbench: {pin_config: configs/authinv/sources/cedarbench.yaml, raw_dir: data/raw/cedarbench, license_files: [LICENSE, NOTICE]}
+  quacky: {pin_config: configs/authinv/sources/quacky.yaml, raw_dir: data/raw/quacky, license_files: [LICENSE]}
+  synthetic: {license: release}   # this project's own content
