@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from conftest import build_tiny_causal_lm as _tiny_model
 
 from authinv.sft import train as sft
 
@@ -83,43 +84,6 @@ def test_lr_schedule_warms_up_then_decays_to_zero():
     lrs = [sft.lr_at(s, 100, 10, 1e-4) for s in range(100)]
     assert lrs[0] == pytest.approx(1e-5) and lrs[9] == pytest.approx(1e-4)
     assert all(a >= b for a, b in zip(lrs[9:], lrs[10:], strict=False)) and lrs[-1] < 1e-6
-
-
-def _tiny_model(root: Path) -> Path:
-    transformers = pytest.importorskip("transformers")
-    tokenizers = pytest.importorskip("tokenizers")
-    from tokenizers import decoders, pre_tokenizers
-
-    vocab = {c: i for i, c in enumerate(sorted(pre_tokenizers.ByteLevel.alphabet()))}
-    for t in ("<pad>", "</s>", "<s>"):
-        vocab[t] = len(vocab)
-    tk = tokenizers.Tokenizer(tokenizers.models.BPE(vocab=vocab, merges=[]))
-    tk.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
-    tk.decoder = decoders.ByteLevel()
-    tk.add_special_tokens(["<pad>", "</s>", "<s>"])
-    tok = transformers.PreTrainedTokenizerFast(
-        tokenizer_object=tk, pad_token="<pad>", eos_token="</s>", bos_token="<s>"
-    )
-    tok.chat_template = (
-        "{% for m in messages %}<{{ m['role'] }}>{{ m['content'] }}</s>{% endfor %}"
-        "{% if add_generation_prompt %}<assistant>{% endif %}"
-    )
-    d = root / "tiny"
-    tok.save_pretrained(d)
-    cfg = transformers.LlamaConfig(
-        vocab_size=len(tok),
-        hidden_size=32,
-        intermediate_size=64,
-        num_hidden_layers=2,
-        num_attention_heads=2,
-        num_key_value_heads=2,
-        max_position_embeddings=1024,
-        pad_token_id=tok.pad_token_id,
-        eos_token_id=tok.eos_token_id,
-        bos_token_id=tok.bos_token_id,
-    )
-    transformers.LlamaForCausalLM(cfg).save_pretrained(d)
-    return d
 
 
 def _smoke_cfg() -> dict:

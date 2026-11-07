@@ -45,3 +45,43 @@ def build_tiny_benchmark(root: Path, n_worlds: int = 3) -> tuple[Path, list[dict
     )
     provenance.write_jsonl(d / "worlds.jsonl", out)
     return d, rows, {w["world_id"]: w for w in out}
+
+
+def build_tiny_causal_lm(root: Path) -> Path:
+    """A tiny random Llama, byte-level tokenizer and chat template, saved under root/tiny (no download)."""
+    import pytest
+
+    transformers = pytest.importorskip("transformers")
+    tokenizers = pytest.importorskip("tokenizers")
+    from tokenizers import decoders, pre_tokenizers
+
+    vocab = {c: i for i, c in enumerate(sorted(pre_tokenizers.ByteLevel.alphabet()))}
+    for t in ("<pad>", "</s>", "<s>"):
+        vocab[t] = len(vocab)
+    tk = tokenizers.Tokenizer(tokenizers.models.BPE(vocab=vocab, merges=[]))
+    tk.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
+    tk.decoder = decoders.ByteLevel()
+    tk.add_special_tokens(["<pad>", "</s>", "<s>"])
+    tok = transformers.PreTrainedTokenizerFast(
+        tokenizer_object=tk, pad_token="<pad>", eos_token="</s>", bos_token="<s>"
+    )
+    tok.chat_template = (
+        "{% for m in messages %}<{{ m['role'] }}>{{ m['content'] }}</s>{% endfor %}"
+        "{% if add_generation_prompt %}<assistant>{% endif %}"
+    )
+    d = root / "tiny"
+    tok.save_pretrained(d)
+    cfg = transformers.LlamaConfig(
+        vocab_size=len(tok),
+        hidden_size=32,
+        intermediate_size=64,
+        num_hidden_layers=2,
+        num_attention_heads=2,
+        num_key_value_heads=2,
+        max_position_embeddings=1024,
+        pad_token_id=tok.pad_token_id,
+        eos_token_id=tok.eos_token_id,
+        bos_token_id=tok.bos_token_id,
+    )
+    transformers.LlamaForCausalLM(cfg).save_pretrained(d)
+    return d

@@ -215,3 +215,13 @@ python scripts/authinv_sft_train.py plan --config configs/authinv/sft_lora.yaml 
 ```
 
 Trains one LoRA adapter per (model, arm, seed) on the frozen P4.1 data. `multi` uses the four-rendering set and `control` the token-matched single-format set; the no-SFT arm is the base model. Each run writes `train_log.jsonl`, `metrics.json` (validation loss and adapter sha256) and `adapter/`. Training sequences are the eval harness's own generation prompt followed by the answer. See `src/authinv/sft/train.py`.
+
+## authinv Phase 5: probing tooling (optional phase)
+
+```sh
+uv run --extra inference python scripts/authinv_probe.py extract --config configs/authinv/probe.yaml \
+  --dataset outputs/<frozen benchmark run> --model <key>
+python scripts/authinv_probe.py analyze --config configs/authinv/probe.yaml --cache <extract run> --out <analysis.json>
+```
+
+`extract` caches the last-prompt-token hidden states of the selected layers on T1 prompts, with integrity hashes. `analyze` re-verifies the cache and writes per-layer cross-rendering probe transfer for `allow_deny`, `governing` and `owner_<k>` (with metadata-only, shuffled-label and majority baselines), plus per-layer linear CKA between renderings. See `src/authinv/probe/`.
