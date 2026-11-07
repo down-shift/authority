@@ -480,7 +480,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: E2-style design re-implemented in authinv with constraint count held fixed and semantic independence varied; preregistered in docs/prereg/appendix-cross-scope.md before inference; report docs/experiments/a1.1-cross-scope.md engaging with the "not pairwise" finding.
 
 ### D1.1 — Benchmark release and leaderboard script
-- status: claimed
+- status: in_review (#69)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T22:23:41Z
 - deps: G1 P2.9
