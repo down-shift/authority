@@ -403,7 +403,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 4 — Format-diverse LoRA SFT (Weeks 13–16, parallel with Phase 3)
 
 ### P4.1 — SFT data (Cedar held out)
-- status: in_review (#63)
+- status: done
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:23:13Z
 - deps: G2
