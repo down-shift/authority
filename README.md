@@ -196,3 +196,12 @@ python scripts/authinv_agent_eval.py run --config configs/authinv/p3_proxy_t3.ya
 ```
 
 `run` asks the frozen T2 prompt with only its answer instruction changed, either zero-shot CoT or restate-as-JSON-then-answer. `derive` computes self-consistency (a majority vote over the six T2 answers) and the solver pipeline (the model's canonicalization conversions, decided by the engine) from frozen runs. Arm definitions are in `src/authinv/mitigate/baselines.py`.
+
+## authinv Phase 4: SFT data
+
+```sh
+uv run --extra inference python scripts/authinv_build_sft.py --config configs/authinv/sft_data.yaml \
+  --benchmark outputs/<frozen benchmark run>
+```
+
+Generates train-only synthetic worlds whose vocabulary and policy hashes are disjoint from the eval benchmark; the build refuses on any overlap. Writes `train_multi.jsonl` (four training renderings, with Cedar and Rego held out), `val_multi.jsonl`, one token-matched single-format control per SFT model (`control_<model>.jsonl`), `worlds.jsonl`, and `manifest.json` (hashes, counts, tokens, disjointness, the no-SFT baseline). Tokens are counted with each model's pinned tokenizer and chat template. See `src/authinv/sft/data.py`.
