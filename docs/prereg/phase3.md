@@ -1,8 +1,7 @@
 # Phase 3 preregistration: mitigation arms on the model sweep
 
-- status: **draft for review**. This file is the preregistration only once Jerzy has settled the
-  choices below and it is merged to `main`. That must happen before any Phase-3 inference on a sweep
-  model. Until then no arm runs on a sweep model, and no derived arm is computed on real data.
+- status: **preregistration**, settled 2026-11-08 and merged to `main` before any Phase-3 inference
+  on a sweep model. Its commit and timestamp are in `docs/prereg/MANIFEST.md`.
 - step: P3.3 (runs and report in P3.4) · spec: `docs/RESEARCH_PLAN.md` §3 Phase 3 and Gate 3, §4
 - frozen input: Phase-1 benchmark v2, `dataset.jsonl` sha256
   `0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83`, the same as Phase 2. Every
@@ -21,45 +20,39 @@
   No Phase-3 arm has run on a sweep model. The only Phase-3 model calls were engineering smoke tests on
   `smoke_qwen3_0_6b`, a non-sweep model (see the disclosure below).
 
-## Choices for review (Jerzy), to settle before merge
+## Decisions (2026-11-08)
 
-Each choice lists the draft's recommendation first. Whatever is chosen replaces this section with
-"Decisions (Jerzy, date)".
+Jerzy delegated these six choices to the draft's recommendations ("On decisions: proceed with your
+best judgement. Go ahead with your suggestions.", 2026-11-08, in the session). Each recommendation
+below is the one the draft listed first; the alternatives it listed are not run.
 
-1. **What "closes ≥50% of the worst-case gap" means.** Three readings, all computed (`src/authinv/mitigate/metrics.py`):
-   - *own* (recommended as primary): 1 − (arm best − arm worst) / (baseline best − baseline worst).
-     Each side picks its own best and worst rendering by point estimate, so the gap shrinks no matter
-     how it shrinks.
-   - *pair*: the same ratio on the baseline's best/worst pair.
-   - *floor*: (arm worst − baseline worst) / (baseline best − baseline worst). This one rises only when
-     the worst case improves.
+1. **Closure reading.** Primary: *own* closure, 1 − (arm best − arm worst) / (baseline best −
+   baseline worst), each side picking its own best and worst rendering by point estimate. With a
+   guard: a configuration counts as closing ≥ 50% only if, in addition, the arm's worst-case
+   accuracy is not lower than the baseline's (point estimates). *pair* and *floor* closure are
+   reported for every configuration as secondary readings, next to the floor-closure ceilings in the
+   table below.
+2. **Majority.** All 12 Phase-2 configurations; a majority is ≥ 7 of 12. The count over the 10
+   distinct models (dropping Qwen3.8-27B-FP8 and Qwen3.8-27B thinking; majority ≥ 6 of 10) is
+   reported as a sensitivity reading, not the gate.
+3. **Reasoning-model conversions** (gpt-oss-20b, gpt-oss-120b, Qwen3.8-27B thinking): free
+   decoding with strict parsing. The other nine configurations use the per-world vocabulary-only
+   JSON schema.
+4. **T3 scope.** The proxy (proxy-v1) runs on all 12 configurations. Two more T3 arms are adopted
+   and their harness is a new step (P3.2b):
+   - *canonicalization in T3*: the agent's system prompt carries the model's own arm-1 IR,
+     canonically serialized, in place of the rendering;
+   - *solver-enforced agent*: the proxy checks each call against the model's own arm-1 IR instead
+     of the certified policy.
 
-   The recommendation adds a guard: a model counts only if the arm's worst-case accuracy is not
-   lower than the baseline's (point estimate). That way a gap closed by pulling every rendering down
-   doesn't count. The alternative is the gate verbatim, with no guard.
-2. **Which models count for "the majority".** Recommended: all 12 Phase-2 configurations, so a
-   majority is ≥ 7 of 12. Alternative: the 10 distinct models (dropping Qwen3.8-27B-FP8 and
-   Qwen3.8-27B thinking), so ≥ 6 of 10, with the 12 reported as sensitivity. All 12 baseline gaps
-   are non-zero (Holm-significant, P2.9), so the ratio is defined for each.
-3. **Decoding for the reasoning models' conversions** (gpt-oss-20b, gpt-oss-120b, Qwen3.8-27B
-   thinking). Recommended: free decoding with strict parsing, because a grammar from the first token
-   would block the reasoning channel. The other nine use the vocabulary-only JSON schema.
-   Alternative: constrained decoding for all.
-4. **T3 scope.** The plan evaluates every arm by T3 UIR too. Two T3 arms are defined below. Only
-   the proxy has code today.
-   - Recommended: the proxy on all 12 configurations.
-   - Also recommended, needing a new step (proposed P3.2b): canonicalization in T3 (the agent's
-     system prompt carries the arm-1 IR in place of the rendering) and a solver-enforced agent (the
-     proxy checks calls against the model's own arm-1 IR instead of the certified policy).
-   - CoT and restate don't fit the one-JSON-object-per-turn protocol, and self-consistency has no
-     T3 analogue. None of the three runs in T3.
-5. **The `respond` collision** (10 CedarBench worlds have an action named `respond`, which the
-   sandbox's reply tool shadows; ≤ 0.1 pp in P2.8). Recommended: keep agent-v4 for Phase-3 T3, so
-   arms pair with the Phase-2 T3 runs episode by episode, and disclose it. Alternative: agent-v5,
-   which renames the reply tool in those worlds only, plus a rerun of their raw episodes.
-6. **Budget.** The heaviest arm is restate, about 95k long generations per model. It's estimated in
-   "Runs" below. Recommended: all arms on all 12 configurations. Alternative: restate (and CoT) on
-   the `orig` assignment only, which halves their cost.
+   Neither runs until its code is merged, tested, and named here by a dated amendment with its
+   version and config. CoT, restate and self-consistency are not run in T3.
+5. **The `respond` collision.** Phase-3 T3 keeps agent-v4, so every T3 arm pairs with the Phase-2
+   T3 runs episode by episode. The 10 affected CedarBench worlds are disclosed in the report and
+   not excluded. No agent-v5.
+6. **Budget.** Every arm on all 12 configurations, both assignments. Run order on the single H100:
+   arm 1 first (Gate 3 and the solver need it), then the proxy T3 sweep, then CoT, then restate.
+   A configuration that cannot be run is reported as missing, with the reason (Exclusions).
 
 ## What the IR choice implies, known from Phase 2
 
@@ -94,7 +87,7 @@ next to every closure.
 ## Questions
 
 - **Q8 (Gate 3, primary).** Does canonicalization close ≥ 50% of the worst-case T2 application gap
-  on the majority of models (as operationalized under choices 1 and 2)?
+  on the majority of models (as operationalized under decisions 1 and 2)?
 - **Q9.** Where does the arm lose accuracy? Per rendering: conversion (parsed, valid, exact,
   engine-equivalent), the decision from an equivalent IR, and garbage-in (a right answer from a
   non-equivalent IR).
@@ -120,7 +113,7 @@ change greedy outputs.
    - Stage 1: one conversion per (world, assignment, rendering) cell, 23,808 per model. The
      conversion prompt has the facts block, one rendering and the IR format description.
      Constrained decoding uses a per-world JSON schema holding only vocabulary the prompt shows;
-     the reasoning models decode freely (choice 3). Limits: 6,144 tokens, or 12,288 for the
+     the reasoning models decode freely (decision 3). Limits: 6,144 tokens, or 12,288 for the
      reasoning models.
    - Stage 2: the frozen T2 prompt with only its policy block replaced by the canonically serialized
      IR. Limit 256 tokens, or 4,096 for the reasoning models, as T2.
@@ -144,7 +137,7 @@ change greedy outputs.
    `{"ok": false, "error": "blocked by the authorization proxy: ..."}`. Everything else is the
    Phase-2 agent-v4 protocol, prompt and limits.
 
-T3 arms pending code (choice 4): canonicalization in T3 and the solver-enforced agent. Their
+T3 arms pending code (decision 4, step P3.2b): canonicalization in T3 and the solver-enforced agent. Their
 harness has to be built, tested and named here before any of their inference runs.
 
 Answers are parsed with the T2 parser (`json-strict-v3`) for arm 1's stage 2, and with
@@ -180,7 +173,7 @@ gap on the majority of models, or we report honestly that it does not and the so
 the recommendation."*
 
 - Per configuration, arm 1 "closes ≥ 50%" when its primary closure point estimate is ≥ 0.50
-  (choice 1, guard included if chosen). The count over the models of choice 2 is compared with the
+  (decision 1, guard included). The count over the models of decision 2 is compared with the
   majority. CIs are reported for every closure; the gate itself uses point estimates, as the gate
   states.
 - The P3.4 report ends with a Gate-3 recommendation. Jerzy decides G3.
@@ -191,15 +184,16 @@ the recommendation."*
 
 ## Runs (P3.4)
 
-- **T2:** arm 1 on the 12 configurations; CoT and restate on the 12 (choice 6); self-consistency
+- **T2:** arm 1 on the 12 configurations; CoT and restate on the 12 (decision 6); self-consistency
   and solver derived for the 12. The solver needs arm-1 runs.
-- **T3:** proxy on the 12 (choice 4).
+- **T3:** proxy on the 12; canonicalization-in-T3 and the solver-enforced agent on the 12 once
+  P3.2b is merged and amended in here (decision 4).
 - **Hardware:** H100 GPU 7, compose only (`memory/reference-dgx-usage.md`).
 - **Rough cost** (an assumption, not a measurement), per non-reasoning configuration: about 10M
   output tokens of conversions, 30M of CoT and 50M of restate. Reasoning models are several times
   that. At Phase-2 throughput this comes to about 2 GPU-days for the T2 arms over the 12
-  configurations. The proxy T3 sweep takes about as long as P2.8 did (2–3 GPU-days). The `orig`-only
-  option in choice 6 saves about a day.
+  configurations. The proxy T3 sweep takes about as long as P2.8 did (2–3 GPU-days). (The `orig`-only
+  alternative was not adopted.)
 
 ## Exclusions
 

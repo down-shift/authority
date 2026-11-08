@@ -1,8 +1,8 @@
 # Phase-3 arm 1: policy canonicalization (P3.1; scripts/authinv_canonicalize.py).
 # Stage 1 converts each (world, assignment, rendering) cell of the frozen benchmark to the canonical
 # JSON IR (canon-v1, src/authinv/mitigate/canonicalize.py); stage 2 asks the frozen T2 prompt with
-# its policy block replaced by the predicted IR. Limits and decoding modes are provisional until the
-# Phase-3 preregistration (P3.3) freezes them; change them only before that commit.
+# its policy block replaced by the predicted IR. Limits and decoding modes are frozen by the Phase-3
+# preregistration (docs/prereg/phase3.md, P3.3); a change is a version bump, an amendment and a rerun.
 experiment: authinv_p3_canonicalization
 canon_version: canon-v1
 dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)

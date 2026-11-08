@@ -1,8 +1,8 @@
 # Phase-3 baseline arms (P3.2; scripts/authinv_baselines.py; src/authinv/mitigate/baselines.py).
 # Model arms (cot, restate) ask the frozen T2 prompt with only its answer instruction changed; derived arms
 # (self_consistency, solver) are computed from frozen Phase-2 T2 runs and P3.1 canonicalization runs. The
-# enforcement proxy's T3 run uses configs/authinv/p3_proxy_t3.yaml. Limits stay provisional until the Phase-3
-# preregistration (P3.3) freezes them.
+# enforcement proxy's T3 run uses configs/authinv/p3_proxy_t3.yaml. Limits are frozen by the Phase-3
+# preregistration (docs/prereg/phase3.md, P3.3); a change is a version bump, an amendment and a rerun.
 experiment: authinv_p3_baselines
 baseline_version: baseline-v1
 final_parser_version: json-final-v1
