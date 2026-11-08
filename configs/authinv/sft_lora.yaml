@@ -1,6 +1,6 @@
 # Phase-4 LoRA SFT (P4.2; scripts/authinv_sft_train.py; src/authinv/sft/train.py, sft-trainer-v1).
-# One run per (model, arm, seed). Hyperparameters stay provisional until the Phase-4 preregistration
-# (P4.3) freezes them; change them only before that commit.
+# One run per (model, arm, seed). Hyperparameters are frozen by the Phase-4 preregistration
+# (docs/prereg/phase4.md, P4.3); a change is a version bump, an amendment and a rerun.
 experiment: authinv_p4_lora_sft
 trainer_version: sft-trainer-v1
 data_dir: outputs/20261107T214145755710Z_authinv_sft_data       # P4.1 (sft-data-v1)

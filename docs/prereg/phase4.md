@@ -1,8 +1,7 @@
 # Phase 4 preregistration: format-diverse LoRA SFT, Cedar held out
 
-- status: **draft for review**. This file is the preregistration only once Jerzy has settled the
-  choices below and it is merged to `main`. That must happen before any Phase-4 training run on a
-  real model.
+- status: **preregistration**, settled 2026-11-08 and merged to `main` before any Phase-4 training run
+  on a real model. Its commit and timestamp are in `docs/prereg/MANIFEST.md`.
 - step: P4.3 (training and evaluation in P4.4) · spec: `docs/RESEARCH_PLAN.md` §3 Phase 4, §4
 - frozen inputs:
   - eval benchmark v2 (`dataset.jsonl` sha256 `0b602a17…`);
@@ -13,34 +12,32 @@
   numbers (below). No adapter has been trained on a real model. The trainer has only run CPU smoke
   tests, on a tiny random model.
 
-## Choices for review (Jerzy), to settle before merge
+## Decisions (2026-11-08)
 
-Each choice lists the draft's recommendation first.
+Jerzy delegated these six choices to the draft's recommendations ("On decisions: proceed with your
+best judgement. Go ahead with your suggestions.", 2026-11-08, in the session). The alternatives the
+draft listed are not run.
 
-1. **Primary held-out measure.** Recommended: application accuracy on Cedar (`executable`), SFT −
-   no-SFT and SFT − control. That is "generalizes to an unseen policy language", as the plan reads.
-   Alternative: the worst-case gap over all six renderings.
-2. **Rego.** It is unseen in training as well. Recommended: report it as a secondary held-out
-   format, with Cedar as the primary, as the plan says. Alternative: treat both executable formats
-   as one held-out family.
-3. **Control rendering.** nl_statement, as built in P4.1. Alternative: json_policy, which needs a
-   P4.1 rebuild.
-4. **The BFCL regression check.** Recommended: the BFCL v3 `simple` and `multiple` categories, AST
-   evaluation, no execution, all their items, with the BFCL prompt and our pinned models. A drop of
-   more than 2 pp with a CI that excludes 0 is reported as a regression. There is no harness yet;
-   it needs a step (proposed P4.2b, below).
-5. **Hyperparameters.** Recommended: those of `configs/authinv/sft_lora.yaml` as they stand (r 32,
-   1 epoch, lr 1e-4), with no search and no early stopping. The validation loss is reported, never
-   used for selection. Alternative: a small r ∈ {16, 64} sensitivity on one seed.
-6. **Tasks in training.** Recommended: application and interpretation, as built. Alternative:
-   application only, which needs a P4.1 rebuild.
+1. **Primary held-out measure:** application accuracy on Cedar (`executable`), as the contrasts
+   multi − no-SFT and multi − control. The six-rendering worst-case gap is H3, reported alongside.
+2. **Rego:** a secondary held-out format (Q16), reported with CIs outside the Holm family. Cedar is
+   the primary.
+3. **Control rendering:** nl_statement, as built in P4.1 (`sft-data-v1`, no rebuild).
+4. **BFCL regression check:** the BFCL v3 `simple` and `multiple` categories, AST evaluation, no
+   execution, every item, with the BFCL prompt and our pinned models. A drop of more than 2 pp whose
+   95% CI excludes 0 is reported as a regression. The harness is the new step P4.2b; its version,
+   data revision and item count are named here by a dated amendment before any BFCL run.
+5. **Hyperparameters:** `configs/authinv/sft_lora.yaml` as it stands (r 32, alpha 64, 1 epoch,
+   lr 1e-4), no search and no early stopping. The validation loss is reported, never used for
+   selection.
+6. **Tasks in training:** application and interpretation, as built.
 
-**Needed before any training (proposed new step P4.2b, a plan change):**
+**Before any training (step P4.2b, adopted):**
 - adapter evaluation in the T2 harness: vLLM `enable_lora` with a `LoRARequest`, the adapter
   sha256 recorded in the run, and otherwise the frozen T2 config and parser;
-- the BFCL-subset harness of choice 4;
+- the BFCL-subset harness of decision 4;
 - a GPU smoke test of the trainer and of LoRA serving on both real models, H100 GPU 7 with
-  `--max-steps`, outputs discarded.
+  `--max-steps`, outputs discarded and disclosed below.
 
 ## What is known from Phase 2 (the no-SFT arm)
 
