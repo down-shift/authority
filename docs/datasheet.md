@@ -99,8 +99,9 @@ Every row carries its source's license. A release must carry:
 - the project's license for synthetic content.
 
 The builder copies the upstream files byte for byte, after checking their pinned hashes. It refuses
-any source whose license is missing or incompatible with the release license. The proposed release
-license is Apache-2.0. Publishing, and the license choice, are Jerzy's decisions.
+any source whose license is missing or incompatible with the release license. The release license
+is Apache-2.0 (decided 2026-11-08). Publishing waits for the camera-ready, because the NeurIPS main
+track is double-blind; reviewers get the data as anonymous supplementary material.
 
 ## Maintenance
 
