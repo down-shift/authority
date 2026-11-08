@@ -427,7 +427,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
 ### P4.2b — [GPU: H100] Adapter evaluation, BFCL harness, GPU smoke tests
-- status: claimed
+- status: in_review (#72; GPU smoke queued on H100)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-08T16:44:48Z
 - deps: P4.2
