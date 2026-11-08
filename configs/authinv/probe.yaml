@@ -1,5 +1,5 @@
 # Phase-5 probing tooling (P5.1; scripts/authinv_probe.py; src/authinv/probe/). Optional phase.
-# Models, world subset, layers and labels are provisional until the Phase-5 preregistration (P5.2).
+# Models, world subset, layers and labels are frozen by docs/prereg/phase5.md (P5.2); a change is an amendment.
 experiment: authinv_p5_probing
 dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
 tasks: [application, interpretation]
