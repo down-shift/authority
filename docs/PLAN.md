@@ -427,9 +427,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
 ### P4.2b — [GPU: H100] Adapter evaluation, BFCL harness, GPU smoke tests
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-08T16:44:48Z
 - deps: P4.2
 - source: docs/prereg/phase4.md (approved by Jerzy 2026-11-08: "Go ahead with your suggestions")
 - done-when: T2 evaluation of a LoRA adapter through vLLM (`enable_lora` + `LoRARequest`, adapter sha256 in the run, otherwise the frozen T2 config and parser); a BFCL v3 simple + multiple AST harness (pinned data revision, item count, our pinned models, base and adapter); tests; a GPU smoke test on H100 GPU 7 of the trainer (`--max-steps`) and of LoRA serving on Qwen3.5-9B and Gemma-4-12B-it, outputs discarded and disclosed; a dated amendment naming the harness in docs/prereg/phase4.md; gate green.
