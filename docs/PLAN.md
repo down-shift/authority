@@ -377,7 +377,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: zero-shot CoT; restate-as-JSON-then-answer (single prompt); self-consistency across renderings (labelled analysis-only, not deployable); Policy-as-Logic-style pipeline (LLM extracts facts, Clingo/engine decides); external enforcement proxy upper bound (0% UIR by construction); token + latency accounting per arm; tests; gate green.
 
 ### P3.3 — Preregister Phase 3
-- status: in_review (#62, draft: awaits Jerzy's six choices)
+- status: done
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:12:51Z
 - deps: P3.1 P3.2
