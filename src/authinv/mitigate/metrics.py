@@ -5,13 +5,18 @@ world's rate is the mean over its rows, CIs are world-clustered percentile
 bootstraps. Closure pairs the arm with the T2 baseline of the same model on
 the same worlds and uses the same bootstrap draws for both.
 
-Gap closure (both reported; the Phase-3 preregistration names the primary):
+Gap closure (all three reported; docs/prereg/phase3.md decision 1 makes ``own``
+with a worst-case guard the Gate-3 reading):
 - ``own``: 1 - (arm best - arm worst) / (base best - base worst), each arm
   picking its own best and worst rendering by point estimate;
 - ``pair``: 1 - (arm[b] - arm[w]) / (base[b] - base[w]) on the baseline's
-  best b and worst w.
+  best b and worst w;
+- ``floor``: (arm worst - base worst) / (base best - base worst), which rises
+  only when the worst case improves.
 A ratio is undefined when the baseline gap is 0 in a bootstrap draw; those
-draws are dropped from the interval and counted.
+draws are dropped from the interval and counted. The worst-case accuracy change
+(arm worst - base worst, each its own worst rendering) carries a two-sided
+paired bootstrap p (the Phase-3 Holm family).
 """
 
 from __future__ import annotations
@@ -110,6 +115,19 @@ def _ratio_summary(num: np.ndarray, den: np.ndarray, point_num: float, point_den
     }
 
 
+def _floor_summary(delta: np.ndarray, den: np.ndarray, point_delta: float, point_den: float) -> dict:
+    ok = den != 0
+    return {
+        "mean": None if point_den == 0 else float(point_delta / point_den),
+        "ci95": _ci(delta[ok] / den[ok]) if ok.any() else [None, None],
+        "undefined_draws": int((~ok).sum()),
+    }
+
+
+def _p_two_sided(boot: np.ndarray) -> float:
+    return float(min(1.0, 2 * min(np.mean(boot <= 0), np.mean(boot >= 0))))
+
+
 def gap_closure(arm: list[dict], base: list[dict], task: str, replicates: int = 4000, seed: int = 0) -> dict:
     """Closure of the worst-case gap, worst-case accuracy change, and per-rendering deltas vs the baseline."""
     arm = [r for r in arm if r["task"] == task]
@@ -132,6 +150,7 @@ def gap_closure(arm: list[dict], base: list[dict], task: str, replicates: int = 
     base_gap, own_gap, pair_gap = b[bb] - b[bw], a[ab] - a[aw], a[bb] - a[bw]
     gb, go, gp = boot(base_gap), boot(own_gap), boot(pair_gap)
     worst_delta = a[aw] - b[bw]
+    gd = boot(worst_delta)
     return {
         "baseline": {"best": bb, "worst": bw, "gap": _summ(base_gap, idx)},
         "arm": {
@@ -142,7 +161,13 @@ def gap_closure(arm: list[dict], base: list[dict], task: str, replicates: int = 
         },
         "closure_own": _ratio_summary(go, gb, float(np.nanmean(own_gap)), float(np.nanmean(base_gap))),
         "closure_pair": _ratio_summary(gp, gb, float(np.nanmean(pair_gap)), float(np.nanmean(base_gap))),
-        "worst_case_accuracy_delta": {**_summ(worst_delta, idx), "arm": pa[aw], "baseline": pb[bw]},
+        "closure_floor": _floor_summary(gd, gb, float(np.nanmean(worst_delta)), float(np.nanmean(base_gap))),
+        "worst_case_accuracy_delta": {
+            **_summ(worst_delta, idx),
+            "p_bootstrap": _p_two_sided(gd),
+            "arm": pa[aw],
+            "baseline": pb[bw],
+        },
         "accuracy_delta": {g: _summ(a[g] - b[g], idx) for g in rends},
         "worlds": len(worlds),
     }

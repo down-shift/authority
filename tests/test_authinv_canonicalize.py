@@ -288,6 +288,8 @@ def test_two_stage_run_with_oracle_conversions(tmp_path):
     assert c["baseline"]["worst"] == "owner_statement" and c["baseline"]["gap"]["mean"] == 1.0
     assert c["closure_pair"]["mean"] == pytest.approx(1.0)  # owner_statement fixed, the best stays correct
     assert c["arm"]["worst"] == "nl_statement" and c["closure_own"]["mean"] == pytest.approx(0.0)
+    assert c["closure_floor"]["mean"] == pytest.approx(0.0)  # the worst case did not move (0 -> 0)
+    assert c["worst_case_accuracy_delta"]["p_bootstrap"] == 1.0
     cost = m["cost"]
     assert cost["per_rendering"]["table"]["conversion_tokens_per_query"] > 0
     assert cost["per_rendering"]["nl_statement"]["decision_tokens_per_query"] == 0
@@ -386,3 +388,33 @@ def test_split_prompt_keeps_blank_lines_inside_a_rendering():
     rego = next(r for r in rows if r["rendering"] == "rego" and r["task"] == "application")
     _, text, tail = split_prompt(rego["prompt"], "application")
     assert "\n\n" in text and text == render(pol, "rego").rstrip() and tail.startswith("\n\nRequest: ")
+
+
+def test_floor_closure_and_worst_case_p():
+    from authinv.mitigate.metrics import gap_closure
+
+    def rows(acc):  # acc: rendering -> share of worlds answered correctly
+        out = []
+        for w in range(40):
+            for g, a in acc.items():
+                out.append(
+                    {
+                        "task": "application",
+                        "world_id": f"w{w}",
+                        "assignment": "orig",
+                        "instance": "q0",
+                        "rendering": g,
+                        "category": "correct" if w < a * 40 else "incorrect",
+                    }
+                )
+        return out
+
+    base = rows({"table": 1.0, "rego": 0.5})
+    c = gap_closure(rows({"table": 1.0, "rego": 0.75}), base, "application", 500, 1)
+    assert c["closure_floor"]["mean"] == pytest.approx(0.5) and c["closure_own"]["mean"] == pytest.approx(0.5)
+    assert c["worst_case_accuracy_delta"]["mean"] == pytest.approx(0.25)
+    assert c["worst_case_accuracy_delta"]["p_bootstrap"] < 0.05
+    down = gap_closure(rows({"table": 0.5, "rego": 0.5}), base, "application", 500, 1)
+    assert down["closure_own"]["mean"] == pytest.approx(1.0) and down["closure_floor"][
+        "mean"
+    ] == pytest.approx(0.0)

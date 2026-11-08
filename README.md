@@ -199,6 +199,12 @@ python scripts/authinv_agent_eval.py run --config configs/authinv/p3_solver_t3.y
   --benchmark outputs/<frozen benchmark run> --model <key> --canon-run <canonicalization run of that model>
 ```
 
+```sh
+python scripts/authinv_p3_report.py --config configs/authinv/p3_report.yaml --out <report.json> [--md <table.md>]
+```
+
+`authinv_p3_report.py` aggregates the Phase-3 runs listed in `configs/authinv/p3_report.yaml` against the Phase-2 runs: gap closure (own / pair / floor), the Gate-3 count, Holm families, and the T3 changes.
+
 `run` asks the frozen T2 prompt with only its answer instruction changed, either zero-shot CoT or restate-as-JSON-then-answer. `derive` computes self-consistency (a majority vote over the six T2 answers) and the solver pipeline (the model's canonicalization conversions, decided by the engine) from frozen runs. Arm definitions are in `src/authinv/mitigate/baselines.py`. The two T3 arms built on a canonicalization run (the agent sees its own IR; the proxy enforces its own IR) are in `src/authinv/agent/arms.py`.
 
 ## authinv Phase 4: SFT data
