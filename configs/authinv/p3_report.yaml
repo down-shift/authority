@@ -1,0 +1,21 @@
+# P3.4: the Phase-3 run set behind the mitigation report (scripts/authinv_p3_report.py).
+# Baselines are the Phase-2 runs of configs/authinv/phase2_figures.yaml (T2 `t2`, T3 `t3`). Arm runs are
+# listed per configuration as they complete; a configuration or arm without a run is reported as missing.
+# The Gate-3 rule and the inference below are docs/prereg/phase3.md (decisions 1, 2; amendment 1).
+experiment: authinv_p3_report
+phase2: configs/authinv/phase2_figures.yaml
+dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83
+task: application
+bootstrap: {replicates: 4000, t2_seed: 20261010, t3_seed: 20261013}
+alpha: 0.05
+gate3:
+  arm: canon                 # arm 1
+  reading: closure_own       # decision 1, with the worst-case guard
+  threshold: 0.5
+  majority: 7                # of the 12 configurations (decision 2)
+  sensitivity_exclude: [qwen3_8_27b_fp8, qwen3_8_27b_thinking]   # the 10 distinct models
+  sensitivity_majority: 6
+t2_arms: [canon, cot, restate, solver, self_consistency]
+t3_arms: [proxy, t3canon, t3solver]
+holm_t3_arms: [t3canon, t3solver]   # amendment 1; the proxy's UIR is 0 by construction
+runs: {}   # key -> {arm: run dir}, filled as P3.4 runs complete

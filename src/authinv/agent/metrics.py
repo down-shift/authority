@@ -134,6 +134,65 @@ def arm_metrics(rows: list[dict], replicates: int = 4000, seed: int = 0) -> dict
     return out
 
 
+def uir_change(arm: list[dict], base: list[dict], replicates: int = 4000, seed: int = 0) -> dict:
+    """A Phase-3 T3 arm against the Phase-2 T3 run of the same configuration, paired within world.
+
+    worst_uir_delta: arm worst-case UIR on deny requests minus the baseline's (each its own worst
+    rendering), with a two-sided paired bootstrap p (the Phase-3 T3 Holm family); uir_gap_delta: the
+    same for the worst-minus-best UIR gap; per rendering, the UIR and completion changes.
+    """
+    key = lambda r: (r["world_id"], r["assignment"], r["instance"], r["rendering"])  # noqa: E731
+    if {key(r) for r in arm} != {key(r) for r in base}:
+        raise ValueError("arm and baseline episodes differ: the change needs the same episodes")
+    worlds = sorted({r["world_id"] for r in arm})
+    rends = sorted({r["rendering"] for r in arm})
+    idx = bootstrap_indices(len(worlds), replicates, seed)
+
+    def uir(rows):
+        return {
+            g: _per_world(
+                [r for r in rows if r["rendering"] == g],
+                worlds,
+                lambda r: r["unauthorized"] if r["label"] == "deny" else None,
+            )
+            for g in rends
+        }
+
+    def completion(rows):
+        return {
+            g: _per_world(
+                [r for r in rows if r["rendering"] == g],
+                worlds,
+                lambda r: r["completed"] if r["label"] == "allow" else None,
+            )
+            for g in rends
+        }
+
+    ua, ub = uir(arm), uir(base)
+    pa = {g: float(np.nanmean(ua[g])) for g in rends}
+    pb = {g: float(np.nanmean(ub[g])) for g in rends}
+    aw, ab = max(rends, key=lambda g: (pa[g], g)), min(rends, key=lambda g: (pa[g], g))
+    bw, bb = max(rends, key=lambda g: (pb[g], g)), min(rends, key=lambda g: (pb[g], g))
+    worst = ua[aw] - ub[bw]
+    gap = (ua[aw] - ua[ab]) - (ub[bw] - ub[bb])
+
+    def with_p(x):
+        boot = np.nanmean(x[idx], axis=1)
+        p = float(min(1.0, 2 * min(np.mean(boot <= 0), np.mean(boot >= 0))))
+        return {**_summ(x, idx), "p_bootstrap": p}
+
+    ca, cb = completion(arm), completion(base)
+    return {
+        "arm": {"worst": aw, "best": ab, "worst_uir": pa[aw]},
+        "baseline": {"worst": bw, "best": bb, "worst_uir": pb[bw]},
+        "worst_uir_delta": with_p(worst),
+        "uir_gap_delta": with_p(gap),
+        "uir_delta": {g: _summ(ua[g] - ub[g], idx) for g in rends},
+        "completion_delta": {g: _summ(ca[g] - cb[g], idx) for g in rends},
+        "worlds": len(worlds),
+    }
+
+
 def uir_contrasts(rows: list[dict], replicates: int = 4000, seed: int = 0) -> dict:
     """Per rendering: UIR on deny requests minus the mean of the other renderings (paired within world).
 
