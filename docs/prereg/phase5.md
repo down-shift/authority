@@ -1,8 +1,8 @@
 # Phase 5 preregistration: probes and CKA across renderings (optional phase)
 
-- status: **draft for review**. Phase 5 is optional (RESEARCH_PLAN §3), so whether to run it at
-  all is Jerzy's call. This file is the preregistration only once he has settled the choices below
-  and it is merged to `main`, before any extraction run on a real model.
+- status: **preregistration**, settled 2026-11-08 and merged to `main` before any extraction run on
+  a real model. Phase 5 is optional (RESEARCH_PLAN §3); it runs last on the H100, after the Phase-3
+  and Phase-4 runs. Its commit and timestamp are in `docs/prereg/MANIFEST.md`.
 - step: P5.2 (runs and report in P5.3; the causal check in P5.4) · spec: `docs/RESEARCH_PLAN.md` §3
   Phase 5, §4
 - frozen inputs: benchmark v2 (`0b602a17…`); tooling from P5.1 (`scripts/authinv_probe.py`,
@@ -10,19 +10,21 @@
 - What was known when this was written: every Phase-2 result. No activation has been extracted
   from a real model. The tooling has run on synthetic activations and a tiny random model only.
 
-## Choices for review (Jerzy), to settle before merge
+## Decisions (2026-11-08)
 
-1. **Run Phase 5 at all?** It is optional and costs about one GPU-day for two models. The probing
-   claim stays a single figure unless P5.4 finds a causal effect.
-2. **Models.** Recommended: Qwen3.5-9B and Gemma-4-12B-it. They are the Phase-4 SFT models, so
-   the probes can later be compared before and after SFT. Both have Phase-2 T1 runs and
-   mid-sized gaps (T2 5.8 / 6.1 pp; T1 5.7 / 5.8 pp) with high rendering disagreement (28.6% /
-   22.6%). Alternative: Qwen3.5-4B, which has the most disagreement (32.5%).
-3. **Items.** Recommended: 400 hash-selected worlds, with all six renderings, both assignments and
-   both tasks. That is 34,884 items per model, about 6 GB of float16 at every other layer.
-   Alternative: all 1,984 worlds, about 5× the storage.
-4. **Layers.** Every other hidden-state index, plus the last.
-5. **Thresholds**, below.
+Jerzy delegated these choices to the draft's recommendations ("On decisions: proceed with your
+best judgement. Go ahead with your suggestions.", 2026-11-08, in the session).
+
+1. **Phase 5 runs**, at the lowest priority on the H100: after the Phase-3 arms and the Phase-4
+   training and evaluation. It costs about one GPU-day for two models. The probing claim stays a
+   single figure unless P5.4 finds a causal effect.
+2. **Models:** Qwen3.5-9B and Gemma-4-12B-it, the Phase-4 SFT models, at their pinned revisions.
+   Both have Phase-2 T1 runs, mid-sized gaps (T2 5.8 / 6.1 pp; T1 5.7 / 5.8 pp) and high rendering
+   disagreement (28.6% / 22.6%).
+3. **Items:** the 400 hash-selected worlds of `configs/authinv/probe.yaml`, with all six
+   renderings, both assignments and both tasks: 34,884 items per model.
+4. **Layers:** every other hidden-state index, plus the last.
+5. **Thresholds:** as in Decision rules below.
 
 ## Questions
 
@@ -81,8 +83,9 @@ model and inputs. A cache that fails its hash check is never analysed.
 - P5.1 tooling was tested on synthetic activations (a planted shared vs rendering-specific signal)
   and on a tiny random Llama. On benchmark v2, CPU only, the 400-world subset gives 34,884 items;
   `forbid` is the rare governing class (70 per rendering).
-- A GPU smoke test of extraction on both models (H100 GPU 7, `--limit`, outputs discarded) is
-  pending before merge.
+- A GPU smoke test of extraction on both models (H100 GPU 7, `--limit`, outputs discarded) runs
+  before the first P5.3 extraction and is disclosed here by a dated amendment. It checks the
+  engine path, not probe accuracy.
 
 ## Amendments
 
