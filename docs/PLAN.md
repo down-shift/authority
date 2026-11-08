@@ -377,7 +377,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: zero-shot CoT; restate-as-JSON-then-answer (single prompt); self-consistency across renderings (labelled analysis-only, not deployable); Policy-as-Logic-style pipeline (LLM extracts facts, Clingo/engine decides); external enforcement proxy upper bound (0% UIR by construction); token + latency accounting per arm; tests; gate green.
 
 ### P3.2b — T3 hooks for canonicalization and a solver-enforced agent
-- status: in_review (#71)
+- status: done
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-08T16:27:25Z
 - deps: P3.1 P3.2
