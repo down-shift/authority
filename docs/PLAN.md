@@ -393,9 +393,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: docs/prereg/phase3.md with Gate 3 verbatim (canonicalization closes ≥50% of the worst-case gap on the majority of models, else the solver pipeline is the recommendation) committed and pushed before inference; MANIFEST row.
 
 ### P3.4 — [GPU: H100] Mitigation runs and report
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-08T16:27:27Z
 - deps: P3.3
 - source: RESEARCH_PLAN §3 Phase 3
 - done-when: all arms evaluated on T2 and T3 across the sweep (or the preregistered subset; the two P3.2b T3 arms once P3.2b is merged); gap closure with CIs; docs/experiments/p3.4-mitigations.md with the Gate 3 recommendation; docs/PROGRESS.md entry.
