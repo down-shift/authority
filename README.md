@@ -215,3 +215,26 @@ python scripts/authinv_sft_train.py plan --config configs/authinv/sft_lora.yaml 
 ```
 
 Trains one LoRA adapter per (model, arm, seed) on the frozen P4.1 data. `multi` uses the four-rendering set and `control` the token-matched single-format set; the no-SFT arm is the base model. Each run writes `train_log.jsonl`, `metrics.json` (validation loss and adapter sha256) and `adapter/`. Training sequences are the eval harness's own generation prompt followed by the answer. See `src/authinv/sft/train.py`.
+
+## authinv Phase 5: probing tooling (optional phase)
+
+```sh
+uv run --extra inference python scripts/authinv_probe.py extract --config configs/authinv/probe.yaml \
+  --dataset outputs/<frozen benchmark run> --model <key>
+python scripts/authinv_probe.py analyze --config configs/authinv/probe.yaml --cache <extract run> --out <analysis.json>
+```
+
+`extract` caches the last-prompt-token hidden states of the selected layers on T1 prompts, with integrity hashes. `analyze` re-verifies the cache and writes per-layer cross-rendering probe transfer for `allow_deny`, `governing` and `owner_<k>` (with metadata-only, shuffled-label and majority baselines), plus per-layer linear CKA between renderings. See `src/authinv/probe/`.
+
+## authinv release and leaderboard
+
+```sh
+uv run --extra engines python scripts/fetch_cedarbench.py && uv run python scripts/fetch_quacky.py   # pinned upstream licenses
+uv run --extra engines python scripts/authinv_release.py build --config configs/authinv/release.yaml \
+  --benchmark outputs/<frozen benchmark run> --out <release dir>
+python scripts/authinv_release.py verify --release <release dir>
+python scripts/authinv_leaderboard.py run --model <HF model id> --data <release dir>   # vLLM 0.29.0
+python scripts/authinv_leaderboard.py table --runs <leaderboard runs> --phase2 configs/authinv/phase2_figures.yaml
+```
+
+The builder writes the Hugging Face Datasets layout: policies, renderings, requests, equivalence proofs, prompts, a dataset card, LICENSE, NOTICE and the upstream licenses, plus a MANIFEST.json with per-file sha256. It builds locally only; publishing is a separate, manual step. The leaderboard pins the model revision to a commit sha and uses the frozen T2 settings. The T3 sandbox as a reusable harness is described in `docs/t3_harness.md`.
