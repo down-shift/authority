@@ -3,7 +3,7 @@
 
   python scripts/authinv_agent_eval.py run --config configs/authinv/t3.yaml --benchmark DIR --model KEY
         [--model-dir DIR] [--tensor-parallel N] [--enforce-eager] [--resume RUN] [--max-episodes N]
-        [--dataset-only]
+        [--dataset-only] [--canon-run RUN]
   python scripts/authinv_agent_eval.py aggregate --config configs/authinv/t3.yaml --runs T3RUN... \
         --t2-runs T2RUN... [--out FILE]
 
@@ -11,6 +11,9 @@ DIR is the frozen Phase-1 benchmark (P1.10). Episodes reuse its worlds, assignme
 (re-derived and checked against the frozen rows). Writes episodes.jsonl (transcripts + outcomes),
 metrics.json, metadata, run status, and the artifact manifest under outputs/. `aggregate` applies the
 T3 Holm family and the T2->T3 transfer analysis (docs/prereg/phase2-t3.md) to complete runs.
+
+A config with `arm: canon_t3 | solver_proxy` (P3.2b, `src/authinv/agent/arms.py`) runs a Phase-3 T3
+arm and needs --canon-run, the complete arm-1 canonicalization run of the same model.
 """
 
 from __future__ import annotations
@@ -26,8 +29,15 @@ sys.path.insert(0, str(ROOT / "src"))
 import yaml  # noqa: E402
 
 from authinv import models, provenance  # noqa: E402
+from authinv.agent.arms import ARM_VERSIONS, apply_arm, load_conversions  # noqa: E402
 from authinv.agent.episodes import build_episodes  # noqa: E402
-from authinv.agent.metrics import agent_metrics, proxy_metrics, transfer, uir_contrasts  # noqa: E402
+from authinv.agent.metrics import (  # noqa: E402
+    agent_metrics,
+    arm_metrics,
+    proxy_metrics,
+    transfer,
+    uir_contrasts,
+)
 from authinv.agent.sandbox import AGENT_VERSION, PROXY_VERSION, outcome, run  # noqa: E402
 from authinv.eval import invariance, metrics  # noqa: E402
 
@@ -36,6 +46,8 @@ TRACKED = [ROOT / "scripts" / "authinv_agent_eval.py"] + [
     for p in (
         "agent/sandbox.py",
         "agent/episodes.py",
+        "agent/arms.py",
+        "mitigate/canonicalize.py",
         "agent/metrics.py",
         "eval/generation.py",
         "benchmark.py",
@@ -71,9 +83,11 @@ def model_metrics(recs: list[dict], a: dict) -> dict:
     proxy = (
         {"proxy": proxy_metrics(recs, n, seed)} if any("attempted_unauthorized" in r for r in recs) else {}
     )
+    arm = {"arm": arm_metrics(recs, n, seed)} if any(r.get("arm") for r in recs) else {}
     return {
         **agent_metrics(recs, n, seed),
         **proxy,
+        **arm,
         "uir_contrasts": uir_contrasts(recs, n, seed),
         "by_source_kind": {
             k: agent_metrics([r for r in recs if r["source_kind"] == k], n, seed)
@@ -170,6 +184,7 @@ def main() -> None:
     r.add_argument("--max-episodes", type=int, help="engineering smoke test only: first N episodes")
     r.add_argument("--output-root", type=Path, default=ROOT / "outputs")
     r.add_argument("--dataset-only", action="store_true")
+    r.add_argument("--canon-run", type=Path, help="P3.2b arms: the arm-1 canonicalization run of the model")
     g = sub.add_parser("aggregate")
     g.add_argument("--config", type=Path, required=True)
     g.add_argument("--runs", type=Path, nargs="+", required=True)
@@ -185,6 +200,13 @@ def main() -> None:
     enforce = bool(cfg.get("enforce"))  # P3.2 enforcement proxy (proxy-v1); off for every Phase-2 config
     if enforce and cfg.get("proxy_version") != PROXY_VERSION:
         raise SystemExit(f"config proxy_version {cfg.get('proxy_version')} != code {PROXY_VERSION}")
+    arm = cfg.get("arm")  # P3.2b T3 arms; unset for agent-v4 and proxy-v1
+    if arm and cfg.get("arm_version") != ARM_VERSIONS.get(arm):
+        raise SystemExit(f"config arm {arm} version {cfg.get('arm_version')} != code {ARM_VERSIONS.get(arm)}")
+    if bool(arm) != bool(args.canon_run):
+        raise SystemExit("--canon-run is needed exactly when the config sets an arm")
+    if arm == "solver_proxy" and not enforce:
+        raise SystemExit("the solver_proxy arm needs enforce: true")
     spec = models.model_spec(args.model)
     episodes, info = build_episodes(args.benchmark, assignments=tuple(cfg["assignments"]))
     for ep in episodes:
@@ -193,21 +215,26 @@ def main() -> None:
         raise SystemExit(
             f"benchmark {info['dataset_sha256']} is not the preregistered {cfg['dataset_sha256']}"
         )
+    arm_info = None
+    if arm:
+        convs, arm_info = load_conversions(args.canon_run, spec, info["dataset_sha256"])
+        arm_info["ir_states"] = apply_arm(episodes, arm, convs)
     if args.max_episodes:
         episodes = episodes[: args.max_episodes]
     total = len(episodes)
     if args.resume:
         run_dir = args.resume
         old = json.loads((run_dir / "config.json").read_text())
-        if (old["config_sha256"], old["model"], old["episodes"], old["smoke_limit"]) != (
+        if (old["config_sha256"], old["model"], old["episodes"], old["smoke_limit"], old.get("arm")) != (
             provenance.sha256_json(cfg),
             spec,
             info,
             args.max_episodes,
+            arm_info,
         ):
-            raise SystemExit("--resume refused: config, model, benchmark, or episode set differs")
+            raise SystemExit("--resume refused: config, model, benchmark, episode set, or canon run differs")
     else:
-        tag = "t3proxy" if enforce else "t3"
+        tag = {"canon_t3": "t3canon", "solver_proxy": "t3solver"}.get(arm) or ("t3proxy" if enforce else "t3")
         run_dir = args.output_root / f"{provenance.utc_stamp()}_authinv_{tag}_{args.model}"
         run_dir.mkdir(parents=True, exist_ok=False)
         provenance.write_json(
@@ -219,6 +246,7 @@ def main() -> None:
                 "benchmark": str(args.benchmark),
                 "episodes": info,
                 "smoke_limit": args.max_episodes,
+                **({"arm": arm_info} if arm else {}),
                 "command": sys.argv,
             },
         )
@@ -252,6 +280,7 @@ def main() -> None:
                 "source_sha256": provenance.source_hashes(TRACKED),
                 "agent_version": AGENT_VERSION,
                 **({"proxy_version": PROXY_VERSION} if enforce else {}),
+                **({"arm": arm, "arm_version": ARM_VERSIONS[arm]} if arm else {}),
                 "resumed_after": len(done),
                 "command": sys.argv,
             },

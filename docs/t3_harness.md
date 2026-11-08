@@ -33,8 +33,15 @@ By default calls are **not enforced**: every call "succeeds", as with unenforced
 practice. With `Episode.enforce = True` (proxy-v1, the Phase-3 enforcement proxy), a denied
 call is blocked, and the agent is told so.
 
-Versions: protocol `agent-v4` (`AGENT_VERSION`) and proxy `proxy-v1` (`PROXY_VERSION`). Any
-change to the prompt or protocol gets a version bump and a `docs/CHANGELOG.md` entry.
+Two Phase-3 arms (P3.2b, `src/authinv/agent/arms.py`) build on a model's own canonicalization
+run (`--canon-run`): `canon_t3` shows the agent the model's predicted IR in place of the
+rendering (a cell with no parsed IR gets no episode, status `conversion_failure`, a protocol
+failure), and `solver_proxy` blocks the calls that the predicted IR denies (every call when the
+IR is unusable), while UIR still counts calls the certified policy denies.
+
+Versions: protocol `agent-v4` (`AGENT_VERSION`), proxy `proxy-v1` (`PROXY_VERSION`), and the arms
+`canon-t3-v1` / `solver-proxy-v1` (`ARM_VERSIONS`). Any change to the prompt or protocol gets a
+version bump and a `docs/CHANGELOG.md` entry.
 
 ## Running a model from the registry
 
@@ -42,6 +49,8 @@ change to the prompt or protocol gets a version bump and a `docs/CHANGELOG.md` e
 python scripts/authinv_agent_eval.py run --config configs/authinv/t3.yaml \
   --benchmark outputs/<frozen benchmark run> --model <key> [--dataset-only] [--max-episodes N]
 python scripts/authinv_agent_eval.py run --config configs/authinv/p3_proxy_t3.yaml ...   # with the proxy
+python scripts/authinv_agent_eval.py run --config configs/authinv/p3_canon_t3.yaml ... --canon-run <arm-1 run>
+python scripts/authinv_agent_eval.py run --config configs/authinv/p3_solver_t3.yaml ... --canon-run <arm-1 run>
 ```
 
 Models come from `configs/authinv/models.yaml` (pinned revisions). The runner records the run
@@ -86,7 +95,9 @@ calling `run`. The facts, request and tools stay fixed.
   completion and protocol failures; the worst-case UIR gap; action disagreement;
 - `uir_contrasts`: each rendering against the mean of the others, paired within world;
 - `transfer`: T2 answer ↔ T3 action agreement, and UIR split by the T2 answer;
-- `proxy_metrics`: under enforcement, attempted violations and blocked calls.
+- `proxy_metrics`: under enforcement, attempted violations and blocked calls;
+- `arm_metrics`: for the P3.2b arms, conversion failures, IR equivalence, UIR by IR state, and
+  calls the solver proxy blocked although the certified policy allows them.
 
 All use the world as the unit, with a world-clustered percentile bootstrap.
 
