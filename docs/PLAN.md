@@ -435,7 +435,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: T2 evaluation of a LoRA adapter through vLLM (`enable_lora` + `LoRARequest`, adapter sha256 in the run, otherwise the frozen T2 config and parser); a BFCL v3 simple + multiple AST harness (pinned data revision, item count, our pinned models, base and adapter); tests; a GPU smoke test on H100 GPU 7 of the trainer (`--max-steps`) and of LoRA serving on Qwen3.5-9B and Gemma-4-12B-it, outputs discarded and disclosed; a dated amendment naming the harness in docs/prereg/phase4.md; gate green.
 
 ### P4.3 — Preregister Phase 4
-- status: in_review (#65, draft: awaits Jerzy's six choices)
+- status: done
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:56:27Z
 - deps: P4.2
