@@ -216,6 +216,20 @@ uv run --extra inference python scripts/authinv_build_sft.py --config configs/au
 
 Generates train-only synthetic worlds whose vocabulary and policy hashes are disjoint from the eval benchmark; the build refuses on any overlap. Writes `train_multi.jsonl` (four training renderings, with Cedar and Rego held out), `val_multi.jsonl`, one token-matched single-format control per SFT model (`control_<model>.jsonl`), `worlds.jsonl`, and `manifest.json` (hashes, counts, tokens, disjointness, the no-SFT baseline). Tokens are counted with each model's pinned tokenizer and chat template. See `src/authinv/sft/data.py`.
 
+
+## authinv Phase 4: adapter evaluation and the BFCL check
+
+```sh
+python scripts/authinv_eval.py run --config configs/authinv/t2.yaml --dataset outputs/<frozen benchmark run> \
+  --model <key> --adapter <SFT run of that model>                     # T2 with a LoRA adapter (vLLM LoRA)
+python scripts/authinv_bfcl.py fetch --config configs/authinv/bfcl.yaml   # pinned BFCL v3 files, sha-checked
+python scripts/authinv_bfcl.py run --config configs/authinv/bfcl.yaml --data outputs/<bfcl data> \
+  --model <key> [--adapter <SFT run>] [--limit N]
+python scripts/authinv_bfcl.py compare --config configs/authinv/bfcl.yaml --base <base BFCL run> \
+  --runs <adapter BFCL runs ...> [--out FILE]
+```
+
+`--adapter` checks the adapter's file hashes against the trainer's record and stores them in the run. The BFCL check (`src/authinv/bfcl.py`) scores the official default prompting path for the simple and multiple categories with an AST check and no execution; `compare` gives each arm's accuracy change against the base model and flags a regression (a drop of more than 2 pp whose 95% CI excludes 0).
 ## authinv Phase 4: LoRA SFT
 
 ```sh

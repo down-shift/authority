@@ -132,4 +132,37 @@ reason.
 
 ## Amendments
 
-None yet.
+### Amendment 1 (2026-11-08): the P4.2b harness
+
+Original frozen as `phase4@3ebec83.md`. Committed before any BFCL run, any adapter evaluation and
+any training run on a real model, smoke tests included. Decision 4 required the BFCL harness to be
+named here.
+
+- **Adapter evaluation (T2).** `scripts/authinv_eval.py run --adapter <SFT run>`: the frozen T2
+  config, prompt and parser (`configs/authinv/t2.yaml`, json-strict-v3), the base model at its
+  pinned revision, and the adapter served by vLLM LoRA (`enable_lora`, `max_lora_rank` = the
+  adapter's r, one `LoRARequest` for every request; not merged into the weights). The run refuses
+  an adapter of another model, an incomplete training run, or adapter files whose sha256 differs
+  from the trainer's record, and stores the hashes (run tag `t2sft_<model>_<arm>_s<seed>`).
+- **BFCL check (bfcl-ast-v1).** `scripts/authinv_bfcl.py` + `src/authinv/bfcl.py` +
+  `configs/authinv/bfcl.yaml`:
+  - data: BFCL v3 `simple` (400 items) and `multiple` (200 items), 600 in all, with their
+    possible answers, from `gorilla-llm/Berkeley-Function-Calling-Leaderboard` at revision
+    `61fc0608cfd831fcfbbaa676ebdfef0ed963eeda` (Apache-2.0); each file's sha256 is pinned in the
+    config;
+  - prompt, decoder and AST checker: the official default prompting path, Python only, vendored
+    from gorilla commit `6ea57973c7a6097fd7c5915698c54c17c5b1b6c8` and kept as written there.
+    Two differences, both safety-motivated: an arithmetic argument is evaluated only when it is
+    numeric arithmetic on literals (the official decoder `eval`s it), and any decoder or checker
+    exception scores the item invalid with its own error type;
+  - decoding: greedy, seed 20261010, 1,024 new tokens, thinking off (both models' registry
+    entries), a think block stripped as in T2;
+  - metric: accuracy over all 600 items (per category reported), with a percentile bootstrap over
+    items (4,000 replicates, seed 20261010). The item is the unit; there are no worlds.
+  - comparison: per (model, arm), an item's value is the mean validity of the arm's three
+    adapters; arm − base on the same items with a paired bootstrap over items. A **regression**
+    is a drop of more than 2 pp on all 600 items whose 95% CI excludes 0 (decision 4). Per-seed
+    differences and per-category differences are reported alongside, outside the rule.
+- **GPU smoke test** (before any training run): the trainer for a few optimizer steps on each
+  model, T2 adapter evaluation and BFCL on a few hundred rows / items, base and adapter, on H100
+  GPU 7. Outputs are discarded and disclosed in the engineering disclosure by a later amendment.

@@ -3,6 +3,7 @@
 
   python scripts/authinv_eval.py run --config configs/authinv/t2.yaml --dataset DIR --model KEY
         [--model-dir DIR] [--tensor-parallel N] [--resume RUN] [--dataset-only] [--tokenizer-audit-only]
+        [--adapter SFTRUN]
   python scripts/authinv_eval.py aggregate --config configs/authinv/t2.yaml --runs RUN [RUN ...] [--out F]
   python scripts/authinv_eval.py rescore --config configs/authinv/t2.yaml --run RUN [--output-root DIR]
 
@@ -14,6 +15,10 @@ DIR is a frozen dataset directory built by P1.10: dataset.jsonl plus dataset_man
 ({"sha256": ..., "rows": ...}). Each row carries: row_id, world_id, assignment, instance,
 rendering, task (application | interpretation), prompt, expected (decision or principal ids),
 label (application), pair_key, and principal_ids (interpretation).
+
+--adapter (P4.2b) evaluates a trained LoRA adapter (an SFT run directory of the same model) through
+vLLM LoRA serving, with the frozen T2 config and parser otherwise unchanged. The adapter's file
+hashes are checked against the trainer's record and stored in the run (run tag `t2sft`).
 """
 
 from __future__ import annotations
@@ -48,6 +53,7 @@ TRACKED = [ROOT / "scripts" / "authinv_eval.py"] + [
         "eval/parse.py",
         "models.py",
         "provenance.py",
+        "sft/adapter.py",
     )
 ]
 
@@ -107,18 +113,25 @@ def cmd_run(args) -> None:
         raise SystemExit(f"dataset {dataset_sha} is not the preregistered benchmark {cfg['dataset_sha256']}")
     if cfg.get("parser_version") and cfg["parser_version"] != JSON_PARSER_VERSION:
         raise SystemExit(f"config parser {cfg['parser_version']} != code {JSON_PARSER_VERSION}")
+    adapter = None
+    if args.adapter:
+        from authinv.sft.adapter import load_adapter
+
+        adapter = load_adapter(args.adapter, args.model, spec, smoke=bool(args.limit))
     if args.resume:
         run = args.resume
         old = json.loads((run / "config.json").read_text())
-        if (old["config_sha256"], old["model"], old["dataset_sha256"], old["parser_version"]) != (
-            provenance.sha256_json(cfg),
-            spec,
-            dataset_sha,
-            JSON_PARSER_VERSION,
-        ):
-            raise SystemExit("--resume refused: config, model, dataset, or parser differs")
+        if (
+            old["config_sha256"],
+            old["model"],
+            old["dataset_sha256"],
+            old["parser_version"],
+            old.get("adapter"),
+        ) != (provenance.sha256_json(cfg), spec, dataset_sha, JSON_PARSER_VERSION, adapter):
+            raise SystemExit("--resume refused: config, model, dataset, parser, or adapter differs")
     else:
-        run = args.output_root / f"{provenance.utc_stamp()}_authinv_t2_{args.model}"
+        tag = f"t2sft_{args.model}_{adapter['arm']}_s{adapter['seed']}" if adapter else f"t2_{args.model}"
+        run = args.output_root / f"{provenance.utc_stamp()}_authinv_{tag}"
         run.mkdir(parents=True, exist_ok=False)
         provenance.write_json(
             run / "config.json",
@@ -130,6 +143,7 @@ def cmd_run(args) -> None:
                 "dataset": str(args.dataset),
                 "dataset_sha256": dataset_sha,
                 "parser_version": JSON_PARSER_VERSION,
+                **({"adapter": adapter} if adapter else {}),
                 "command": sys.argv,
             },
         )
@@ -161,7 +175,9 @@ def cmd_run(args) -> None:
             "enforce_eager": args.enforce_eager,
             "max_num_seqs": args.max_num_seqs,
         }
-        chat = VLLMChat(spec, str(args.model_dir) if args.model_dir else None, gen, args.tensor_parallel)
+        chat = VLLMChat(
+            spec, str(args.model_dir) if args.model_dir else None, gen, args.tensor_parallel, lora=adapter
+        )
         provenance.write_json(
             run / "metadata.json",
             {
@@ -173,6 +189,7 @@ def cmd_run(args) -> None:
                 "dataset_sha256": dataset_sha,
                 "command": sys.argv,
                 "parser_version": JSON_PARSER_VERSION,
+                **({"adapter": adapter} if adapter else {}),
             },
         )
         provenance.write_run_status(run, "running", len(done), total)
@@ -353,6 +370,7 @@ def main() -> None:
     r.add_argument("--dataset-only", action="store_true")
     r.add_argument("--tokenizer-audit-only", action="store_true")
     r.add_argument("--limit", type=int, help="engineering smoke test: first N rows only; never analysed")
+    r.add_argument("--adapter", type=Path, help="P4.2b: an SFT run of this model; evaluate its LoRA adapter")
     r.set_defaults(func=cmd_run)
     s = sub.add_parser("rescore")
     s.add_argument("--config", type=Path, required=True)

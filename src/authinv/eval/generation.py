@@ -88,12 +88,27 @@ def _with_schema(params, structured):
 
 
 class VLLMChat:
+    """`lora` (P4.2b): {"path": adapter dir, "rank": r} serves one LoRA adapter on the base model;
+    every request then goes through it. Without `lora` the engine is exactly the T2 engine."""
+
     def __init__(
-        self, spec: dict[str, Any], model_path: str | None, gen: dict[str, Any], tensor_parallel: int = 1
+        self,
+        spec: dict[str, Any],
+        model_path: str | None,
+        gen: dict[str, Any],
+        tensor_parallel: int = 1,
+        lora: dict[str, Any] | None = None,
     ):
         from vllm import LLM, SamplingParams
 
         self.spec = spec
+        self.lora_request = None
+        lora_kw = {}
+        if lora:
+            from vllm.lora.request import LoRARequest
+
+            lora_kw = {"enable_lora": True, "max_lora_rank": int(lora["rank"]), "max_loras": 1}
+            self.lora_request = LoRARequest("adapter", 1, str(lora["path"]))
         self.llm = LLM(
             model=model_path or spec["name"],
             revision=None if model_path else spec["revision"],
@@ -107,6 +122,7 @@ class VLLMChat:
             **({"max_num_seqs": gen["max_num_seqs"]} if gen.get("max_num_seqs") else {}),
             # Multimodal checkpoints are scored on text prompts only: skip the vision/audio towers.
             **({"language_model_only": True} if spec.get("multimodal") else {}),
+            **lora_kw,
         )
         self.harmony = spec.get("output_format") == "harmony"
         self.params = SamplingParams(
@@ -126,7 +142,15 @@ class VLLMChat:
         `max_tokens` overrides the configured limit for this call (Phase-3 arms run two
         stages with different limits); T2 never passes it.
         """
-        convs = [[{"role": "user", "content": p}] for p in prompts]
+        return self.generate_chats([[{"role": "user", "content": p}] for p in prompts], schemas, max_tokens)
+
+    def generate_chats(
+        self,
+        convs: list[list[dict]],
+        schemas: list[dict | None] | None = None,
+        max_tokens: int | None = None,
+    ) -> list[dict]:
+        """`generate` on whole conversations (system + user turns; the BFCL check, P4.2b)."""
         params = self.params
         if max_tokens is not None:
             params = self.params.clone()
@@ -139,7 +163,9 @@ class VLLMChat:
                 base.clone() if sch is None else _with_schema(base, StructuredOutputsParams(json=sch))
                 for sch in schemas
             ]
-        outs = self.llm.chat(convs, params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs)
+        outs = self.llm.chat(
+            convs, params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs, **self._lora()
+        )
         rows = []
         for o in outs:
             row = {
@@ -160,12 +186,15 @@ class VLLMChat:
         `harmony_agent_turn`) so the raw harmony text is stored; other models return plain text.
         """
         outs = self.llm.chat(
-            conversations, self.params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs
+            conversations, self.params, use_tqdm=False, chat_template_kwargs=self.chat_kwargs, **self._lora()
         )
         texts = [o.outputs[0].text for o in outs]
         if self.harmony:
             return [{"text": harmony_agent_turn(t), "raw": t} for t in texts]
         return texts
+
+    def _lora(self) -> dict:
+        return {"lora_request": self.lora_request} if self.lora_request is not None else {}
 
     def provenance(self) -> dict:
         import torch

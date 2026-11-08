@@ -1,0 +1,26 @@
+# Phase-4 BFCL-subset regression check (P4.2b; scripts/authinv_bfcl.py; src/authinv/bfcl.py, bfcl-ast-v1).
+# BFCL v3 simple (400) + multiple (200), Python, AST evaluation, no execution, every item; the official
+# default prompt, decoder and checker vendored from gorilla at gorilla_commit. Base model and each adapter.
+# Frozen by docs/prereg/phase4.md (decision 4 and its amendment); a change is a version bump and a rerun.
+experiment: authinv_p4_bfcl
+bfcl_version: bfcl-ast-v1
+gorilla_commit: 6ea57973c7a6097fd7c5915698c54c17c5b1b6c8
+hf_dataset: gorilla-llm/Berkeley-Function-Calling-Leaderboard
+hf_revision: 61fc0608cfd831fcfbbaa676ebdfef0ed963eeda
+license: apache-2.0
+files:                     # sha256 of each pinned file
+  BFCL_v3_simple.json: fbc37b2ad252bf9af985582e0e07b456173fe627d957491472ea9cef5fb83158
+  BFCL_v3_multiple.json: aef168155ebd74b7ac2401198b201343bc7d16d7a3d7e0d4e6d8ee82c6969b2a
+  possible_answer/BFCL_v3_simple.json: 2911a2bc00df82c4f999ffa64fedb0164cb88e96212ffa5972087eb91fd496ee
+  possible_answer/BFCL_v3_multiple.json: 244e00ce9395df948bcafc7bee64e8f9c87ef70887587d83cae45b13699f3047
+categories: {simple: 400, multiple: 200}   # items per category
+generation:
+  seed: 20261010
+  temperature: 0.0
+  max_tokens: 1024         # a call list is short; thinking is off for both Phase-4 models
+  max_model_len: 8192
+  batch_size: 256
+analysis:
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261010
+  regression_threshold: 0.02   # a drop > 2 pp whose 95% CI excludes 0 (phase4.md decision 4)
