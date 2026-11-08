@@ -376,8 +376,16 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - source: RESEARCH_PLAN §3 Phase 3 arm 2, §6 recommendations
 - done-when: zero-shot CoT; restate-as-JSON-then-answer (single prompt); self-consistency across renderings (labelled analysis-only, not deployable); Policy-as-Logic-style pipeline (LLM extracts facts, Clingo/engine decides); external enforcement proxy upper bound (0% UIR by construction); token + latency accounting per arm; tests; gate green.
 
+### P3.2b — T3 hooks for canonicalization and a solver-enforced agent
+- status: todo
+- owner: —
+- claimed_at: —
+- deps: P3.1 P3.2
+- source: docs/prereg/phase3.md decision 4 (approved by Jerzy 2026-11-08: "Go ahead with your suggestions")
+- done-when: two T3 arms in the agent harness, versioned and tested: (a) canonicalization in T3 — the agent's system prompt carries the model's own arm-1 IR (canonically serialized) in place of the rendering, cells without a usable IR handled as a preregistered category; (b) solver-enforced agent — the sandbox blocks calls the model's own arm-1 IR denies (reference evaluator), fail-closed when the IR is unusable; both read a finished arm-1 run of the same configuration and otherwise equal agent-v4; configs; a dated amendment naming them in docs/prereg/phase3.md before any of their inference; gate green.
+
 ### P3.3 — Preregister Phase 3
-- status: in_review (#62, draft: awaits Jerzy's six choices)
+- status: done
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:12:51Z
 - deps: P3.1 P3.2
@@ -390,7 +398,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - claimed_at: —
 - deps: P3.3
 - source: RESEARCH_PLAN §3 Phase 3
-- done-when: all arms evaluated on T2 and T3 across the sweep (or the preregistered subset); gap closure with CIs; docs/experiments/p3.4-mitigations.md with the Gate 3 recommendation; docs/PROGRESS.md entry.
+- done-when: all arms evaluated on T2 and T3 across the sweep (or the preregistered subset; the two P3.2b T3 arms once P3.2b is merged); gap closure with CIs; docs/experiments/p3.4-mitigations.md with the Gate 3 recommendation; docs/PROGRESS.md entry.
 
 ### G3 — [HUMAN] Gate 3: mitigation verdict
 - status: todo
@@ -418,6 +426,14 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - source: RESEARCH_PLAN §3 Phase 4 task 2
 - done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
+### P4.2b — [GPU: H100] Adapter evaluation, BFCL harness, GPU smoke tests
+- status: todo
+- owner: —
+- claimed_at: —
+- deps: P4.2
+- source: docs/prereg/phase4.md (approved by Jerzy 2026-11-08: "Go ahead with your suggestions")
+- done-when: T2 evaluation of a LoRA adapter through vLLM (`enable_lora` + `LoRARequest`, adapter sha256 in the run, otherwise the frozen T2 config and parser); a BFCL v3 simple + multiple AST harness (pinned data revision, item count, our pinned models, base and adapter); tests; a GPU smoke test on H100 GPU 7 of the trainer (`--max-steps`) and of LoRA serving on Qwen3.5-9B and Gemma-4-12B-it, outputs discarded and disclosed; a dated amendment naming the harness in docs/prereg/phase4.md; gate green.
+
 ### P4.3 — Preregister Phase 4
 - status: in_review (#65, draft: awaits Jerzy's six choices)
 - owner: jrzkaminski@jerzy-pro.home
@@ -430,7 +446,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - status: todo
 - owner: —
 - claimed_at: —
-- deps: P4.3
+- deps: P4.3 P4.2b
 - source: RESEARCH_PLAN §3 Phase 4 task 4
 - done-when: all arms × models × seeds trained and evaluated; worst-case gap on held-in and held-out (Cedar) renderings with CIs; general tool-use regression on a BFCL subset; docs/experiments/p4.4-format-diverse-sft.md; docs/PROGRESS.md entry.
 
@@ -445,7 +461,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: `probing` extra; residual-stream extraction on T1 prompts with cache integrity hashes; per-layer linear probes for owner identity, allow/deny, governing field, trained on one rendering and tested on the others; metadata-only and shuffled-label baselines; per-layer CKA between renderings; tests on synthetic activations; gate green.
 
 ### P5.2 — Preregister Phase 5
-- status: claimed
+- status: in_review (#68, draft: Phase 5 is optional, awaits Jerzy)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T22:18:21Z
 - deps: P5.1
@@ -471,7 +487,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Appendix and release
 
 ### A1.1 — [GPU: H100] Cross-scope interference with constraint count fixed (only if time)
-- status: todo
+- status: blocked
+- note: only if time: needs Jerzy's go (new E2-style design, prereg and a GPU sweep); not started
 - owner: —
 - claimed_at: —
 - deps: G2
@@ -479,9 +496,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: E2-style design re-implemented in authinv with constraint count held fixed and semantic independence varied; preregistered in docs/prereg/appendix-cross-scope.md before inference; report docs/experiments/a1.1-cross-scope.md engaging with the "not pairwise" finding.
 
 ### D1.1 — Benchmark release and leaderboard script
-- status: todo
-- owner: —
-- claimed_at: —
+- status: done
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T22:23:41Z
 - deps: G1 P2.9
 - source: RESEARCH_PLAN §6 deliverables 1–3
 - done-when: release builder producing the HF Datasets layout (policies, renderings, equivalence proofs, request sets, datasheet, license compatible with every source); leaderboard script producing the worst-case table for any HF model id; T3 sandbox documented as a reusable harness; publishing itself is left to Jerzy.
