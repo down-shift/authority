@@ -193,9 +193,13 @@ python scripts/authinv_baselines.py derive --arm solver --config configs/authinv
   --dataset outputs/<frozen benchmark run> --canon-run <canonicalization run> [--baseline <T2 run>]   # CPU only
 python scripts/authinv_agent_eval.py run --config configs/authinv/p3_proxy_t3.yaml \
   --benchmark outputs/<frozen benchmark run> --model <key>           # T3 with the enforcement proxy
+python scripts/authinv_agent_eval.py run --config configs/authinv/p3_canon_t3.yaml \
+  --benchmark outputs/<frozen benchmark run> --model <key> --canon-run <canonicalization run of that model>
+python scripts/authinv_agent_eval.py run --config configs/authinv/p3_solver_t3.yaml \
+  --benchmark outputs/<frozen benchmark run> --model <key> --canon-run <canonicalization run of that model>
 ```
 
-`run` asks the frozen T2 prompt with only its answer instruction changed, either zero-shot CoT or restate-as-JSON-then-answer. `derive` computes self-consistency (a majority vote over the six T2 answers) and the solver pipeline (the model's canonicalization conversions, decided by the engine) from frozen runs. Arm definitions are in `src/authinv/mitigate/baselines.py`.
+`run` asks the frozen T2 prompt with only its answer instruction changed, either zero-shot CoT or restate-as-JSON-then-answer. `derive` computes self-consistency (a majority vote over the six T2 answers) and the solver pipeline (the model's canonicalization conversions, decided by the engine) from frozen runs. Arm definitions are in `src/authinv/mitigate/baselines.py`. The two T3 arms built on a canonicalization run (the agent sees its own IR; the proxy enforces its own IR) are in `src/authinv/agent/arms.py`.
 
 ## authinv Phase 4: SFT data
 

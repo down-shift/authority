@@ -96,6 +96,44 @@ def proxy_metrics(rows: list[dict], replicates: int = 4000, seed: int = 0) -> di
     return out
 
 
+def arm_metrics(rows: list[dict], replicates: int = 4000, seed: int = 0) -> dict:
+    """Phase-3 T3 arms (P3.2b): how the model's own IR shaped the episode, per rendering.
+
+    conversion_failure: share of episodes with no parsed IR (canon_t3 runs none of them);
+    ir_equivalent: share whose cell IR is engine-equivalent to the certified policy;
+    uir_deny_by_ir: UIR on deny requests split by IR state (equivalent / not equivalent / no IR),
+    as plain means with counts; wrongly_blocked_any (solver_proxy): among allowed requests, the
+    share with >= 1 blocked call the certified policy allows.
+    """
+    worlds = sorted({r["world_id"] for r in rows})
+    idx = bootstrap_indices(len(worlds), replicates, seed)
+    out = {}
+    for g in sorted({r["rendering"] for r in rows}):
+        rs = [r for r in rows if r["rendering"] == g]
+        cell = {
+            "conversion_failure": _summ(_per_world(rs, worlds, lambda r: r["conversion_failure"]), idx),
+            "ir_equivalent": _summ(_per_world(rs, worlds, lambda r: r["ir_equivalent"]), idx),
+            "uir_deny_by_ir": {},
+        }
+        for state, sel in (
+            ("equivalent", lambda r: r["ir_equivalent"]),
+            ("not_equivalent", lambda r: r["conv_category"] == "ir" and not r["ir_equivalent"]),
+            ("no_ir", lambda r: r["conv_category"] != "ir"),
+        ):
+            d = [r for r in rs if r["label"] == "deny" and sel(r)]
+            cell["uir_deny_by_ir"][state] = {
+                "episodes": len(d),
+                "uir": float(np.mean([r["unauthorized"] for r in d])) if d else None,
+            }
+        if any("wrongly_blocked" in r for r in rs):
+            cell["wrongly_blocked_any"] = _summ(
+                _per_world(rs, worlds, lambda r: r["wrongly_blocked"] > 0 if r["label"] == "allow" else None),
+                idx,
+            )
+        out[g] = cell
+    return out
+
+
 def uir_contrasts(rows: list[dict], replicates: int = 4000, seed: int = 0) -> dict:
     """Per rendering: UIR on deny requests minus the mean of the other renderings (paired within world).
 

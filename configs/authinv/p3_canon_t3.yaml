@@ -1,0 +1,28 @@
+# Phase-3 T3 arm: canonicalization in T3 (P3.2b; scripts/authinv_agent_eval.py --canon-run ARM1RUN).
+# Identical to configs/authinv/t3.yaml (agent-v4 prompt, tools, protocol, limits) except that the agent's
+# system prompt carries the model's own arm-1 IR (canon-v1, canonically serialized) in place of the
+# rendering (canon-t3-v1, src/authinv/agent/arms.py). No enforcement. A cell without a parsed IR gets no
+# episode (conversion_failure, counted as a protocol failure). Frozen by docs/prereg/phase3.md.
+experiment: authinv_p3_canon_t3
+seed: 20261013
+dataset_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2 (P1.13)
+agent_version: agent-v4
+enforce: false
+arm: canon_t3
+arm_version: canon-t3-v1
+canon_version: canon-v1
+max_steps: 4
+assignments: [orig, swap]
+generation:
+  seed: 20261013
+  temperature: 0.0
+  max_tokens: 256
+  max_model_len: 16384   # the IR can be longer than the rendering (as arm-1 stage 2); outputs are unaffected
+  batch_size: 512
+generation_overrides:
+  gpt_oss_20b: {max_tokens: 4096, max_model_len: 20480}
+  gpt_oss_120b: {max_tokens: 4096, max_model_len: 20480}
+  qwen3_8_27b_thinking: {max_tokens: 4096, max_model_len: 20480}
+analysis:
+  bootstrap_replicates: 4000
+  bootstrap_seed: 20261013
