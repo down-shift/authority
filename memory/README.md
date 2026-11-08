@@ -28,6 +28,10 @@ the rest of the team's agents never see it. Committing it here fixes that.
   under `/data/storage/kaluzhnaya_jhub/`, GPU #7 only, clean up).
 - `lesson-gate-exit-status.md` — a piped gate and an unprotected `main` let a red PR merge; check exit codes and CI conclusion before merging.
 - `lesson-qwen38-serving-traps.md` — Qwen3.8's chat template opens `<think>` in the prompt (parser v2 missed it); hybrid Mamba needs `--max-num-seqs 128`; thinking-off still reasons on Rego.
+- `lesson-harmony-constrain-header.md` — gpt-oss writes `final <|constrain|>json<|message|>` when tools are listed; a parser that expects `final<|message|>` returns empty turns (T3 agent-v2 → agent-v3).
 - `lesson-preregistration-git-trail.md` — squash/rebase erase the
   rule-before-result evidence; merge experiment PRs with `--merge`; only say
   "pre-registered" with a timestamped commit (see `docs/prereg/`).
+- `lesson-transformers5-chat-template-dict.md` — `apply_chat_template(tokenize=True)` returns an encoding dict in transformers 5; `len()` of it is 2. Read `input_ids` and sanity-check counts.
+- `lesson-run-image-dependencies.md` — the vLLM run image lacks scipy; keep analysis-only imports lazy in run modules, and smoke-test runners in the image.
+- `lesson-multimodal-checkpoints-lora.md` — Gemma 4 loads as a unified multimodal class; exclude vision/audio modules from LoRA; fall back to image-text-to-text like the T1 scorer.

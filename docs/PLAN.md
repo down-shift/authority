@@ -377,7 +377,7 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: zero-shot CoT; restate-as-JSON-then-answer (single prompt); self-consistency across renderings (labelled analysis-only, not deployable); Policy-as-Logic-style pipeline (LLM extracts facts, Clingo/engine decides); external enforcement proxy upper bound (0% UIR by construction); token + latency accounting per arm; tests; gate green.
 
 ### P3.3 — Preregister Phase 3
-- status: claimed
+- status: in_review (#62, draft: awaits Jerzy's six choices)
 - owner: jrzkaminski@jerzy-pro.home
 - claimed_at: 2026-11-07T21:12:51Z
 - deps: P3.1 P3.2
@@ -403,25 +403,25 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 4 — Format-diverse LoRA SFT (Weeks 13–16, parallel with Phase 3)
 
 ### P4.1 — SFT data (Cedar held out)
-- status: todo
-- owner: —
-- claimed_at: —
+- status: done
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T21:23:13Z
 - deps: G2
 - source: RESEARCH_PLAN §3 Phase 4 task 1, 3
 - done-when: synthetic training policies disjoint from the eval benchmark (hash-checked), rendered in four renderings with Cedar held out; matched-token single-format control set; no-SFT baseline defined; dataset hashes + manifest; tests for disjointness; gate green.
 
 ### P4.2 — LoRA SFT trainer
-- status: todo
-- owner: —
-- claimed_at: —
+- status: done
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T21:47:44Z
 - deps: P4.1
 - source: RESEARCH_PLAN §3 Phase 4 task 2
 - done-when: config-driven LoRA trainer (Qwen3.5-9B, Gemma-4-12B-it — amended 2026-10-08; r ∈ {16..64}; seeds from config, 3 per arm) with provenance and adapter hashes; a smoke test on a tiny model skipped without torch; gate green.
 
 ### P4.3 — Preregister Phase 4
-- status: todo
-- owner: —
-- claimed_at: —
+- status: in_review (#65, draft: awaits Jerzy's six choices)
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T21:56:27Z
 - deps: P4.2
 - source: RESEARCH_PLAN §3 Phase 4, §4
 - done-when: docs/prereg/phase4.md (held-in vs held-out worst-case gap, controls, BFCL-subset regression check) committed and pushed before training; MANIFEST row.
@@ -437,17 +437,17 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Phase 5 — Probing (Weeks 14–17, optional)
 
 ### P5.1 — Activation extraction, probes, CKA tooling
-- status: todo
-- owner: —
-- claimed_at: —
+- status: done
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T22:07:48Z
 - deps: G2
 - source: RESEARCH_PLAN §3 Phase 5 tasks 1, 2, 4
 - done-when: `probing` extra; residual-stream extraction on T1 prompts with cache integrity hashes; per-layer linear probes for owner identity, allow/deny, governing field, trained on one rendering and tested on the others; metadata-only and shuffled-label baselines; per-layer CKA between renderings; tests on synthetic activations; gate green.
 
 ### P5.2 — Preregister Phase 5
-- status: todo
-- owner: —
-- claimed_at: —
+- status: in_review (#68, draft: Phase 5 is optional, awaits Jerzy)
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T22:18:21Z
 - deps: P5.1
 - source: RESEARCH_PLAN §4
 - done-when: docs/prereg/phase5.md committed and pushed before extraction runs; MANIFEST row.
@@ -471,7 +471,8 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 ## Appendix and release
 
 ### A1.1 — [GPU: H100] Cross-scope interference with constraint count fixed (only if time)
-- status: todo
+- status: blocked
+- note: only if time: needs Jerzy's go (new E2-style design, prereg and a GPU sweep); not started
 - owner: —
 - claimed_at: —
 - deps: G2
@@ -479,9 +480,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: E2-style design re-implemented in authinv with constraint count held fixed and semantic independence varied; preregistered in docs/prereg/appendix-cross-scope.md before inference; report docs/experiments/a1.1-cross-scope.md engaging with the "not pairwise" finding.
 
 ### D1.1 — Benchmark release and leaderboard script
-- status: todo
-- owner: —
-- claimed_at: —
+- status: done
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-07T22:23:41Z
 - deps: G1 P2.9
 - source: RESEARCH_PLAN §6 deliverables 1–3
 - done-when: release builder producing the HF Datasets layout (policies, renderings, equivalence proofs, request sets, datasheet, license compatible with every source); leaderboard script producing the worst-case table for any HF model id; T3 sandbox documented as a reusable harness; publishing itself is left to Jerzy.

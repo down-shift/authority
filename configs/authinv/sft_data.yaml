@@ -1,0 +1,19 @@
+# Phase-4 SFT data (P4.1; scripts/authinv_build_sft.py; src/authinv/sft/data.py, sft-data-v1).
+# Train-only domains disjoint from the eval benchmark; four training renderings; Cedar held out.
+experiment: authinv_p4_sft_data
+data_version: sft-data-v1
+seed: 20261107
+domains: [ledger, hangar, archive]
+replicates:              # per design cell (24 cells per domain); worlds are assigned by replicate index
+  multi: 6               # 3 x 24 x 6 = 432 worlds: the multi-format training set
+  val: 1                 # 72 worlds: multi-format selection set (training renderings only)
+  control_pool: 40       # 2,880 worlds the token-matched single-format control draws from (it used ~2,150 of 2,160 under chars/4)
+min_per_label: 4         # non-degeneracy, as P1.6
+per_label: 2             # requests per label per world, as the benchmark (P1.10)
+tasks: [application, interpretation]
+train_renderings: [nl_statement, owner_statement, table, json_policy]
+held_out_renderings: [executable, rego]   # Cedar held out (RESEARCH_PLAN §3 Phase 4); Rego is unseen too
+control_rendering: nl_statement           # the single-format control's one rendering
+token_models: [qwen3_5_9b, gemma4_12b]    # Phase-4 SFT models (amended 2026-10-08); one control per model
+eval_benchmark_sha256: 0b602a1701bc52aaaf676973f24ea87b1e27acd9029f5e0523174d51894a4f83   # benchmark v2
+phase2_figures: configs/authinv/phase2_figures.yaml   # names the no-SFT baseline runs (Phase-2 T2)
