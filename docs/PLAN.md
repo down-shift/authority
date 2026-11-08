@@ -377,9 +377,9 @@ see `docs/AUTONOMY.md` § Hardware-aware claiming.
 - done-when: zero-shot CoT; restate-as-JSON-then-answer (single prompt); self-consistency across renderings (labelled analysis-only, not deployable); Policy-as-Logic-style pipeline (LLM extracts facts, Clingo/engine decides); external enforcement proxy upper bound (0% UIR by construction); token + latency accounting per arm; tests; gate green.
 
 ### P3.2b — T3 hooks for canonicalization and a solver-enforced agent
-- status: todo
-- owner: —
-- claimed_at: —
+- status: claimed
+- owner: jrzkaminski@jerzy-pro.home
+- claimed_at: 2026-11-08T16:27:25Z
 - deps: P3.1 P3.2
 - source: docs/prereg/phase3.md decision 4 (approved by Jerzy 2026-11-08: "Go ahead with your suggestions")
 - done-when: two T3 arms in the agent harness, versioned and tested: (a) canonicalization in T3 — the agent's system prompt carries the model's own arm-1 IR (canonically serialized) in place of the rendering, cells without a usable IR handled as a preregistered category; (b) solver-enforced agent — the sandbox blocks calls the model's own arm-1 IR denies (reference evaluator), fail-closed when the IR is unusable; both read a finished arm-1 run of the same configuration and otherwise equal agent-v4; configs; a dated amendment naming them in docs/prereg/phase3.md before any of their inference; gate green.
