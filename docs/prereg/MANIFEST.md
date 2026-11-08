@@ -21,6 +21,7 @@ hash of the code that produced it.
 | Phase 2 T1/T2: worst-case gap, direction, dissociation, Holm over 72 (model, rendering) contrasts, scaling test, quantization rule | `91cf920` | 2026-10-08 17:34:28 | 2026-10-08 17:46:27 (qwen3_5_4b T2 run dir) | `phase2.md` (original: `phase2@91cf920.md`) |
 | Phase 2 T3: worst-case UIR gap on deny requests, separate T3 Holm family over 72 (model, rendering) UIR contrasts, T2→T3 transfer, cross-tier Spearman, agent-v2 protocol | `4694983` | 2026-10-16 16:46:08 | 2026-10-16 16:49:55 (agent-v2 gpt_oss_120b run dir) | `phase2-t3.md` (original: `phase2-t3@4694983.md`) |
 | Phase 3 mitigations: Gate-3 own-gap closure with a worst-case guard over all 12 configurations (pair / floor secondary), canonicalization canon-v1, baselines baseline-v1 / json-final-v1, enforcement proxy proxy-v1, Holm over 12 worst-case-accuracy changes per arm | `93d8d7a` | 2026-11-08 16:20:02 | — (P3.4 pending) | `phase3.md` |
+| Phase 4 LoRA SFT: Cedar held out; H1–H3 (Cedar transfer vs no-SFT and vs the token-matched control; six-rendering gap), Holm over 6; BFCL v3 simple + multiple regression (> 2 pp, CI excludes 0) | `3ebec83` | 2026-11-08 16:22:17 | — (P4.4 pending) | `phase4.md` |
 
 ## Amendments
 
